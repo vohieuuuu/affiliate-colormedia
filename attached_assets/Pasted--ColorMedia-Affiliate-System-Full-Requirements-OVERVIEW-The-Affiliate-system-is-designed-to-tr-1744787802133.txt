@@ -1,0 +1,143 @@
+✅ ColorMedia Affiliate System – Full Requirements
+🔍 OVERVIEW
+The Affiliate system is designed to track and display information for each affiliate user, including:
+
+Number of referred leads (contacts)
+
+Progress of each referred lead
+
+Total revenue generated from signed contracts
+
+Affiliate’s commission balance and withdrawal requests
+
+All data will be sent via API (e.g. from Lark). The system is read-only for users, except for the "Request Withdrawal" feature.
+
+📥 1. INPUT DATA STRUCTURE (From API)
+Each affiliate's data will be structured as follows:
+
+
+Field	Description
+id	Unique ID of the affiliate
+full_name	Full name
+email	Email address
+phone	Phone number
+bank_account	Bank account number
+bank_name	Bank name
+total_contacts	Total number of referred leads
+total_contracts	Number of signed contracts
+contract_value	Total value of signed contracts
+received_balance	Amount received so far
+paid_balance	Amount already paid
+remaining_balance	Remaining balance
+referred_customers	List of referred customers (details below)
+📌 referred_customers – Customer Detail Structure:
+
+Field	Description
+customer_name	Name of the referred customer
+status	Current progress status: Contact received, Presenting idea, Contract signed, Pending reconciliation, Ready to disburse
+updated_at	Last status update timestamp
+note	Internal notes (optional)
+🖥️ 2. SYSTEM INTERFACE FEATURES
+2.1. Affiliate Dashboard (Personal View)
+Displays affiliate profile and performance metrics:
+
+Full name, email, phone, bank details
+
+Total contacts referred
+
+Total signed contracts
+
+Total contract value
+
+Commission balances: received / paid / remaining
+
+Default Salekit materials (PDFs, guides, links, slogans)
+
+2.2. Top Affiliates Leaderboard
+Ranked based on:
+
+Total contract value
+
+Number of signed contracts
+
+Number of referred leads
+
+Display top 5 or top 10 (configurable)
+
+2.3. List of Referred Customers
+A detailed table showing:
+
+Customer name
+
+Current status
+
+Last updated date
+
+Clicking a customer opens a read-only timeline:
+
+Contact received
+
+Presenting idea
+
+Contract signed
+
+Pending reconciliation
+
+Ready to disburse
+
+2.4. Withdraw Commission Request (ONLY interactive feature)
+Button: "Request Withdrawal"
+
+Opens a form:
+
+Amount to withdraw (must not exceed remaining balance)
+
+Optional note
+
+Checkbox to confirm bank account info is accurate
+
+On submit, send a webhook JSON like this:
+
+json
+Copy
+Edit
+{
+  "user_id": "AFF123",
+  "full_name": "Nguyen Van A",
+  "email": "a.nguyen@example.com",
+  "phone": "0987654321",
+  "bank_account": "0123456789",
+  "bank_name": "TPBank",
+  "amount_requested": 5000000,
+  "note": "Commission for April",
+  "request_time": "2025-04-16T15:00:00+07:00"
+}
+Confirmation message: ✅ “Your withdrawal request has been submitted successfully.”
+
+(Optional) 2.4.1. Withdrawal History
+Display a table of previous withdrawal requests:
+
+
+Request Date	Amount	Note	Status
+2025-04-15	5,000,000 VND	Commission for March	Processing
+🎨 3. ADDITIONAL UI ELEMENTS
+3.1. Footer Branding
+Text or logo: ColorMedia Affiliate
+
+Include links:
+
+Commission policy
+
+Terms of service
+
+Contact support
+
+3.2. Responsive Design
+Fully responsive (mobile and desktop)
+
+Optional: Support for dark mode
+
+🚫 USER PERMISSIONS
+❌ Users cannot edit any personal or performance data
+
+✅ Only allowed action: Submit withdrawal requests
