@@ -157,10 +157,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   } else {
-    // Trong môi trường development, sử dụng token đơn giản
-    secureApiEndpoints.forEach(endpoint => {
-      app.use(endpoint, authenticateToken);
-    });
+    // Trong môi trường development, bỏ qua xác thực để test API
+    console.log("TEST MODE: Authentication disabled for testing");
+    // Bỏ comment dòng dưới đây nếu muốn bật lại xác thực
+    // secureApiEndpoints.forEach(endpoint => {
+    //  app.use(endpoint, authenticateToken);
+    // });
   }
   
   // API endpoint to get affiliate data
@@ -295,17 +297,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               });
             } else {
-              // Trong môi trường development không dùng database
-              // Tạo affiliate mới không liên kết với user
-              const newAffiliate = await storage.createAffiliate(affiliateData);
-              
-              return res.status(201).json({
-                status: "success",
-                data: {
-                  ...newAffiliate,
-                  message: "New affiliate created (DEV mode - no user account)"
-                }
-              });
+              // Mô phỏng hành vi trong môi trường sử dụng database
+              // Giả định tạo user
+              console.log("=== TEST MODE: Simulating user creation and email sending ===");
+
+              try {
+                // Import để sử dụng hàm sendAccountActivationEmail
+                const { sendAccountActivationEmail } = await import("./email");
+                
+                // Giả lập tạo người dùng và gửi email
+                await sendAccountActivationEmail(
+                  affiliateData.full_name,
+                  affiliateData.email,
+                  "color1234@" // Mật khẩu mặc định
+                );
+                
+                // Tạo affiliate mới (không có user thật vì không có database)
+                const newAffiliate = await storage.createAffiliate(affiliateData);
+                
+                return res.status(201).json({
+                  status: "success",
+                  data: {
+                    ...newAffiliate,
+                    message: "New affiliate created with simulated user account (DEV mode)"
+                  }
+                });
+              } catch (emailError) {
+                console.error("Error sending activation email:", emailError);
+                
+                // Vẫn tạo affiliate nếu gửi email thất bại
+                const newAffiliate = await storage.createAffiliate(affiliateData);
+                
+                return res.status(201).json({
+                  status: "success",
+                  data: {
+                    ...newAffiliate,
+                    message: "New affiliate created but failed to send email notification (DEV mode)"
+                  }
+                });
+              }
             }
           } catch (userError) {
             console.error("Error creating user for affiliate:", userError);
