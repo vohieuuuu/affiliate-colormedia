@@ -4,9 +4,11 @@
 
 import nodemailer from 'nodemailer';
 
-// Thông tin xác thực email
-const EMAIL = "contact@colormedia.vn";
-const PASSWORD = "email_password_here"; // Trong môi trường thực tế, sử dụng biến môi trường
+// Lấy thông tin xác thực email từ biến môi trường
+const EMAIL = process.env.SMTP_USER || "contact@colormedia.vn";
+const PASSWORD = process.env.SMTP_PASS || "email_password_here";
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.larksuite.com";
+const SMTP_PORT = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 465;
 
 // Cấu hình dịch vụ email
 const FROM_EMAIL = "ColorMedia Affilate <contact@colormedia.vn>";
@@ -16,9 +18,9 @@ const LOGIN_URL = "https://affiliate.colormedia.vn";
 
 // Cấu hình nodemailer transporter
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', // Hoặc smtp server khác tùy theo nhà cung cấp email
-  port: 587,
-  secure: false, // true for 465, false for other ports
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465, // true for 465, false for other ports
   auth: {
     user: EMAIL,
     pass: PASSWORD,
@@ -28,11 +30,17 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Trong môi trường phát triển, chỉ log thông tin, không gửi email thật
+// Kiểm tra môi trường và thiết lập cấu hình
 const isDevelopment = process.env.NODE_ENV !== 'production';
+// SEND_REAL_EMAILS=true sẽ cho phép gửi email thật kể cả trong môi trường dev
+const sendRealEmails = process.env.SEND_REAL_EMAILS === 'true' || !isDevelopment;
 
-if (isDevelopment) {
+// Thông báo cấu hình email
+if (isDevelopment && !sendRealEmails) {
   console.log('Running in development mode, emails will be logged to console');
+} else if (isDevelopment && sendRealEmails) {
+  console.log('Running in development mode BUT emails WILL BE SENT to real recipients');
+  console.log(`Email config: ${SMTP_HOST}:${SMTP_PORT} (User: ${EMAIL})`);
 } else {
   console.log('Email service initialized for production');
 }
@@ -111,17 +119,21 @@ Trân trọng,
     html: htmlContent,
   };
 
-  // Nếu đang trong môi trường phát triển, chỉ log email
+  // Luôn log email trong môi trường development
   if (isDevelopment) {
     console.log('=========== ACCOUNT ACTIVATION EMAIL ===========');
     console.log(`TO: ${email}`);
     console.log(`SUBJECT: ${subject}`);
     console.log(`CONTENT: ${textContent}`);
     console.log('=================================================');
-    return true;
+    
+    // Nếu không gửi email thật thì trả về thành công
+    if (!sendRealEmails) {
+      return true;
+    }
   }
 
-  // Gửi email trong môi trường production
+  // Gửi email trong môi trường production hoặc khi cấu hình gửi email thật
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log(`Account activation email sent to ${email}: ${info.messageId}`);
@@ -210,16 +222,21 @@ Trân trọng,
     html: htmlContent,
   };
 
-  // Nếu đang trong môi trường phát triển, chỉ log email
+  // Luôn log email trong môi trường development
   if (isDevelopment) {
     console.log('=========== WITHDRAWAL REQUEST EMAIL ===========');
     console.log(`TO: ${email}`);
     console.log(`SUBJECT: ${subject}`);
     console.log(`CONTENT: ${textContent}`);
     console.log('===============================================');
-    return true;
+    
+    // Nếu không gửi email thật thì trả về thành công
+    if (!sendRealEmails) {
+      return true;
+    }
   }
 
+  // Gửi email trong môi trường production hoặc khi cấu hình gửi email thật
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log(`Withdrawal request email sent to ${email}: ${info.messageId}`);
