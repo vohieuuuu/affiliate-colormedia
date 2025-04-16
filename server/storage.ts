@@ -5,7 +5,9 @@ import {
   WithdrawalHistory,
   WithdrawalRequestPayload,
   InsertAffiliate,
-  CustomerStatusType
+  CustomerStatusType,
+  User,
+  UserRoleType
 } from "@shared/schema";
 import { DatabaseStorage } from "./databaseStorage";
 
@@ -20,11 +22,19 @@ export interface IStorage {
   addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void>;
   updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
   seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;
+  
+  // Thêm phương thức cho user
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(userData: { username: string; password: string; role: UserRoleType; is_first_login?: boolean }): Promise<User>;
+  getUserById(id: number): Promise<User | undefined>;
+  updateUserPassword(userId: number, password: string): Promise<void>;
+  markFirstLoginComplete(userId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private affiliate: Affiliate;
   private topAffiliates: TopAffiliate[];
+  private users: User[] = []; // Mảng lưu trữ người dùng mẫu
 
   constructor() {
     // Mock data for a sample affiliate
@@ -298,6 +308,55 @@ export class MemStorage implements IStorage {
       customers_added,
       withdrawals_added
     };
+  }
+
+  // -- Phương thức quản lý người dùng --
+
+  // Lấy người dùng theo tên đăng nhập
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return this.users.find(user => user.username === username);
+  }
+
+  // Tạo người dùng mới
+  async createUser(userData: { username: string; password: string; role: UserRoleType; is_first_login?: boolean }): Promise<User> {
+    const newId = this.users.length > 0 ? Math.max(...this.users.map(u => u.id)) + 1 : 1;
+    
+    const newUser: User = {
+      id: newId,
+      username: userData.username,
+      password: userData.password,
+      role: userData.role,
+      token: null,
+      is_first_login: userData.is_first_login ? 1 : 0
+    };
+    
+    this.users.push(newUser);
+    console.log(`DEV MODE: Created new user "${userData.username}" with role "${userData.role}"`);
+    
+    return newUser;
+  }
+
+  // Lấy người dùng theo ID
+  async getUserById(id: number): Promise<User | undefined> {
+    return this.users.find(user => user.id === id);
+  }
+
+  // Cập nhật mật khẩu người dùng
+  async updateUserPassword(userId: number, password: string): Promise<void> {
+    const userIndex = this.users.findIndex(user => user.id === userId);
+    if (userIndex !== -1) {
+      this.users[userIndex].password = password;
+      console.log(`DEV MODE: Updated password for user ID ${userId}`);
+    }
+  }
+
+  // Đánh dấu đã hoàn thành đăng nhập lần đầu
+  async markFirstLoginComplete(userId: number): Promise<void> {
+    const userIndex = this.users.findIndex(user => user.id === userId);
+    if (userIndex !== -1) {
+      this.users[userIndex].is_first_login = 0;
+      console.log(`DEV MODE: Marked first login complete for user ID ${userId}`);
+    }
   }
 }
 

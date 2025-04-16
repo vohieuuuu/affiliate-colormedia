@@ -299,20 +299,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } else {
               // Mô phỏng hành vi trong môi trường sử dụng database
               // Giả định tạo user
-              console.log("=== TEST MODE: Simulating user creation and email sending ===");
+              console.log("=== TEST MODE: Creating user account and sending activation email ===");
 
               try {
-                // Import để sử dụng hàm sendAccountActivationEmail
+                // Import để sử dụng hàm sendAccountActivationEmail và hashPassword
                 const { sendAccountActivationEmail } = await import("./email");
+                const { hashPassword } = await import("./auth");
                 
-                // Giả lập tạo người dùng và gửi email
+                // Mật khẩu mặc định
+                const temporaryPassword = "color1234@";
+                
+                // Mã hóa mật khẩu
+                const hashedPassword = await hashPassword(temporaryPassword);
+                
+                // Tạo tài khoản người dùng
+                const newUser = await storage.createUser({
+                  username: affiliateData.email,
+                  password: hashedPassword,
+                  role: "affiliate",
+                  is_first_login: 1
+                });
+                
+                // Gửi email kích hoạt
                 await sendAccountActivationEmail(
                   affiliateData.full_name,
                   affiliateData.email,
-                  "color1234@" // Mật khẩu mặc định
+                  temporaryPassword
                 );
                 
-                // Tạo affiliate mới (không có user thật vì không có database)
+                // Tạo affiliate mới và liên kết với user
+                affiliateData.user_id = newUser.id;
                 const newAffiliate = await storage.createAffiliate(affiliateData);
                 
                 return res.status(201).json({
