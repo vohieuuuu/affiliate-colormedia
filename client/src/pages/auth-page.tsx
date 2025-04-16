@@ -49,12 +49,6 @@ export default function AuthPage() {
   const { toast } = useToast();
   const { user, loginMutation, registerMutation } = useAuth();
   
-  // Nếu người dùng đã đăng nhập, chuyển hướng đến trang chủ
-  if (user) {
-    setLocation("/");
-    return null;
-  }
-  
   // Tạo form đăng nhập
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -73,6 +67,12 @@ export default function AuthPage() {
       confirmPassword: ""
     }
   });
+  
+  // Nếu người dùng đã đăng nhập, chuyển hướng đến trang chủ
+  if (user) {
+    setLocation("/");
+    return null;
+  }
   
   // Xử lý đăng nhập
   const handleLogin = (values: z.infer<typeof loginSchema>) => {
