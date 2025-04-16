@@ -937,7 +937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: "affiliate1@colormedia.vn",
         password: hashedAff1Password,
         role: "AFFILIATE",
-        is_first_login: false
+        is_first_login: true // Thiết lập là true để yêu cầu đổi mật khẩu khi đăng nhập lần đầu
       });
       
       // Tạo hồ sơ Affiliate 1
