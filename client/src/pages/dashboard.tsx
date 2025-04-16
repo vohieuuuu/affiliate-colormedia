@@ -19,9 +19,14 @@ export default function Dashboard() {
   const [selectedCustomer, setSelectedCustomer] = useState<ReferredCustomer | null>(null);
   
   // Fetch affiliate data
-  const { data: affiliateData, isLoading: isAffiliateLoading, error: affiliateError } = useQuery({
+  const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, error: affiliateError } = useQuery({
     queryKey: ['/api/affiliate'],
   });
+  
+  // Extract affiliate data from response
+  const affiliateData = apiAffiliateResponse?.status === "success" 
+    ? apiAffiliateResponse.data 
+    : undefined;
 
   // Fetch top affiliates
   const { data: topAffiliates, isLoading: isTopAffiliatesLoading, error: topAffiliatesError } = useQuery({
@@ -44,7 +49,7 @@ export default function Dashboard() {
     toast({
       title: "Success!",
       description: "Your withdrawal request has been submitted successfully.",
-      variant: "success",
+      variant: "default",
     });
     setIsWithdrawalModalOpen(false);
   };
