@@ -39,6 +39,20 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAffiliateByUserId(userId: number): Promise<Affiliate | undefined> {
+    // Tìm affiliate theo ID của người dùng liên kết
+    try {
+      const [affiliate] = await db.select()
+        .from(affiliates)
+        .where(eq(affiliates.user_id, userId));
+      
+      return affiliate || undefined;
+    } catch (error) {
+      console.error("Error fetching affiliate by user_id:", error);
+      return undefined;
+    }
+  }
+
   async getTopAffiliates(): Promise<TopAffiliate[]> {
     // Lấy tất cả affiliate và sắp xếp theo contract_value giảm dần
     const dbAffiliates = await db.select({

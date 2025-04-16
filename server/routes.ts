@@ -130,6 +130,110 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   });
 }
 
+// Middleware kiểm tra quyền truy cập affiliate
+// Đảm bảo affiliate chỉ truy cập dữ liệu của họ
+function affiliateAccessControl(req: Request, res: Response, next: NextFunction) {
+  // Nếu là admin hoặc không có user (môi trường dev), cho phép truy cập
+  if (!req.user || req.user.role === "ADMIN") {
+    return next();
+  }
+  
+  // Lấy ID affiliate từ tham số URL (nếu có)
+  const affiliateIdParam = req.params.affiliateId || req.params.id;
+  
+  // Nếu không có ID trong URL params, kiểm tra trong request body
+  const affiliateIdBody = req.body.affiliate_id || req.body.affiliateId;
+  
+  // Lấy affiliate hiện tại
+  const getCurrentAffiliate = async () => {
+    const affiliate = await storage.getCurrentAffiliate();
+    return affiliate;
+  };
+  
+  // Nếu đang truy cập thông tin affiliate cụ thể qua ID
+  if (affiliateIdParam || affiliateIdBody) {
+    // Nếu không phải ID của chính họ, từ chối truy cập
+    return getCurrentAffiliate().then(currentAffiliate => {
+      if (!currentAffiliate) {
+        return res.status(403).json({
+          status: "error",
+          error: {
+            code: "FORBIDDEN",
+            message: "Cannot access affiliate information"
+          }
+        });
+      }
+      
+      // Kiểm tra xem ID có khớp với affiliate hiện tại không
+      const hasAccess = (
+        (affiliateIdParam && affiliateIdParam === currentAffiliate.affiliate_id) ||
+        (affiliateIdBody && affiliateIdBody === currentAffiliate.affiliate_id)
+      );
+      
+      if (!hasAccess) {
+        return res.status(403).json({
+          status: "error",
+          error: {
+            code: "FORBIDDEN",
+            message: "You can only access your own data"
+          }
+        });
+      }
+      
+      next();
+    }).catch(error => {
+      console.error("Error in affiliate access control:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Error checking affiliate access"
+        }
+      });
+    });
+  }
+  
+  // Nếu truy cập vào API chung, tiếp tục
+  next();
+}
+
+// Middleware kiểm tra xem API request có phải từ affiliate tương ứng với user không
+// Dùng cho các API endpoint lấy dữ liệu affiliate
+function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunction) {
+  // Nếu không có user hoặc là admin, bỏ qua kiểm tra
+  if (!req.user || req.user.role === "ADMIN") {
+    return next();
+  }
+  
+  // Tìm affiliate liên kết với user hiện tại
+  return storage.getAffiliateByUserId(req.user.id)
+    .then(affiliate => {
+      if (!affiliate) {
+        return res.status(403).json({
+          status: "error",
+          error: {
+            code: "FORBIDDEN",
+            message: "No affiliate profile found for this user"
+          }
+        });
+      }
+      
+      // Lưu thông tin affiliate vào request để tái sử dụng
+      req.affiliate = affiliate;
+      next();
+    })
+    .catch(error => {
+      console.error("Error in affiliate user matching:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Error checking affiliate-user relationship"
+        }
+      });
+    });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Thiết lập xác thực cho môi trường phát triển
   if (!(process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production")) {

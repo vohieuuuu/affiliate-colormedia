@@ -21,6 +21,7 @@ export interface IStorage {
   addWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void>;
   createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate>;
   getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined>;
+  getAffiliateByUserId(userId: number): Promise<Affiliate | undefined>; // Phương thức mới để lấy affiliate từ user_id
   addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void>;
   updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
   seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;
@@ -187,6 +188,15 @@ export class MemStorage implements IStorage {
   async getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined> {
     // In memory storage, check if the affiliateId matches our current affiliate
     if (this.affiliate.affiliate_id === affiliateId) {
+      return this.affiliate;
+    }
+    return undefined;
+  }
+  
+  // Phương thức mới: Lấy affiliate theo user_id
+  async getAffiliateByUserId(userId: number): Promise<Affiliate | undefined> {
+    // In memory storage, check if the user_id matches our current affiliate
+    if (this.affiliate.user_id === userId) {
       return this.affiliate;
     }
     return undefined;
