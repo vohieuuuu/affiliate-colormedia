@@ -285,10 +285,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   // API endpoint to get affiliate data
-  app.get("/api/affiliate", authenticateUser, ensureAffiliateMatchesUser, async (req, res) => {
+  app.get("/api/affiliate", async (req, res) => {
     try {
-      // Sử dụng affiliate đã được truy xuất từ middleware ensureAffiliateMatchesUser
-      if (!req.affiliate) {
+      // Xác thực người dùng thông qua token
+      const token = req.headers.authorization?.split(" ")[1];
+      
+      if (!token) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Bạn cần đăng nhập để thực hiện thao tác này"
+          }
+        });
+      }
+      
+      // Sử dụng token để tìm người dùng trong môi trường dev
+      const user = (storage as any).users.find((u: any) => u.token === token);
+      
+      if (!user) {
+        return res.status(403).json({
+          status: "error",
+          error: {
+            code: "FORBIDDEN",
+            message: "Invalid authentication token"
+          }
+        });
+      }
+      
+      // Tìm affiliate liên kết với user
+      const affiliate = await storage.getAffiliateByUserId(user.id);
+      
+      if (!affiliate) {
         return res.status(404).json({ 
           status: "error",
           error: {
@@ -300,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         status: "success",
-        data: req.affiliate
+        data: affiliate
       });
     } catch (error) {
       console.error("Error getting affiliate data:", error);
