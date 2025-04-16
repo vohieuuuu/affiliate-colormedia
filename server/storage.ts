@@ -226,11 +226,22 @@ export class MemStorage implements IStorage {
   async getAffiliateByUserId(userId: number): Promise<Affiliate | undefined> {
     console.log(`Looking for affiliate with user_id: ${userId}`);
     
-    // Fix cho tài khoản affiliate đã tạo thông qua reset-data
-    // Tìm kiếm tài khoản đã tạo từ trước
+    // Tìm kiếm user trong danh sách người dùng
+    const user = this.users.find(u => u.id === userId);
+    if (!user) {
+      console.log(`No user found with ID ${userId}`);
+      return undefined;
+    }
+    
+    // Kiểm tra nếu user là role AFFILIATE
+    if (user.role !== "AFFILIATE") {
+      console.log(`User ${userId} is not an affiliate`);
+      return undefined;
+    }
+    
+    // Nếu là user từ reset-data, trả về affiliate tương ứng
     if (userId === 2) {
       console.log("Returning affiliate1 for user_id 2");
-      // Affiliate1 (userId 2 từ reset-data)
       return {
         id: 2,
         user_id: 2,
@@ -251,7 +262,6 @@ export class MemStorage implements IStorage {
       };
     } else if (userId === 3) {
       console.log("Returning affiliate2 for user_id 3");
-      // Affiliate2 (userId 3 từ reset-data)
       return {
         id: 3,
         user_id: 3,
@@ -272,12 +282,31 @@ export class MemStorage implements IStorage {
       };
     }
     
-    // Kiểm tra affiliate hiện tại
-    if (this.affiliate.user_id === userId) {
+    // Kiểm tra với affiliate hiện tại
+    if (this.affiliate && this.affiliate.user_id === userId) {
       return this.affiliate;
     }
     
-    return undefined;
+    // Nếu không tìm thấy, tạo một affiliate mặc định cho user đó
+    console.log(`Creating default affiliate for user ${userId}`);
+    return {
+      id: userId,
+      user_id: userId,
+      affiliate_id: `AFF${100 + userId}`,
+      full_name: user.username.split('@')[0],
+      email: user.username,
+      phone: "0900000000",
+      bank_account: "0000000000",
+      bank_name: "Color Bank",
+      total_contacts: 0,
+      total_contracts: 0,
+      contract_value: 0,
+      received_balance: 0,
+      paid_balance: 0,
+      remaining_balance: 0,
+      referred_customers: [],
+      withdrawal_history: []
+    };
   }
 
   async createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate> {
