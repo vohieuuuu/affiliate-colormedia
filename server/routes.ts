@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { hashPassword } from "./auth";
 import { 
   withdrawalRequestPayloadSchema, 
   insertAffiliateSchema, 
@@ -956,13 +957,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customers1 = [
         {
           customer_name: "Công ty ABC",
-          status: "Contract signed",
+          status: CustomerStatus.enum["Contract signed"],
           updated_at: new Date().toISOString(),
           note: "Khách hàng đã ký hợp đồng 6 tháng"
         },
         {
           customer_name: "Công ty XYZ",
-          status: "Presenting idea",
+          status: CustomerStatus.enum["Presenting idea"],
           updated_at: new Date().toISOString(),
           note: "Đang thuyết trình ý tưởng"
         }
@@ -1000,19 +1001,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customers2 = [
         {
           customer_name: "Công ty DEF",
-          status: "Contract signed",
+          status: CustomerStatus.enum["Contract signed"],
           updated_at: new Date().toISOString(),
           note: "Khách hàng đã ký hợp đồng 12 tháng"
         },
         {
           customer_name: "Công ty GHI",
-          status: "Contact received",
+          status: CustomerStatus.enum["Contact received"],
           updated_at: new Date().toISOString(),
           note: "Mới nhận thông tin liên hệ"
         },
         {
           customer_name: "Công ty JKL",
-          status: "Pending reconciliation",
+          status: CustomerStatus.enum["Pending reconciliation"],
           updated_at: new Date().toISOString(),
           note: "Đang chờ xác nhận"
         }
