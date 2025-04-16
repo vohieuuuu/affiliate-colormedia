@@ -23,18 +23,18 @@ export default function LeaderboardSection({ topAffiliates, isLoading }: Leaderb
   return (
     <div className="lg:col-span-1 space-y-8">
       <Card className="border-none shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-primary-700 to-primary-800 px-6 py-5">
+        <div className="bg-gradient-to-r from-[#07ADB8] to-[#05868f] px-6 py-5">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-white flex items-center">
-                <Award className="mr-2 h-5 w-5" />
+                <Award className="mr-2 h-5 w-5 text-[#FFC919]" />
                 Bảng xếp hạng
               </h3>
-              <p className="text-blue-200 text-sm mt-1">
+              <p className="text-white/80 text-sm mt-1">
                 Dựa trên tổng giá trị hợp đồng
               </p>
             </div>
-            <a href="#" className="text-xs text-white/80 hover:text-white flex items-center">
+            <a href="#" className="text-xs text-white/80 hover:text-[#FFC919] flex items-center">
               Xem tất cả
               <ChevronRight className="h-3 w-3 ml-1" />
             </a>
