@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-API của hệ thống Affiliate ColorMedia được thiết kế để hỗ trợ các chức năng chính của hệ thống affiliate marketing. API cho phép truy cập vào dữ liệu affiliate, bao gồm thông tin cá nhân, số liệu thống kê, khách hàng đã giới thiệu, và lịch sử rút tiền hoa hồng.
+API của hệ thống Affiliate ColorMedia được thiết kế để hỗ trợ các chức năng chính của hệ thống affiliate marketing. API cho phép truy cập vào dữ liệu affiliate, bao gồm thông tin cá nhân, số liệu thống kê, khách hàng đã giới thiệu, và lịch sử rút tiền hoa hồng. Ngoài ra, API cũng cung cấp các endpoints cho việc quản lý và nhập dữ liệu vào hệ thống.
 
 ## Base URL
 
@@ -269,6 +269,179 @@ Trả về lịch sử rút tiền của affiliate hiện tại.
       "page": 1,
       "limit": 10,
       "total_pages": 1
+    }
+  }
+}
+```
+
+### Quản lý dữ liệu
+
+#### Thêm Affiliate mới
+
+```
+POST /admin/affiliates
+```
+
+Thêm một affiliate mới vào hệ thống.
+
+**Body:**
+
+```json
+{
+  "affiliate_id": "AFF456",
+  "full_name": "Lê Thị C",
+  "email": "lethic@example.com",
+  "phone": "0987654321",
+  "bank_name": "BIDV",
+  "bank_account": "9876543210"
+}
+```
+
+**Phản hồi mẫu:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 3,
+    "affiliate_id": "AFF456",
+    "full_name": "Lê Thị C",
+    "email": "lethic@example.com",
+    "phone": "0987654321",
+    "bank_name": "BIDV",
+    "bank_account": "9876543210",
+    "total_contacts": 0,
+    "total_contracts": 0,
+    "contract_value": 0,
+    "remaining_balance": 0,
+    "received_balance": 0,
+    "paid_balance": 0,
+    "join_date": "2024-04-16T00:00:00.000Z"
+  }
+}
+```
+
+#### Thêm khách hàng được giới thiệu
+
+```
+POST /admin/customers
+```
+
+Thêm một khách hàng mới được giới thiệu bởi affiliate.
+
+**Body:**
+
+```json
+{
+  "affiliate_id": 1,
+  "name": "Phạm Văn D",
+  "phone": "0923456789",
+  "email": "phamvand@example.com",
+  "status": "LEAD",
+  "description": "Khách hàng quan tâm đến dịch vụ thiết kế website"
+}
+```
+
+**Phản hồi mẫu:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 2,
+    "name": "Phạm Văn D",
+    "phone": "0923456789",
+    "email": "phamvand@example.com",
+    "status": "LEAD",
+    "created_at": "2024-04-16T10:30:00.000Z",
+    "updated_at": "2024-04-16T10:30:00.000Z",
+    "contract_value": null,
+    "events": [
+      {
+        "id": 5,
+        "timestamp": "2024-04-16T10:30:00.000Z",
+        "status": "LEAD",
+        "description": "Khách hàng quan tâm đến dịch vụ thiết kế website"
+      }
+    ]
+  }
+}
+```
+
+#### Cập nhật trạng thái khách hàng
+
+```
+PUT /admin/customers/:id/status
+```
+
+Cập nhật trạng thái của khách hàng được giới thiệu.
+
+**Body:**
+
+```json
+{
+  "status": "CONTACTED",
+  "description": "Đã liên hệ khách hàng qua điện thoại vào ngày 16/04/2024"
+}
+```
+
+**Phản hồi mẫu:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 2,
+    "name": "Phạm Văn D",
+    "status": "CONTACTED",
+    "updated_at": "2024-04-16T14:45:00.000Z",
+    "events": [
+      {
+        "id": 5,
+        "timestamp": "2024-04-16T10:30:00.000Z",
+        "status": "LEAD",
+        "description": "Khách hàng quan tâm đến dịch vụ thiết kế website"
+      },
+      {
+        "id": 6,
+        "timestamp": "2024-04-16T14:45:00.000Z",
+        "status": "CONTACTED",
+        "description": "Đã liên hệ khách hàng qua điện thoại vào ngày 16/04/2024"
+      }
+    ]
+  }
+}
+```
+
+#### Thêm dữ liệu mẫu
+
+```
+POST /admin/seed-data
+```
+
+Thêm dữ liệu mẫu vào hệ thống cho mục đích thử nghiệm.
+
+**Body:**
+
+```json
+{
+  "affiliates_count": 10,
+  "customers_per_affiliate": 5,
+  "withdrawals_per_affiliate": 3
+}
+```
+
+**Phản hồi mẫu:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Đã thêm dữ liệu mẫu thành công",
+    "summary": {
+      "affiliates_added": 10,
+      "customers_added": 50,
+      "withdrawals_added": 30
     }
   }
 }

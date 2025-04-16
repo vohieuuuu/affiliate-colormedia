@@ -3,7 +3,9 @@ import {
   TopAffiliate, 
   ReferredCustomer, 
   WithdrawalHistory,
-  WithdrawalRequestPayload
+  WithdrawalRequestPayload,
+  InsertAffiliate,
+  CustomerStatusType
 } from "@shared/schema";
 
 // modify the interface with any CRUD methods
@@ -12,6 +14,10 @@ export interface IStorage {
   getCurrentAffiliate(): Promise<Affiliate | undefined>;
   getTopAffiliates(): Promise<TopAffiliate[]>;
   addWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void>;
+  createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate>;
+  addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void>;
+  updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
+  seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;
 }
 
 export class MemStorage implements IStorage {
@@ -154,6 +160,132 @@ export class MemStorage implements IStorage {
 
     // Update remaining balance (would be updated by an external system in a real app)
     this.affiliate.remaining_balance -= request.amount_requested;
+  }
+
+  async createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate> {
+    // In a real implementation, this would add to the database
+    // For the in-memory store, we'll simulate adding a new affiliate
+    const newId = this.topAffiliates.length + 2; // +2 because we already have affiliates starting from ID 1
+    
+    // Create the affiliate object with default values for the stats
+    const newAffiliate: Affiliate = {
+      id: newId,
+      affiliate_id: affiliateData.affiliate_id,
+      full_name: affiliateData.full_name,
+      email: affiliateData.email,
+      phone: affiliateData.phone,
+      bank_account: affiliateData.bank_account,
+      bank_name: affiliateData.bank_name,
+      total_contacts: 0,
+      total_contracts: 0,
+      contract_value: 0,
+      received_balance: 0,
+      paid_balance: 0,
+      remaining_balance: 0,
+      referred_customers: [],
+      withdrawal_history: []
+    };
+    
+    // Add to our top affiliates list
+    this.topAffiliates.push({
+      id: newAffiliate.id,
+      full_name: newAffiliate.full_name,
+      contract_value: 0,
+      total_contracts: 0
+    });
+    
+    // Sort top affiliates by contract value in descending order
+    this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
+    
+    // Return the new affiliate
+    return newAffiliate;
+  }
+
+  async addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void> {
+    // For the in-memory store, we'll only add to the current affiliate's list
+    if (this.affiliate.id === affiliateId) {
+      this.affiliate.referred_customers.unshift({
+        ...customerData,
+        updated_at: new Date().toISOString()
+      });
+      
+      // Update the affiliate stats
+      this.affiliate.total_contacts += 1;
+      
+      // If status is "Contract signed", update contracts count and value
+      if (customerData.status === "Contract signed") {
+        this.affiliate.total_contracts += 1;
+        // Assume contract value from the note or a default value
+        const defaultValue = 20000000; // Default 20M VND
+        this.affiliate.contract_value += defaultValue;
+        this.affiliate.remaining_balance += defaultValue * 0.1; // 10% commission
+        this.affiliate.received_balance += defaultValue * 0.1;
+        
+        // Update in top affiliates list
+        const affiliateInTop = this.topAffiliates.find(a => a.id === affiliateId);
+        if (affiliateInTop) {
+          affiliateInTop.total_contracts += 1;
+          affiliateInTop.contract_value += defaultValue;
+          // Re-sort the list
+          this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
+        }
+      }
+    }
+  }
+
+  async updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined> {
+    // Since we're using an in-memory store with array,
+    // we'll use the index in the array as a proxy for ID
+    // In a real DB implementation, we would query by actual ID
+    if (customerId >= 0 && customerId < this.affiliate.referred_customers.length) {
+      const customer = this.affiliate.referred_customers[customerId];
+      
+      // Update the customer status
+      customer.status = status;
+      customer.note = description;
+      customer.updated_at = new Date().toISOString();
+      
+      // If the status is changed to "Contract signed", update contracts count and value
+      if (status === "Contract signed" && this.affiliate.referred_customers[customerId].status !== "Contract signed") {
+        this.affiliate.total_contracts += 1;
+        // Assume contract value from the description or a default value
+        const defaultValue = 20000000; // Default 20M VND
+        this.affiliate.contract_value += defaultValue;
+        this.affiliate.remaining_balance += defaultValue * 0.1; // 10% commission
+        this.affiliate.received_balance += defaultValue * 0.1;
+        
+        // Update in top affiliates list
+        const affiliateInTop = this.topAffiliates.find(a => a.id === this.affiliate.id);
+        if (affiliateInTop) {
+          affiliateInTop.total_contracts += 1;
+          affiliateInTop.contract_value += defaultValue;
+          // Re-sort the list
+          this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
+        }
+      }
+      
+      return customer;
+    }
+    
+    return undefined;
+  }
+
+  async seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }> {
+    // For the in-memory store, we'll just generate random data
+    // In a real implementation, this would insert data into the database
+    
+    const affiliates_added = Math.min(affiliatesCount, 20); // Limit to 20 for performance
+    const customers_added = affiliates_added * Math.min(customersPerAffiliate, 10); // Limit to 10 per affiliate
+    const withdrawals_added = affiliates_added * Math.min(withdrawalsPerAffiliate, 5); // Limit to 5 per affiliate
+    
+    // This function would add sample data to the database
+    // Here in memory implementation we'll just return the counts
+    
+    return {
+      affiliates_added,
+      customers_added,
+      withdrawals_added
+    };
   }
 }
 
