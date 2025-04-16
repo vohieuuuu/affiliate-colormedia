@@ -90,6 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (response: LoginResponse) => {
       queryClient.setQueryData(["/api/auth/me"], response.user);
       
+      // Lưu token vào session storage để sử dụng trong các API calls
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem("auth_token", response.token);
+      }
+      
       // Lưu và cập nhật trạng thái yêu cầu đổi mật khẩu
       const needsPasswordChange = response.requires_password_change;
       if (typeof window !== 'undefined') {
@@ -143,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Xóa tất cả dữ liệu phiên khi đăng xuất
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem("requires_password_change");
+        sessionStorage.removeItem("auth_token");
       }
       setRequiresPasswordChange(false);
       queryClient.setQueryData(["/api/auth/me"], null);

@@ -15,9 +15,14 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const headers: Record<string, string> = {
-    "Authorization": `Bearer ${API_TOKEN}`
-  };
+  const headers: Record<string, string> = {};
+  
+  // Sử dụng token từ session storage nếu có, nếu không sử dụng API_TOKEN mặc định
+  const authToken = typeof window !== 'undefined' 
+    ? sessionStorage.getItem("auth_token") || API_TOKEN
+    : API_TOKEN;
+  
+  headers["Authorization"] = `Bearer ${authToken}`;
   
   if (data) {
     headers["Content-Type"] = "application/json";
@@ -40,10 +45,15 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Sử dụng token từ session storage nếu có, nếu không sử dụng API_TOKEN mặc định
+    const authToken = typeof window !== 'undefined' 
+      ? sessionStorage.getItem("auth_token") || API_TOKEN
+      : API_TOKEN;
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
       headers: {
-        "Authorization": `Bearer ${API_TOKEN}`
+        "Authorization": `Bearer ${authToken}`
       }
     });
 
