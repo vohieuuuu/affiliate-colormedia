@@ -235,7 +235,7 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
       user_id: req.user.id,
       affiliate_id: "ADMIN-AFF",
       full_name: "ColorMedia Admin",
-      email: "admin@colormedia.vn",
+      email: "voxuanhieu.designer@gmail.com", // Email test cho OTP
       phone: "0909123456",
       bank_account: "9876543210",
       bank_name: "VietcomBank",
