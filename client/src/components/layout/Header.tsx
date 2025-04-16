@@ -16,7 +16,7 @@ export default function Header({ fullName }: HeaderProps) {
   useEffect(() => setMounted(true), []);
   
   return (
-    <header className="bg-gradient-to-r from-[#063172] to-[#0a4799] shadow-lg">
+    <header className="bg-gradient-to-r from-[#07ADB8] to-[#05868f] shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20">
           <div className="flex">
@@ -24,10 +24,10 @@ export default function Header({ fullName }: HeaderProps) {
               <Link href="/">
                 <div className="flex items-center cursor-pointer">
                   <div className="bg-white p-1.5 rounded-md">
-                    <BarChart3 className="h-7 w-7 text-primary-600" />
+                    <BarChart3 className="h-7 w-7 text-[#07ADB8]" />
                   </div>
                   <span className="text-white font-bold text-xl ml-3 tracking-tight">
-                    ColorMedia <span className="text-red-500">Affiliate</span>
+                    ColorMedia <span className="text-[#FFC919]">Affiliate</span>
                   </span>
                 </div>
               </Link>

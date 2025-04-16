@@ -3,24 +3,24 @@ import { Facebook, Twitter, Instagram, Mail, Phone } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#062a61] text-white mt-12">
+    <footer className="bg-[#07ADB8] text-white mt-12">
       <div className="max-w-7xl mx-auto pt-10 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4 border-b border-blue-400 pb-2 inline-block">
-              ColorMedia <span className="text-red-500">Affiliate</span>
+            <h3 className="text-xl font-bold mb-4 border-b border-white pb-2 inline-block">
+              ColorMedia <span className="text-[#FFC919]">Affiliate</span>
             </h3>
             <p className="text-gray-300 mt-4">
               Tham gia chương trình đối tác tiếp thị của ColorMedia và nhận thưởng hấp dẫn cho mỗi khách hàng bạn giới thiệu.
             </p>
             <div className="flex space-x-4 mt-5">
-              <a href="#" className="text-white hover:text-blue-400">
+              <a href="#" className="text-white hover:text-[#FFC919]">
                 <Facebook size={20} />
               </a>
-              <a href="#" className="text-white hover:text-blue-400">
+              <a href="#" className="text-white hover:text-[#FFC919]">
                 <Twitter size={20} />
               </a>
-              <a href="#" className="text-white hover:text-blue-400">
+              <a href="#" className="text-white hover:text-[#FFC919]">
                 <Instagram size={20} />
               </a>
             </div>
@@ -31,28 +31,28 @@ export default function Footer() {
             <ul className="space-y-2 text-gray-300">
               <li>
                 <Link href="/commission-policy">
-                  <a className="hover:text-blue-400 flex items-center">
+                  <a className="hover:text-[#FFC919] flex items-center">
                     <span className="mr-2">›</span> Chính sách hoa hồng
                   </a>
                 </Link>
               </li>
               <li>
                 <Link href="/terms-of-service">
-                  <a className="hover:text-blue-400 flex items-center">
+                  <a className="hover:text-[#FFC919] flex items-center">
                     <span className="mr-2">›</span> Điều khoản dịch vụ
                   </a>
                 </Link>
               </li>
               <li>
                 <Link href="/support">
-                  <a className="hover:text-blue-400 flex items-center">
+                  <a className="hover:text-[#FFC919] flex items-center">
                     <span className="mr-2">›</span> Hỗ trợ
                   </a>
                 </Link>
               </li>
               <li>
                 <Link href="/faq">
-                  <a className="hover:text-blue-400 flex items-center">
+                  <a className="hover:text-[#FFC919] flex items-center">
                     <span className="mr-2">›</span> FAQ
                   </a>
                 </Link>
@@ -64,7 +64,7 @@ export default function Footer() {
             <h3 className="text-lg font-semibold mb-4">Thông tin liên hệ</h3>
             <ul className="space-y-3 text-gray-300">
               <li className="flex items-center">
-                <Mail size={18} className="mr-3 text-blue-400" />
+                <Mail size={18} className="mr-3 text-[#FFC919]" />
                 <span>affiliate@colormedia.vn</span>
               </li>
               <li className="flex items-center">
