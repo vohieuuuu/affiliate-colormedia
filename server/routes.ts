@@ -216,8 +216,38 @@ function affiliateAccessControl(req: Request, res: Response, next: NextFunction)
 // Middleware kiểm tra xem API request có phải từ affiliate tương ứng với user không
 // Dùng cho các API endpoint lấy dữ liệu affiliate
 function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunction) {
-  // Nếu không có user hoặc là admin, bỏ qua kiểm tra
-  if (!req.user || req.user.role === "ADMIN") {
+  // Nếu không có user, không thể xác định affiliate
+  if (!req.user) {
+    return res.status(401).json({
+      status: "error",
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Authentication required"
+      }
+    });
+  }
+  
+  // Nếu user là admin và đang ở môi trường phát triển, tạo dữ liệu mẫu
+  if (req.user.role === "ADMIN" && process.env.NODE_ENV === "development") {
+    console.log("DEV MODE: Using default affiliate data for admin in OTP middleware");
+    req.affiliate = {
+      id: 1,
+      user_id: req.user.id,
+      affiliate_id: "ADMIN-AFF",
+      full_name: "ColorMedia Admin",
+      email: "admin@colormedia.vn",
+      phone: "0909123456",
+      bank_account: "9876543210",
+      bank_name: "VietcomBank",
+      total_contacts: 30,
+      total_contracts: 12,
+      contract_value: 240000000,
+      received_balance: 48000000,
+      paid_balance: 20000000,
+      remaining_balance: 95000000,
+      referred_customers: [],
+      withdrawal_history: []
+    };
     return next();
   }
   
@@ -225,11 +255,11 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
   return storage.getAffiliateByUserId(req.user.id)
     .then(affiliate => {
       if (!affiliate) {
-        return res.status(403).json({
+        return res.status(404).json({
           status: "error",
           error: {
-            code: "FORBIDDEN",
-            message: "No affiliate profile found for this user"
+            code: "AFFILIATE_NOT_FOUND",
+            message: "Không tìm thấy thông tin affiliate"
           }
         });
       }
