@@ -21,7 +21,7 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
       {/* Referred Leads Card */}
       <Card className="border-none shadow-md overflow-hidden">
-        <div className="h-2 bg-indigo-400" />
+        <div className="h-2 bg-[#07ADB8]" />
         <CardContent className="p-5">
           <div className="flex justify-between items-start">
             <div>
@@ -35,8 +35,8 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
                 </span>
               </div>
             </div>
-            <div className="bg-indigo-100 dark:bg-indigo-900/30 p-3 rounded-full">
-              <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+            <div className="bg-[#07ADB8]/10 dark:bg-[#07ADB8]/30 p-3 rounded-full">
+              <Users className="h-6 w-6 text-[#07ADB8] dark:text-[#07ADB8]" />
             </div>
           </div>
           <div className="mt-4 flex items-center text-xs text-green-600">
@@ -48,7 +48,7 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
 
       {/* Signed Contracts Card */}
       <Card className="border-none shadow-md overflow-hidden">
-        <div className="h-2 bg-blue-400" />
+        <div className="h-2 bg-[#07ADB8]" />
         <CardContent className="p-5">
           <div className="flex justify-between items-start">
             <div>
@@ -62,8 +62,8 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
                 </span>
               </div>
             </div>
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
-              <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="bg-[#07ADB8]/10 dark:bg-[#07ADB8]/30 p-3 rounded-full">
+              <FileText className="h-6 w-6 text-[#07ADB8] dark:text-[#07ADB8]" />
             </div>
           </div>
           <div className="mt-4 flex items-center text-xs text-green-600">
@@ -75,7 +75,7 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
 
       {/* Contract Value Card */}
       <Card className="border-none shadow-md overflow-hidden">
-        <div className="h-2 bg-emerald-400" />
+        <div className="h-2 bg-[#07ADB8]" />
         <CardContent className="p-5">
           <div className="flex justify-between items-start">
             <div>

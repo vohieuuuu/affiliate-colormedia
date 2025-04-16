@@ -60,7 +60,7 @@ export default function LeaderboardSection({ topAffiliates, isLoading }: Leaderb
                   <div className="flex items-center justify-center min-w-10">
                     {getRankIcon(index) || (
                       <span className={`w-6 h-6 flex items-center justify-center rounded-full 
-                        ${index < 3 ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'} 
+                        ${index < 3 ? 'bg-[#07ADB8]/10 text-[#07ADB8] dark:bg-[#07ADB8]/20 dark:text-[#07ADB8]' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'} 
                         text-sm font-medium`}
                       >
                         {index + 1}
@@ -70,7 +70,7 @@ export default function LeaderboardSection({ topAffiliates, isLoading }: Leaderb
                   <div className="min-w-0 flex-1 flex items-center px-4">
                     <Avatar className="border-2 border-white shadow-sm">
                       <AvatarImage src={affiliate.profile_image} alt={affiliate.full_name} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary-500 to-primary-700 text-white">
+                      <AvatarFallback className="bg-gradient-to-br from-[#07ADB8] to-[#05868f] text-white">
                         {affiliate.full_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
@@ -84,7 +84,7 @@ export default function LeaderboardSection({ topAffiliates, isLoading }: Leaderb
                     </div>
                   </div>
                   <div>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                    <Badge variant="outline" className="bg-[#FFC919]/10 text-[#a3820e] border-[#FFC919]/30 dark:bg-[#FFC919]/20 dark:text-[#FFC919] dark:border-[#FFC919]/30">
                       {affiliate.total_contracts} hợp đồng
                     </Badge>
                   </div>
@@ -94,7 +94,7 @@ export default function LeaderboardSection({ topAffiliates, isLoading }: Leaderb
           )}
           <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 text-center">
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Xếp hạng của bạn: <span className="font-medium text-primary-600 dark:text-primary-400">2</span>
+              Xếp hạng của bạn: <span className="font-medium text-[#07ADB8] dark:text-[#07ADB8]">2</span>
             </span>
           </div>
         </CardContent>
