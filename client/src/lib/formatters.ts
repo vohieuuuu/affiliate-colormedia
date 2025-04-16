@@ -1,8 +1,19 @@
 /**
  * Format a number as currency in VND
  */
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('vi-VN').format(amount);
+export function formatCurrency(amount: number | null | undefined): string {
+  // Kiểm tra giá trị là số hợp lệ
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return '0 ₫';
+  }
+  
+  // Định dạng số tiền VND
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
 }
 
 /**
