@@ -7,7 +7,9 @@ import {
   InsertAffiliate,
   CustomerStatusType,
   User,
-  UserRoleType
+  UserRoleType,
+  InsertOtpVerification,
+  OtpVerification
 } from "@shared/schema";
 import { DatabaseStorage } from "./databaseStorage";
 
@@ -23,18 +25,25 @@ export interface IStorage {
   updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
   seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;
   
-  // Thêm phương thức cho user
+  // Phương thức quản lý user
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(userData: { username: string; password: string; role: UserRoleType; is_first_login?: boolean }): Promise<User>;
   getUserById(id: number): Promise<User | undefined>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   markFirstLoginComplete(userId: number): Promise<void>;
+  
+  // Phương thức quản lý OTP
+  createOtp(userId: number, verificationType: string, relatedId?: number): Promise<string>;
+  verifyOtp(userId: number, otpCode: string, verificationType: string): Promise<boolean>;
+  increaseOtpAttempt(userId: number, otpCode: string): Promise<number>;
+  invalidateOtp(userId: number, otpCode: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private affiliate: Affiliate;
   private topAffiliates: TopAffiliate[];
   private users: User[] = []; // Mảng lưu trữ người dùng mẫu
+  private otpVerifications: OtpVerification[] = []; // Mảng lưu trữ các mã OTP
 
   constructor() {
     // Mock data for a sample affiliate
@@ -359,6 +368,121 @@ export class MemStorage implements IStorage {
     if (userIndex !== -1) {
       this.users[userIndex].is_first_login = 0;
       console.log(`DEV MODE: Marked first login complete for user ID ${userId}`);
+    }
+  }
+  
+  // -- Phương thức quản lý OTP --
+  
+  /**
+   * Tạo mã OTP mới
+   * @param userId ID của người dùng
+   * @param verificationType Loại xác thực (WITHDRAWAL, PASSWORD_RESET, etc.)
+   * @param relatedId ID của đối tượng liên quan (ví dụ: ID của yêu cầu rút tiền)
+   * @returns Mã OTP đã tạo
+   */
+  async createOtp(userId: number, verificationType: string, relatedId?: number): Promise<string> {
+    // Tạo mã OTP 6 chữ số
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Tạo thời gian hết hạn (5 phút từ hiện tại)
+    const expireAt = new Date();
+    expireAt.setMinutes(expireAt.getMinutes() + 5);
+    
+    // Tạo bản ghi OTP mới
+    const newOtp: OtpVerification = {
+      id: this.otpVerifications.length + 1,
+      user_id: userId,
+      otp_code: otpCode,
+      verification_type: verificationType,
+      related_id: relatedId || null,
+      expire_at: expireAt,
+      created_at: new Date(),
+      is_used: 0,
+      attempt_count: 0
+    };
+    
+    // Thêm vào mảng OTP
+    this.otpVerifications.push(newOtp);
+    
+    console.log(`DEV MODE: Created OTP ${otpCode} for user ID ${userId}, expires at ${expireAt.toISOString()}`);
+    
+    return otpCode;
+  }
+  
+  /**
+   * Xác thực mã OTP
+   * @param userId ID của người dùng
+   * @param otpCode Mã OTP cần xác thực
+   * @param verificationType Loại xác thực
+   * @returns true nếu OTP hợp lệ, false nếu không
+   */
+  async verifyOtp(userId: number, otpCode: string, verificationType: string): Promise<boolean> {
+    // Tìm OTP phù hợp với điều kiện
+    const otpIndex = this.otpVerifications.findIndex(
+      otp => otp.user_id === userId &&
+            otp.otp_code === otpCode &&
+            otp.verification_type === verificationType &&
+            otp.is_used === 0 &&
+            otp.expire_at > new Date() &&
+            otp.attempt_count < 5
+    );
+    
+    if (otpIndex === -1) {
+      console.log(`DEV MODE: OTP verification failed for user ID ${userId}`);
+      return false;
+    }
+    
+    // Đánh dấu OTP đã được sử dụng
+    this.otpVerifications[otpIndex].is_used = 1;
+    
+    console.log(`DEV MODE: OTP verified successfully for user ID ${userId}`);
+    return true;
+  }
+  
+  /**
+   * Tăng số lần thử sai OTP
+   * @param userId ID của người dùng
+   * @param otpCode Mã OTP
+   * @returns Số lần thử hiện tại sau khi tăng
+   */
+  async increaseOtpAttempt(userId: number, otpCode: string): Promise<number> {
+    const otpIndex = this.otpVerifications.findIndex(
+      otp => otp.user_id === userId &&
+            otp.otp_code === otpCode &&
+            otp.is_used === 0
+    );
+    
+    if (otpIndex === -1) {
+      return 0;
+    }
+    
+    // Tăng số lần thử
+    this.otpVerifications[otpIndex].attempt_count += 1;
+    
+    // Nếu đã thử quá 5 lần, đánh dấu là đã sử dụng (không thể dùng được nữa)
+    if (this.otpVerifications[otpIndex].attempt_count >= 5) {
+      this.otpVerifications[otpIndex].is_used = 1;
+    }
+    
+    console.log(`DEV MODE: Increased OTP attempt for user ID ${userId}, current attempts: ${this.otpVerifications[otpIndex].attempt_count}`);
+    
+    return this.otpVerifications[otpIndex].attempt_count;
+  }
+  
+  /**
+   * Đánh dấu OTP không còn hiệu lực
+   * @param userId ID của người dùng
+   * @param otpCode Mã OTP
+   */
+  async invalidateOtp(userId: number, otpCode: string): Promise<void> {
+    const otpIndex = this.otpVerifications.findIndex(
+      otp => otp.user_id === userId &&
+            otp.otp_code === otpCode
+    );
+    
+    if (otpIndex !== -1) {
+      this.otpVerifications[otpIndex].is_used = 1;
+      console.log(`DEV MODE: Invalidated OTP for user ID ${userId}`);
     }
   }
 }

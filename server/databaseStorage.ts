@@ -7,9 +7,12 @@ import {
   CustomerStatusType,
   User,
   UserRoleType,
+  InsertOtpVerification,
+  OtpVerification,
   affiliates,
   withdrawalRequests,
-  users
+  users,
+  otpVerifications
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -357,6 +360,152 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error marking first login complete:", error);
       throw new Error("Failed to update first login status");
+    }
+  }
+
+  // Phương thức quản lý OTP
+
+  /**
+   * Tạo mã OTP mới
+   * @param userId ID của người dùng
+   * @param verificationType Loại xác thực (WITHDRAWAL, PASSWORD_RESET, etc.)
+   * @param relatedId ID của đối tượng liên quan (ví dụ: ID của yêu cầu rút tiền)
+   * @returns Mã OTP đã tạo
+   */
+  async createOtp(userId: number, verificationType: string, relatedId?: number): Promise<string> {
+    try {
+      // Tạo mã OTP 6 chữ số
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Tạo thời gian hết hạn (5 phút từ hiện tại)
+      const expireAt = new Date();
+      expireAt.setMinutes(expireAt.getMinutes() + 5);
+      
+      // Loại bỏ các OTP cũ chưa sử dụng của người dùng với cùng loại xác thực
+      await db.delete(otpVerifications)
+        .where(
+          eq(otpVerifications.user_id, userId) && 
+          eq(otpVerifications.verification_type, verificationType) && 
+          eq(otpVerifications.is_used, 0)
+        );
+      
+      // Tạo OTP mới
+      await db.insert(otpVerifications).values({
+        user_id: userId,
+        otp_code: otpCode,
+        verification_type: verificationType,
+        related_id: relatedId || null,
+        expire_at: expireAt,
+        is_used: 0,
+        attempt_count: 0
+      });
+      
+      return otpCode;
+    } catch (error) {
+      console.error("Error creating OTP:", error);
+      throw new Error("Failed to create OTP");
+    }
+  }
+  
+  /**
+   * Xác thực mã OTP
+   * @param userId ID của người dùng
+   * @param otpCode Mã OTP cần xác thực
+   * @param verificationType Loại xác thực
+   * @returns true nếu OTP hợp lệ, false nếu không
+   */
+  async verifyOtp(userId: number, otpCode: string, verificationType: string): Promise<boolean> {
+    try {
+      // Tìm OTP phù hợp với điều kiện
+      const [otp] = await db.select()
+        .from(otpVerifications)
+        .where(
+          eq(otpVerifications.user_id, userId) && 
+          eq(otpVerifications.otp_code, otpCode) && 
+          eq(otpVerifications.verification_type, verificationType) && 
+          eq(otpVerifications.is_used, 0)
+        );
+      
+      if (!otp) {
+        return false;
+      }
+      
+      // Kiểm tra thời gian hết hạn
+      if (otp.expire_at < new Date()) {
+        return false;
+      }
+      
+      // Kiểm tra số lần thử
+      if (otp.attempt_count >= 5) {
+        return false;
+      }
+      
+      // Đánh dấu OTP đã được sử dụng
+      await db.update(otpVerifications)
+        .set({ is_used: 1 })
+        .where(eq(otpVerifications.id, otp.id));
+      
+      return true;
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      return false;
+    }
+  }
+  
+  /**
+   * Tăng số lần thử sai OTP
+   * @param userId ID của người dùng
+   * @param otpCode Mã OTP
+   * @returns Số lần thử hiện tại sau khi tăng
+   */
+  async increaseOtpAttempt(userId: number, otpCode: string): Promise<number> {
+    try {
+      // Tìm OTP
+      const [otp] = await db.select()
+        .from(otpVerifications)
+        .where(
+          eq(otpVerifications.user_id, userId) && 
+          eq(otpVerifications.otp_code, otpCode) && 
+          eq(otpVerifications.is_used, 0)
+        );
+      
+      if (!otp) {
+        return 0;
+      }
+      
+      // Tăng số lần thử
+      const newAttemptCount = otp.attempt_count + 1;
+      
+      // Cập nhật vào database
+      await db.update(otpVerifications)
+        .set({ 
+          attempt_count: newAttemptCount,
+          is_used: newAttemptCount >= 5 ? 1 : 0 // Nếu vượt quá 5 lần thử, đánh dấu đã sử dụng
+        })
+        .where(eq(otpVerifications.id, otp.id));
+      
+      return newAttemptCount;
+    } catch (error) {
+      console.error("Error increasing OTP attempt:", error);
+      return 0;
+    }
+  }
+  
+  /**
+   * Đánh dấu OTP không còn hiệu lực
+   * @param userId ID của người dùng
+   * @param otpCode Mã OTP
+   */
+  async invalidateOtp(userId: number, otpCode: string): Promise<void> {
+    try {
+      await db.update(otpVerifications)
+        .set({ is_used: 1 })
+        .where(
+          eq(otpVerifications.user_id, userId) && 
+          eq(otpVerifications.otp_code, otpCode)
+        );
+    } catch (error) {
+      console.error("Error invalidating OTP:", error);
     }
   }
 }
