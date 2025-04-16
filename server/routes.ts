@@ -200,28 +200,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API endpoint to submit withdrawal request
-  app.post("/api/withdrawal-request", async (req, res) => {
+  // API endpoint to request withdrawal OTP
+  app.post("/api/withdrawal-request/send-otp", authenticateUser, async (req, res) => {
     try {
       const { amount, note } = req.body;
       
       if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-        return res.status(400).json({ message: "Invalid amount" });
+        return res.status(400).json({ 
+          status: "error",
+          error: {
+            code: "INVALID_AMOUNT",
+            message: "Số tiền không hợp lệ"
+          }
+        });
       }
       
       const affiliate = await storage.getCurrentAffiliate();
       if (!affiliate) {
-        return res.status(404).json({ message: "Affiliate not found" });
+        return res.status(404).json({ 
+          status: "error",
+          error: {
+            code: "AFFILIATE_NOT_FOUND",
+            message: "Không tìm thấy thông tin affiliate"
+          }
+        });
       }
       
       if (parseFloat(amount) > affiliate.remaining_balance) {
         return res.status(400).json({ 
-          message: `Withdrawal amount exceeds available balance of ${affiliate.remaining_balance} VND` 
+          status: "error",
+          error: {
+            code: "INSUFFICIENT_BALANCE",
+            message: `Số tiền rút vượt quá số dư hiện có: ${affiliate.remaining_balance.toLocaleString()} VND`
+          }
         });
       }
       
-      // Create withdrawal request payload
-      const payload = {
+      // Lưu thông tin request tạm thời vào session hoặc cache
+      const withdrawalData = {
         user_id: affiliate.affiliate_id,
         full_name: affiliate.full_name,
         email: affiliate.email,
@@ -233,22 +249,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
         request_time: new Date().toISOString()
       };
       
-      // Validate the payload
-      const validatedPayload = withdrawalRequestPayloadSchema.parse(payload);
+      // Validate dữ liệu rút tiền
+      withdrawalRequestPayloadSchema.parse(withdrawalData);
       
-      // In a real app, this would send a webhook to an external system
-      console.log("Sending withdrawal request webhook:", validatedPayload);
+      // Tạo mã OTP và lưu vào cơ sở dữ liệu
+      const user_id = req.user?.id as number;
+      const otpCode = await storage.createOtp(user_id, "WITHDRAWAL");
       
-      // Add the withdrawal request to the affiliate's history
-      await storage.addWithdrawalRequest(validatedPayload);
+      // Import thư viện gửi email
+      const { sendOtpVerificationEmail } = await import("./email");
+      
+      // Gửi email chứa mã OTP
+      await sendOtpVerificationEmail(
+        affiliate.full_name,
+        affiliate.email,
+        otpCode,
+        5, // Thời gian hết hạn (phút)
+        "rút tiền"
+      );
       
       res.status(200).json({ 
-        message: "Withdrawal request submitted successfully",
-        request: validatedPayload
+        status: "success",
+        data: {
+          message: "Mã OTP đã được gửi đến email của bạn",
+          email_masked: affiliate.email.replace(/(.{2})(.*)(@.*)/, '$1****$3'),
+          withdrawal_data: withdrawalData
+        }
       });
     } catch (error) {
-      console.error("Withdrawal request error:", error);
-      res.status(500).json({ message: "Failed to submit withdrawal request" });
+      console.error("Error sending withdrawal OTP:", error);
+      res.status(500).json({ 
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Lỗi khi gửi mã OTP, vui lòng thử lại sau"
+        }
+      });
+    }
+  });
+  
+  // API endpoint to verify OTP and submit withdrawal request
+  app.post("/api/withdrawal-request/verify", authenticateUser, async (req, res) => {
+    try {
+      const { otp, withdrawal_data } = req.body;
+      
+      if (!otp || !withdrawal_data) {
+        return res.status(400).json({ 
+          status: "error",
+          error: {
+            code: "MISSING_DATA",
+            message: "Thiếu mã OTP hoặc dữ liệu rút tiền"
+          }
+        });
+      }
+      
+      // Xác thực mã OTP
+      const user_id = req.user?.id as number;
+      const isValid = await storage.verifyOtp(user_id, otp, "WITHDRAWAL");
+      
+      if (!isValid) {
+        // Tăng số lần thử
+        const attempts = await storage.increaseOtpAttempt(user_id, otp);
+        
+        // Xác định thông báo lỗi dựa vào số lần thử
+        let errorMessage = "Mã OTP không hợp lệ";
+        if (attempts >= 5) {
+          errorMessage = "Mã OTP đã bị vô hiệu hóa do nhập sai quá 5 lần. Vui lòng yêu cầu mã mới.";
+        } else {
+          errorMessage = `Mã OTP không hợp lệ. Bạn còn ${5 - attempts} lần thử.`;
+        }
+        
+        return res.status(400).json({ 
+          status: "error",
+          error: {
+            code: "INVALID_OTP",
+            message: errorMessage,
+            attempts_left: Math.max(0, 5 - attempts)
+          }
+        });
+      }
+      
+      // Validate lại dữ liệu rút tiền
+      const validatedPayload = withdrawalRequestPayloadSchema.parse(withdrawal_data);
+      
+      // Hoàn tất yêu cầu rút tiền
+      await storage.addWithdrawalRequest(validatedPayload);
+      
+      // Gửi email xác nhận yêu cầu rút tiền
+      const { sendWithdrawalRequestEmail } = await import("./email");
+      await sendWithdrawalRequestEmail(
+        validatedPayload.full_name,
+        validatedPayload.email,
+        validatedPayload.amount_requested,
+        {
+          bankName: validatedPayload.bank_name,
+          accountNumber: validatedPayload.bank_account
+        }
+      );
+      
+      res.status(200).json({ 
+        status: "success",
+        data: {
+          message: "Yêu cầu rút tiền đã được gửi thành công",
+          request: validatedPayload
+        }
+      });
+    } catch (error) {
+      console.error("Withdrawal verification error:", error);
+      res.status(500).json({ 
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Lỗi khi xác thực OTP, vui lòng thử lại sau"
+        }
+      });
+    }
+  });
+  
+  // API endpoint to resend OTP
+  app.post("/api/withdrawal-request/resend-otp", authenticateUser, async (req, res) => {
+    try {
+      const user_id = req.user?.id as number;
+      
+      // Kiểm tra thông tin affiliate
+      const affiliate = await storage.getCurrentAffiliate();
+      if (!affiliate) {
+        return res.status(404).json({ 
+          status: "error",
+          error: {
+            code: "AFFILIATE_NOT_FOUND",
+            message: "Không tìm thấy thông tin affiliate"
+          }
+        });
+      }
+      
+      // Tạo mã OTP mới (sẽ tự động vô hiệu hóa mã cũ)
+      const otpCode = await storage.createOtp(user_id, "WITHDRAWAL");
+      
+      // Import thư viện gửi email
+      const { sendOtpVerificationEmail } = await import("./email");
+      
+      // Gửi email chứa mã OTP
+      await sendOtpVerificationEmail(
+        affiliate.full_name,
+        affiliate.email,
+        otpCode,
+        5, // Thời gian hết hạn (phút)
+        "rút tiền"
+      );
+      
+      res.status(200).json({ 
+        status: "success",
+        data: {
+          message: "Mã OTP mới đã được gửi đến email của bạn",
+          email_masked: affiliate.email.replace(/(.{2})(.*)(@.*)/, '$1****$3')
+        }
+      });
+    } catch (error) {
+      console.error("Error resending OTP:", error);
+      res.status(500).json({ 
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Lỗi khi gửi lại mã OTP, vui lòng thử lại sau"
+        }
+      });
     }
   });
 

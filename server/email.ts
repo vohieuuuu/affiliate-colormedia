@@ -145,6 +145,101 @@ Trân trọng,
 }
 
 /**
+ * Gửi email chứa mã OTP cho việc xác thực rút tiền
+ */
+export async function sendOtpVerificationEmail(
+  name: string,
+  email: string,
+  otpCode: string,
+  expiryMinutes: number = 5,
+  verificationType: string = "rút tiền"
+): Promise<boolean> {
+  // Chuẩn bị nội dung email
+  const subject = `Mã xác thực OTP cho giao dịch ${verificationType} - ColorMedia Affiliate`;
+  
+  const htmlContent = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="color: #07ADB8;">ColorMedia Affiliate</h1>
+      </div>
+      
+      <p>Chào <strong>${name}</strong>,</p>
+      
+      <p>Hệ thống đã nhận được yêu cầu <strong>${verificationType}</strong> từ tài khoản của bạn. Để xác thực yêu cầu này, vui lòng sử dụng mã OTP dưới đây:</p>
+      
+      <div style="background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 20px; margin: 20px 0; text-align: center;">
+        <h2 style="color: #07ADB8; letter-spacing: 5px; font-size: 32px; margin: 0; font-weight: bold;">${otpCode}</h2>
+      </div>
+      
+      <p>⏱️ Mã OTP này sẽ hết hạn sau <strong>${expiryMinutes} phút</strong> kể từ khi email này được gửi.</p>
+      <p>⚠️ Lưu ý: Nếu bạn không gửi yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ ngay với đội hỗ trợ của chúng tôi.</p>
+      
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+        <p>Nếu bạn có bất kỳ câu hỏi nào, hãy liên hệ với đội hỗ trợ của chúng tôi qua:</p>
+        <p>📧 Email: <a href="mailto:${SUPPORT_EMAIL}" style="color: #07ADB8; text-decoration: none;">${SUPPORT_EMAIL}</a></p>
+        <p>📞 Hotline: ${SUPPORT_PHONE}</p>
+      </div>
+      
+      <div style="margin-top: 30px; color: #777;">
+        <p>Trân trọng,<br>Đội ngũ ColorMedia Affiliate</p>
+      </div>
+    </div>
+  `;
+
+  const textContent = `
+Chào ${name},
+
+Hệ thống đã nhận được yêu cầu ${verificationType} từ tài khoản của bạn. Để xác thực yêu cầu này, vui lòng sử dụng mã OTP dưới đây:
+
+${otpCode}
+
+⏱️ Mã OTP này sẽ hết hạn sau ${expiryMinutes} phút kể từ khi email này được gửi.
+⚠️ Lưu ý: Nếu bạn không gửi yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ ngay với đội hỗ trợ của chúng tôi.
+
+Nếu bạn có bất kỳ câu hỏi nào, hãy liên hệ với đội hỗ trợ của chúng tôi qua:
+📧 Email: ${SUPPORT_EMAIL}
+📞 Hotline: ${SUPPORT_PHONE}
+
+Trân trọng,
+Đội ngũ ColorMedia Affiliate
+  `;
+
+  // Cấu hình email
+  const mailOptions = {
+    from: FROM_EMAIL,
+    to: email,
+    subject: subject,
+    text: textContent,
+    html: htmlContent,
+  };
+
+  // Luôn log email trong môi trường development
+  if (isDevelopment) {
+    console.log('=========== OTP VERIFICATION EMAIL ===========');
+    console.log(`TO: ${email}`);
+    console.log(`SUBJECT: ${subject}`);
+    console.log(`OTP CODE: ${otpCode}`);
+    console.log(`CONTENT: ${textContent}`);
+    console.log('==============================================');
+    
+    // Nếu không gửi email thật thì trả về thành công
+    if (!sendRealEmails) {
+      return true;
+    }
+  }
+
+  // Gửi email trong môi trường production hoặc khi cấu hình gửi email thật
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`OTP verification email sent to ${email}: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending OTP verification email:', error);
+    return false;
+  }
+}
+
+/**
  * Gửi email thông báo khi yêu cầu rút tiền được tạo
  */
 export async function sendWithdrawalRequestEmail(
