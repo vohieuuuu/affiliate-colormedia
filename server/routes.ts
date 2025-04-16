@@ -532,6 +532,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
       
+      // Gửi thông tin yêu cầu rút tiền tới webhook
+      try {
+        const webhookUrl = "https://aicolormedia.app.n8n.cloud/webhook-test/yeu-cau-thanh-toan-affilate";
+        const webhookPayload = {
+          affiliate_id: validatedPayload.user_id,
+          full_name: validatedPayload.full_name,
+          email: validatedPayload.email,
+          phone: validatedPayload.phone,
+          bank_account: validatedPayload.bank_account,
+          bank_name: validatedPayload.bank_name,
+          amount_requested: validatedPayload.amount_requested,
+          note: validatedPayload.note,
+          request_time: validatedPayload.request_time,
+          status: "PENDING",
+          timestamp: new Date().toISOString(),
+        };
+        
+        console.log("Sending webhook notification for withdrawal request:", webhookPayload);
+        
+        // Gửi webhook không đồng bộ (không đợi phản hồi)
+        fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(webhookPayload),
+        }).then(webhookRes => {
+          console.log("Webhook notification sent, status:", webhookRes.status);
+        }).catch(webhookErr => {
+          console.error("Error sending webhook notification:", webhookErr);
+        });
+      } catch (webhookError) {
+        // Lỗi webhook không ngăn cản quy trình chính
+        console.error("Failed to send webhook notification:", webhookError);
+      }
+      
       res.status(200).json({ 
         status: "success",
         data: {
