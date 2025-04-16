@@ -9,6 +9,7 @@ import {
   UserRoleType,
   User
 } from "@shared/schema";
+import { setupDevAuthRoutes } from "./devAuth";
 
 // Extend Express.Request to include user property
 declare global {
@@ -130,6 +131,17 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Thiết lập xác thực cho môi trường phát triển
+  if (!(process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production")) {
+    // Trong môi trường phát triển, sử dụng các route xác thực đơn giản
+    setupDevAuthRoutes(app, storage);
+  } else {
+    // Trong môi trường production, sử dụng routes xác thực với database
+    const { setupAuthRoutes } = await import("./auth");
+    const { db } = await import("./db");
+    setupAuthRoutes(app, db);
+  }
+
   // Áp dụng middleware xác thực cho các API endpoints
   const secureApiEndpoints = [
     // API public hoặc được bảo vệ bằng token cơ bản
@@ -316,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const newUser = await storage.createUser({
                   username: affiliateData.email,
                   password: hashedPassword,
-                  role: "affiliate",
+                  role: "AFFILIATE",
                   is_first_login: 1
                 });
                 
