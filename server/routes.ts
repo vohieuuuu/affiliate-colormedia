@@ -7,7 +7,8 @@ import {
   ReferredCustomerSchema, 
   CustomerStatus,
   UserRoleType,
-  User
+  User,
+  Affiliate
 } from "@shared/schema";
 import { setupDevAuthRoutes } from "./devAuth";
 
@@ -16,6 +17,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: User;
+      affiliate?: Affiliate; // Thêm thuộc tính affiliate
     }
   }
 }
@@ -282,15 +284,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   // API endpoint to get affiliate data
-  app.get("/api/affiliate", async (req, res) => {
+  app.get("/api/affiliate", authenticateUser, ensureAffiliateMatchesUser, async (req, res) => {
     try {
-      const affiliate = await storage.getCurrentAffiliate();
-      if (!affiliate) {
-        return res.status(404).json({ message: "Affiliate not found" });
+      // Sử dụng affiliate đã được truy xuất từ middleware ensureAffiliateMatchesUser
+      if (!req.affiliate) {
+        return res.status(404).json({ 
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: "Affiliate not found"
+          }
+        });
       }
-      res.json(affiliate);
+      
+      res.json({
+        status: "success",
+        data: req.affiliate
+      });
     } catch (error) {
-      res.status(500).json({ message: "Failed to retrieve affiliate data" });
+      console.error("Error getting affiliate data:", error);
+      res.status(500).json({ 
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Failed to retrieve affiliate data"
+        }
+      });
     }
   });
 
@@ -305,7 +324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API endpoint to request withdrawal OTP
-  app.post("/api/withdrawal-request/send-otp", authenticateUser, async (req, res) => {
+  app.post("/api/withdrawal-request/send-otp", authenticateUser, ensureAffiliateMatchesUser, async (req, res) => {
     try {
       const { amount, note } = req.body;
       
@@ -319,8 +338,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const affiliate = await storage.getCurrentAffiliate();
-      if (!affiliate) {
+      // Sử dụng affiliate từ middleware ensureAffiliateMatchesUser
+      if (!req.affiliate) {
         return res.status(404).json({ 
           status: "error",
           error: {
@@ -329,6 +348,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       }
+      
+      // Tạo biến affiliate từ req.affiliate để tránh lỗi TypeScript
+      const affiliate = req.affiliate;
       
       if (parseFloat(amount) > affiliate.remaining_balance) {
         return res.status(400).json({ 
@@ -393,7 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // API endpoint to verify OTP and submit withdrawal request
-  app.post("/api/withdrawal-request/verify", authenticateUser, async (req, res) => {
+  app.post("/api/withdrawal-request/verify", authenticateUser, ensureAffiliateMatchesUser, async (req, res) => {
     try {
       const { otp, withdrawal_data } = req.body;
       
@@ -471,13 +493,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // API endpoint to resend OTP
-  app.post("/api/withdrawal-request/resend-otp", authenticateUser, async (req, res) => {
+  app.post("/api/withdrawal-request/resend-otp", authenticateUser, ensureAffiliateMatchesUser, async (req, res) => {
     try {
       const user_id = req.user?.id as number;
       
-      // Kiểm tra thông tin affiliate
-      const affiliate = await storage.getCurrentAffiliate();
-      if (!affiliate) {
+      // Kiểm tra thông tin affiliate từ middleware ensureAffiliateMatchesUser
+      if (!req.affiliate) {
         return res.status(404).json({ 
           status: "error",
           error: {
@@ -486,6 +507,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       }
+      
+      // Tạo biến affiliate từ req.affiliate để tránh lỗi TypeScript
+      const affiliate = req.affiliate;
       
       // Tạo mã OTP mới (sẽ tự động vô hiệu hóa mã cũ)
       const otpCode = await storage.createOtp(user_id, "WITHDRAWAL");
