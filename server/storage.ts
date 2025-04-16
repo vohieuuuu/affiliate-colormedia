@@ -326,8 +326,11 @@ export class MemStorage implements IStorage {
       username: userData.username,
       password: userData.password,
       role: userData.role,
+      is_active: 1,
+      is_first_login: userData.is_first_login ? 1 : 0,
+      last_login: null,
       token: null,
-      is_first_login: userData.is_first_login ? 1 : 0
+      created_at: new Date()
     };
     
     this.users.push(newUser);

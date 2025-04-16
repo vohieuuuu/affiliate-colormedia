@@ -5,8 +5,11 @@ import {
   WithdrawalRequestPayload,
   InsertAffiliate,
   CustomerStatusType,
+  User,
+  UserRoleType,
   affiliates,
-  withdrawalRequests
+  withdrawalRequests,
+  users
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -282,5 +285,78 @@ export class DatabaseStorage implements IStorage {
       customers_added,
       withdrawals_added: 0 // Chưa thực hiện tạo withdrawal history
     };
+  }
+  
+  // Phương thức quản lý người dùng
+  
+  // Lấy người dùng theo tên đăng nhập
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.username, username));
+      
+      return user || undefined;
+    } catch (error) {
+      console.error("Error fetching user by username:", error);
+      return undefined;
+    }
+  }
+
+  // Tạo người dùng mới
+  async createUser(userData: { username: string; password: string; role: UserRoleType; is_first_login?: boolean }): Promise<User> {
+    try {
+      const [newUser] = await db.insert(users)
+        .values({
+          username: userData.username,
+          password: userData.password,
+          role: userData.role,
+          is_first_login: userData.is_first_login ? 1 : 0
+        })
+        .returning();
+      
+      return newUser;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw new Error("Failed to create user account");
+    }
+  }
+
+  // Lấy người dùng theo ID
+  async getUserById(id: number): Promise<User | undefined> {
+    try {
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, id));
+      
+      return user || undefined;
+    } catch (error) {
+      console.error("Error fetching user by ID:", error);
+      return undefined;
+    }
+  }
+
+  // Cập nhật mật khẩu người dùng
+  async updateUserPassword(userId: number, password: string): Promise<void> {
+    try {
+      await db.update(users)
+        .set({ password })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      console.error("Error updating user password:", error);
+      throw new Error("Failed to update password");
+    }
+  }
+
+  // Đánh dấu đã hoàn thành đăng nhập lần đầu
+  async markFirstLoginComplete(userId: number): Promise<void> {
+    try {
+      await db.update(users)
+        .set({ is_first_login: 0 })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      console.error("Error marking first login complete:", error);
+      throw new Error("Failed to update first login status");
+    }
   }
 }
