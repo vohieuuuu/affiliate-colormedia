@@ -3,8 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { 
   Users, 
   FileText, 
-  CreditCard, 
-  Coins 
+  Wallet, 
+  Coins,
+  TrendingUp,
+  ArrowUpRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -16,78 +18,112 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
   if (!affiliate) return null;
   
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
       {/* Referred Leads Card */}
-      <Card>
+      <Card className="border-none shadow-md overflow-hidden">
+        <div className="h-2 bg-indigo-400" />
         <CardContent className="p-5">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Referred Leads</p>
-            <Users className="h-5 w-5 text-primary-500" />
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Khách hàng giới thiệu</p>
+              <div className="flex items-baseline mt-2">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {affiliate.total_contacts}
+                </span>
+                <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  liên hệ
+                </span>
+              </div>
+            </div>
+            <div className="bg-indigo-100 dark:bg-indigo-900/30 p-3 rounded-full">
+              <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+            </div>
           </div>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-semibold text-gray-900 dark:text-white">
-              {affiliate.total_contacts}
-            </span>
-            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">contacts</span>
+          <div className="mt-4 flex items-center text-xs text-green-600">
+            <ArrowUpRight className="h-3 w-3 mr-1" />
+            <span>5% tăng từ tháng trước</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Signed Contracts Card */}
-      <Card>
+      <Card className="border-none shadow-md overflow-hidden">
+        <div className="h-2 bg-blue-400" />
         <CardContent className="p-5">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Signed Contracts</p>
-            <FileText className="h-5 w-5 text-primary-500" />
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Hợp đồng ký kết</p>
+              <div className="flex items-baseline mt-2">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {affiliate.total_contracts}
+                </span>
+                <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  hợp đồng
+                </span>
+              </div>
+            </div>
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
+              <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
           </div>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-semibold text-gray-900 dark:text-white">
-              {affiliate.total_contracts}
-            </span>
-            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">contracts</span>
+          <div className="mt-4 flex items-center text-xs text-green-600">
+            <ArrowUpRight className="h-3 w-3 mr-1" />
+            <span>10% tăng từ tháng trước</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Contract Value Card */}
-      <Card>
+      <Card className="border-none shadow-md overflow-hidden">
+        <div className="h-2 bg-emerald-400" />
         <CardContent className="p-5">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Contract Value</p>
-            <CreditCard className="h-5 w-5 text-primary-500" />
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Giá trị hợp đồng</p>
+              <div className="flex items-baseline mt-2">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {formatCurrency(affiliate.contract_value)}
+                </span>
+              </div>
+            </div>
+            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-full">
+              <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            </div>
           </div>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-semibold text-gray-900 dark:text-white">
-              {formatCurrency(affiliate.contract_value)}
-            </span>
-            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">VND</span>
+          <div className="mt-4 flex items-center text-xs text-green-600">
+            <ArrowUpRight className="h-3 w-3 mr-1" />
+            <span>15% tăng từ tháng trước</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Commission Balance Card */}
-      <Card>
+      <Card className="border-none shadow-md overflow-hidden">
+        <div className="h-2 bg-amber-400" />
         <CardContent className="p-5">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Commission Balance</p>
-            <Coins className="h-5 w-5 text-primary-500" />
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Hoa hồng tích lũy</p>
+              <div className="flex items-baseline mt-2">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {formatCurrency(affiliate.remaining_balance)}
+                </span>
+              </div>
+            </div>
+            <div className="bg-amber-100 dark:bg-amber-900/30 p-3 rounded-full">
+              <Wallet className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            </div>
           </div>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-semibold text-gray-900 dark:text-white">
-              {formatCurrency(affiliate.remaining_balance)}
-            </span>
-            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">VND</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
-            <div className="text-gray-500 dark:text-gray-400">
-              <span>Received:</span>
-              <span className="text-gray-700 dark:text-gray-300 ml-1">
+          <div className="grid grid-cols-2 gap-4 mt-4 text-xs">
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+              <span className="text-gray-500 dark:text-gray-400 block">Đã nhận:</span>
+              <span className="text-green-600 dark:text-green-400 font-semibold">
                 {formatCurrency(affiliate.received_balance)}
               </span>
             </div>
-            <div className="text-gray-500 dark:text-gray-400">
-              <span>Paid:</span>
-              <span className="text-gray-700 dark:text-gray-300 ml-1">
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+              <span className="text-gray-500 dark:text-gray-400 block">Đã rút:</span>
+              <span className="text-red-600 dark:text-red-400 font-semibold">
                 {formatCurrency(affiliate.paid_balance)}
               </span>
             </div>
