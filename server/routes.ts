@@ -54,7 +54,7 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-// Middleware xác thực người dùng dựa trên token trong database
+// Middleware xác thực người dùng dựa trên token
 async function authenticateUser(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -93,17 +93,30 @@ async function authenticateUser(req: Request, res: Response, next: NextFunction)
       req.user = user;
       next();
     } else {
-      // Trong môi trường phát triển không sử dụng database, sử dụng token mặc định
-      if (token !== API_TOKEN) {
-        return res.status(403).json({
-          status: "error",
-          error: {
-            code: "FORBIDDEN",
-            message: "Invalid authentication token"
-          }
-        });
+      // Kiểm tra token trong môi trường phát triển
+      // 1. Kiểm tra nếu token là token mặc định (API_TOKEN)
+      if (token === API_TOKEN) {
+        console.log("DEV MODE: Using default API token");
+        return next();
       }
-      next();
+      
+      // 2. Kiểm tra token trong danh sách người dùng MemStorage
+      console.log("DEV MODE: Checking user auth with token");
+      const user = (storage as any).users.find((u: any) => u.token === token);
+      
+      if (user) {
+        console.log(`DEV MODE: User authenticated: ${user.username}`);
+        req.user = user;
+        return next();
+      }
+      
+      return res.status(401).json({
+        status: "error",
+        error: {
+          code: "INVALID_TOKEN",
+          message: "Invalid or expired token"
+        }
+      });
     }
   } catch (error) {
     console.error("Authentication error:", error);
@@ -285,36 +298,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   // API endpoint to get affiliate data
-  app.get("/api/affiliate", async (req, res) => {
+  app.get("/api/affiliate", authenticateUser, async (req, res) => {
     try {
-      // Xác thực người dùng thông qua token
-      const token = req.headers.authorization?.split(" ")[1];
+      let userId = 0;
       
-      if (!token) {
-        return res.status(401).json({
-          status: "error",
-          error: {
-            code: "UNAUTHORIZED",
-            message: "Bạn cần đăng nhập để thực hiện thao tác này"
-          }
-        });
-      }
-      
-      // Sử dụng token để tìm người dùng trong môi trường dev
-      const user = (storage as any).users.find((u: any) => u.token === token);
-      
-      if (!user) {
-        return res.status(403).json({
-          status: "error",
-          error: {
-            code: "FORBIDDEN",
-            message: "Invalid authentication token"
-          }
-        });
+      // Kiểm tra user đã được xác thực từ middleware
+      if (req.user) {
+        userId = req.user.id;
+        console.log(`Getting affiliate data for user ID: ${userId}`);
+      } else if (process.env.NODE_ENV === "development") {
+        // Trong môi trường dev, có thể sử dụng default user
+        console.log("Using default user for development");
+        userId = 1; // Admin user
       }
       
       // Tìm affiliate liên kết với user
-      const affiliate = await storage.getAffiliateByUserId(user.id);
+      const affiliate = await storage.getAffiliateByUserId(userId);
       
       if (!affiliate) {
         return res.status(404).json({ 
@@ -326,6 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Trả về dữ liệu affiliate
       res.json({
         status: "success",
         data: affiliate

@@ -233,12 +233,34 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
-    // Kiểm tra nếu user là role AFFILIATE
-    if (user.role !== "AFFILIATE") {
-      console.log(`User ${userId} is not an affiliate`);
-      return undefined;
+    // Trong môi trường dev, luôn trả về dữ liệu affiliate cho người dùng logged in
+    // Với Admin user (ID=1), trả về affiliate mặc định để testing
+    if (process.env.NODE_ENV === "development") {
+      // Admin user: sử dụng dữ liệu affiliate mặc định
+      if (user.role === "ADMIN") {
+        console.log("DEV MODE: Using default affiliate data for admin user");
+        return {
+          id: 1,
+          user_id: userId,
+          affiliate_id: "ADMIN-AFF",
+          full_name: "ColorMedia Admin",
+          email: "admin@colormedia.vn",
+          phone: "0909123456",
+          bank_account: "9876543210",
+          bank_name: "VietcomBank",
+          total_contacts: 30,
+          total_contracts: 12,
+          contract_value: 240000000,
+          received_balance: 48000000,
+          paid_balance: 20000000,
+          remaining_balance: 95000000,
+          referred_customers: this.generateReferredCustomers(),
+          withdrawal_history: this.generateWithdrawalHistory()
+        };
+      }
     }
     
+    // Bỏ qua kiểm tra role để tương thích với logic backend cũ
     // Nếu là user từ reset-data, trả về affiliate tương ứng
     if (userId === 2) {
       console.log("Returning affiliate1 for user_id 2");
