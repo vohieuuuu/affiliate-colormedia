@@ -47,6 +47,9 @@ export const WithdrawalHistorySchema = z.object({
   amount: z.number(),
   note: z.string().optional(),
   status: WithdrawalStatus,
+  message: z.string().optional(),
+  transaction_id: z.string().optional(),
+  completed_date: z.string().optional(),
 });
 
 export type WithdrawalHistory = z.infer<typeof WithdrawalHistorySchema>;

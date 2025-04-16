@@ -144,22 +144,51 @@ export class MemStorage implements IStorage {
         status: "Processing"
       },
       {
+        request_date: "2024-04-10T00:00:00Z",
+        amount: 3000000,
+        note: "Advance payment",
+        status: "Rejected",
+        message: "Số tiền yêu cầu vượt quá số dư khả dụng"
+      },
+      {
         request_date: "2024-03-14T00:00:00Z",
         amount: 8000000,
         note: "Commission for February",
-        status: "Completed"
+        status: "Completed",
+        transaction_id: "TXN-202403-001",
+        completed_date: "2024-03-16T00:00:00Z"
       },
       {
         request_date: "2024-02-15T00:00:00Z",
         amount: 6000000,
         note: "Commission for January",
-        status: "Completed"
+        status: "Completed",
+        transaction_id: "TXN-202402-003",
+        completed_date: "2024-02-17T00:00:00Z"
       },
       {
         request_date: "2024-01-15T00:00:00Z",
         amount: 5000000,
-        note: "Commission for December",
-        status: "Completed"
+        note: "Commission for December 2023",
+        status: "Completed",
+        transaction_id: "TXN-202401-008",
+        completed_date: "2024-01-17T00:00:00Z"
+      },
+      {
+        request_date: "2023-12-15T00:00:00Z",
+        amount: 7500000,
+        note: "Commission for November 2023",
+        status: "Completed",
+        transaction_id: "TXN-202312-012",
+        completed_date: "2023-12-18T00:00:00Z"
+      },
+      {
+        request_date: "2023-11-15T00:00:00Z",
+        amount: 4500000,
+        note: "Commission for October 2023",
+        status: "Completed",
+        transaction_id: "TXN-202311-022",
+        completed_date: "2023-11-18T00:00:00Z"
       }
     ];
   }
