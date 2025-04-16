@@ -207,28 +207,40 @@ export class MemStorage implements IStorage {
       {
         customer_name: "ABC Company",
         status: "Contract signed",
+        created_at: "2023-12-10T00:00:00Z",
         updated_at: "2023-12-15T00:00:00Z",
+        contract_value: 50000000,
+        commission: 5000000,
+        contract_date: "2023-12-15T00:00:00Z",
         note: "Customer agreed to a 12-month contract worth 50,000,000 VND."
       },
       {
         customer_name: "XYZ Corporation",
         status: "Presenting idea",
-        updated_at: "2024-03-28T00:00:00Z"
+        created_at: "2024-03-25T00:00:00Z",
+        updated_at: "2024-03-28T00:00:00Z",
+        note: "Khách hàng đang xem xét đề xuất"
       },
       {
         customer_name: "123 Industries",
         status: "Pending reconciliation",
-        updated_at: "2024-04-02T00:00:00Z"
+        created_at: "2024-03-30T00:00:00Z",
+        updated_at: "2024-04-02T00:00:00Z",
+        note: "Đang đối chiếu hợp đồng"
       },
       {
         customer_name: "Tech Solutions Ltd",
         status: "Ready to disburse",
-        updated_at: "2024-04-05T00:00:00Z"
+        created_at: "2024-04-01T00:00:00Z",
+        updated_at: "2024-04-05T00:00:00Z",
+        note: "Sẵn sàng giải ngân"
       },
       {
         customer_name: "Global Traders",
         status: "Contact received",
-        updated_at: "2024-04-10T00:00:00Z"
+        created_at: "2024-04-09T00:00:00Z",
+        updated_at: "2024-04-10T00:00:00Z",
+        note: "Đã nhận thông tin liên hệ"
       }
     ];
   }
@@ -491,28 +503,47 @@ export class MemStorage implements IStorage {
   async addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void> {
     // For the in-memory store, we'll only add to the current affiliate's list
     if (this.affiliate.id === affiliateId) {
-      this.affiliate.referred_customers.unshift({
+      const now = new Date().toISOString();
+      // Đảm bảo có đầy đủ dữ liệu cho khách hàng
+      const newCustomer: ReferredCustomer = {
         ...customerData,
-        updated_at: new Date().toISOString()
-      });
+        created_at: customerData.created_at || now,
+        updated_at: now
+      };
+      
+      // Nếu là hợp đồng đã ký, thêm thông tin về giá trị hợp đồng và hoa hồng
+      if (newCustomer.status === "Contract signed") {
+        const contractValue = newCustomer.contract_value || 20000000; // Default 20M VND
+        const commission = contractValue * 0.1; // 10% hoa hồng
+        
+        // Cập nhật thông tin khách hàng
+        newCustomer.contract_value = contractValue;
+        newCustomer.commission = commission;
+        newCustomer.contract_date = newCustomer.contract_date || now;
+      }
+      
+      // Thêm khách hàng mới vào danh sách
+      this.affiliate.referred_customers.unshift(newCustomer);
       
       // Update the affiliate stats
       this.affiliate.total_contacts += 1;
       
       // If status is "Contract signed", update contracts count and value
-      if (customerData.status === "Contract signed") {
+      if (newCustomer.status === "Contract signed") {
         this.affiliate.total_contracts += 1;
-        // Assume contract value from the note or a default value
-        const defaultValue = 20000000; // Default 20M VND
-        this.affiliate.contract_value += defaultValue;
-        this.affiliate.remaining_balance += defaultValue * 0.1; // 10% commission
-        this.affiliate.received_balance += defaultValue * 0.1;
+        
+        const contractValue = newCustomer.contract_value || 20000000;
+        const commission = contractValue * 0.1;
+        
+        this.affiliate.contract_value += contractValue;
+        this.affiliate.remaining_balance += commission;
+        this.affiliate.received_balance += commission;
         
         // Update in top affiliates list
         const affiliateInTop = this.topAffiliates.find(a => a.id === affiliateId);
         if (affiliateInTop) {
           affiliateInTop.total_contracts += 1;
-          affiliateInTop.contract_value += defaultValue;
+          affiliateInTop.contract_value += contractValue;
           // Re-sort the list
           this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
         }
@@ -526,26 +557,36 @@ export class MemStorage implements IStorage {
     // In a real DB implementation, we would query by actual ID
     if (customerId >= 0 && customerId < this.affiliate.referred_customers.length) {
       const customer = this.affiliate.referred_customers[customerId];
+      const oldStatus = customer.status;
+      const now = new Date().toISOString();
       
       // Update the customer status
       customer.status = status;
       customer.note = description;
-      customer.updated_at = new Date().toISOString();
+      customer.updated_at = now;
       
       // If the status is changed to "Contract signed", update contracts count and value
-      if (status === "Contract signed" && this.affiliate.referred_customers[customerId].status !== "Contract signed") {
+      if (status === "Contract signed" && oldStatus !== "Contract signed") {
         this.affiliate.total_contracts += 1;
-        // Assume contract value from the description or a default value
-        const defaultValue = 20000000; // Default 20M VND
-        this.affiliate.contract_value += defaultValue;
-        this.affiliate.remaining_balance += defaultValue * 0.1; // 10% commission
-        this.affiliate.received_balance += defaultValue * 0.1;
+        // Mặc định giá trị hợp đồng và hoa hồng
+        const contractValue = 20000000; // Default 20M VND
+        const commission = contractValue * 0.1; // 10% commission
+        
+        // Cập nhật thông tin về hợp đồng và hoa hồng cho khách hàng
+        customer.contract_value = contractValue;
+        customer.commission = commission;
+        customer.contract_date = now;
+        
+        // Cập nhật số liệu cho affiliate
+        this.affiliate.contract_value += contractValue;
+        this.affiliate.remaining_balance += commission;
+        this.affiliate.received_balance += commission;
         
         // Update in top affiliates list
         const affiliateInTop = this.topAffiliates.find(a => a.id === this.affiliate.id);
         if (affiliateInTop) {
           affiliateInTop.total_contracts += 1;
-          affiliateInTop.contract_value += defaultValue;
+          affiliateInTop.contract_value += contractValue;
           // Re-sort the list
           this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
         }

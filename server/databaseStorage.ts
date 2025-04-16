@@ -290,29 +290,48 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Affiliate not found");
     }
     
-    // 2. Cập nhật referred_customers
-    const customers = affiliate.referred_customers || [];
-    customers.unshift(customerData);
+    const now = new Date().toISOString();
     
-    // 3. Cập nhật tổng số khách hàng
+    // 2. Đảm bảo có đầy đủ dữ liệu cho khách hàng
+    const newCustomer: ReferredCustomer = {
+      ...customerData,
+      created_at: customerData.created_at || now,
+      updated_at: customerData.updated_at || now
+    };
+    
+    // 3. Nếu trạng thái là "Contract signed", cập nhật thông tin hợp đồng
+    if (newCustomer.status === "Contract signed") {
+      const contractValue = newCustomer.contract_value || 20000000; // 20M VND
+      const commission = contractValue * 0.1; // 10% hoa hồng
+      
+      newCustomer.contract_value = contractValue;
+      newCustomer.commission = commission;
+      newCustomer.contract_date = newCustomer.contract_date || now;
+    }
+    
+    // 4. Cập nhật referred_customers
+    const customers = affiliate.referred_customers || [];
+    customers.unshift(newCustomer);
+    
+    // 5. Cập nhật tổng số khách hàng
     const total_contacts = affiliate.total_contacts + 1;
     
-    // 4. Nếu trạng thái là "Contract signed", cập nhật hợp đồng
+    // 6. Nếu trạng thái là "Contract signed", cập nhật hợp đồng
     let total_contracts = affiliate.total_contracts;
     let contract_value = affiliate.contract_value;
     let remaining_balance = affiliate.remaining_balance;
     let received_balance = affiliate.received_balance;
     
-    if (customerData.status === "Contract signed") {
+    if (newCustomer.status === "Contract signed") {
       total_contracts += 1;
-      const defaultValue = 20000000; // 20M VND
-      contract_value += defaultValue;
-      const commission = defaultValue * 0.1; // 10% hoa hồng
+      const contractValue = newCustomer.contract_value || 20000000;
+      contract_value += contractValue;
+      const commission = contractValue * 0.1; // 10% hoa hồng
       remaining_balance += commission;
       received_balance += commission;
     }
     
-    // 5. Cập nhật affiliate
+    // 7. Cập nhật affiliate
     await db.update(affiliates)
       .set({
         referred_customers: customers,
@@ -337,11 +356,14 @@ export class DatabaseStorage implements IStorage {
     // 2. Cập nhật thông tin khách hàng
     const customers = [...affiliate.referred_customers]; // Tạo bản sao
     const oldStatus = customers[customerId].status;
-    customers[customerId] = {
+    const now = new Date().toISOString();
+    
+    // Tạo đối tượng khách hàng cập nhật
+    let updatedCustomer = {
       ...customers[customerId],
       status,
       note: description,
-      updated_at: new Date().toISOString()
+      updated_at: now
     };
     
     // 3. Nếu trạng thái mới là "Contract signed" và trạng thái cũ không phải
@@ -357,7 +379,18 @@ export class DatabaseStorage implements IStorage {
       const commission = defaultValue * 0.1; // 10% hoa hồng
       remaining_balance += commission;
       received_balance += commission;
+      
+      // Cập nhật thông tin hợp đồng cho khách hàng
+      updatedCustomer = {
+        ...updatedCustomer,
+        contract_value: defaultValue,
+        commission: commission,
+        contract_date: now
+      };
     }
+    
+    // Cập nhật khách hàng trong danh sách
+    customers[customerId] = updatedCustomer;
     
     // 4. Cập nhật affiliate
     await db.update(affiliates)
@@ -421,10 +454,18 @@ export class DatabaseStorage implements IStorage {
                         j % 3 === 0 ? "Presenting idea" : 
                         j % 2 === 0 ? "Ready to disburse" : "Contact received";
           
+          const now = new Date().toISOString();
+          const contractValue = status === "Contract signed" ? 20000000 : undefined;
+          const commission = contractValue ? contractValue * 0.1 : undefined;
+          
           const customerData: ReferredCustomer = {
             customer_name: companyName,
             status: status as CustomerStatusType,
-            updated_at: new Date().toISOString(),
+            created_at: now,
+            updated_at: now,
+            contract_value: contractValue,
+            commission: commission,
+            contract_date: status === "Contract signed" ? now : undefined,
             note: `Khách hàng được giới thiệu bởi ${newAffiliate.full_name}`
           };
           

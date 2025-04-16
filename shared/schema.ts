@@ -36,7 +36,11 @@ export type UserRoleType = z.infer<typeof UserRole>;
 export const ReferredCustomerSchema = z.object({
   customer_name: z.string(),
   status: CustomerStatus,
+  created_at: z.string().default(() => new Date().toISOString()), // Thời điểm tạo khách hàng
   updated_at: z.string(),
+  contract_value: z.number().optional(), // Giá trị hợp đồng
+  commission: z.number().optional(), // Hoa hồng tính được
+  contract_date: z.string().optional(), // Ngày ký hợp đồng
   note: z.string().optional(),
 });
 
@@ -118,6 +122,48 @@ export const otpVerifications = pgTable("otp_verifications", {
 });
 
 // Note: Relations will be implemented when we add proper drizzle-orm/relations support
+
+// Schema for time period statistics
+export const StatisticsPeriodSchema = z.enum([
+  "week",
+  "month",
+  "year",
+  "all"
+]);
+
+export type StatisticsPeriodType = z.infer<typeof StatisticsPeriodSchema>;
+
+// Schema for customer statistics response
+export const CustomerStatisticsSchema = z.object({
+  totalCustomers: z.number(),
+  totalContracts: z.number(),
+  totalContractValue: z.number(),
+  totalCommission: z.number(),
+  periodType: StatisticsPeriodSchema,
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  customers: z.array(ReferredCustomerSchema)
+});
+
+export type CustomerStatistics = z.infer<typeof CustomerStatisticsSchema>;
+
+// Schema for contract value and commission statistics by time period
+export const TimeSeriesDataPointSchema = z.object({
+  period: z.string(), // e.g., "2024-04" for April 2024
+  contractValue: z.number(),
+  commission: z.number(),
+  contractCount: z.number()
+});
+
+export type TimeSeriesDataPoint = z.infer<typeof TimeSeriesDataPointSchema>;
+
+// Schema for time series statistics response
+export const TimeSeriesStatisticsSchema = z.object({
+  periodType: StatisticsPeriodSchema,
+  data: z.array(TimeSeriesDataPointSchema)
+});
+
+export type TimeSeriesStatistics = z.infer<typeof TimeSeriesStatisticsSchema>;
 
 // Top affiliate schema
 export const TopAffiliateSchema = z.object({
