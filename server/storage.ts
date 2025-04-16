@@ -9,7 +9,9 @@ import {
   User,
   UserRoleType,
   InsertOtpVerification,
-  OtpVerification
+  OtpVerification,
+  WithdrawalStatus,
+  WithdrawalStatusType
 } from "@shared/schema";
 import { DatabaseStorage } from "./databaseStorage";
 
@@ -19,6 +21,9 @@ export interface IStorage {
   getCurrentAffiliate(): Promise<Affiliate | undefined>;
   getTopAffiliates(): Promise<TopAffiliate[]>;
   addWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void>;
+  updateWithdrawalStatus(affiliateId: string, requestTime: string, newStatus: WithdrawalStatusType): Promise<WithdrawalHistory | undefined>;
+  checkDailyWithdrawalLimit(affiliateId: string, amount: number): Promise<{exceeds: boolean, totalWithdrawn: number, remainingLimit: number}>;
+  updateAffiliateBalance(affiliateId: string, amount: number): Promise<boolean>;
   createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate>;
   getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined>;
   getAffiliateByUserId(userId: number): Promise<Affiliate | undefined>; // Phương thức mới để lấy affiliate từ user_id
@@ -41,6 +46,100 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  /**
+   * Cập nhật trạng thái yêu cầu rút tiền
+   * @param affiliateId ID của affiliate
+   * @param requestTime Thời gian yêu cầu
+   * @param newStatus Trạng thái mới
+   * @returns Thông tin yêu cầu nếu cập nhật thành công, undefined nếu không tìm thấy
+   */
+  async updateWithdrawalStatus(affiliateId: string, requestTime: string, newStatus: WithdrawalStatusType): Promise<WithdrawalHistory | undefined> {
+    // Tìm affiliate dựa vào ID
+    const affiliate = await this.getAffiliateByAffiliateId(affiliateId);
+    if (!affiliate) {
+      return undefined;
+    }
+    
+    // Tìm yêu cầu rút tiền dựa vào requestTime
+    const withdrawalIdx = affiliate.withdrawal_history.findIndex(wh => wh.request_date === requestTime);
+    if (withdrawalIdx === -1) {
+      return undefined;
+    }
+    
+    // Cập nhật trạng thái
+    affiliate.withdrawal_history[withdrawalIdx].status = newStatus;
+    
+    // Nếu trạng thái là "Processing", cập nhật remaining_balance
+    if (newStatus === "Processing") {
+      const withdrawalAmount = affiliate.withdrawal_history[withdrawalIdx].amount;
+      // Đã trừ balance ở addWithdrawalRequest, nên không cần trừ lại
+      console.log(`Updated withdrawal status to Processing. Amount: ${withdrawalAmount}`);
+    }
+    
+    // Trả về thông tin yêu cầu đã cập nhật
+    return affiliate.withdrawal_history[withdrawalIdx];
+  }
+  
+  /**
+   * Kiểm tra giới hạn rút tiền trong ngày
+   * @param affiliateId ID của affiliate
+   * @param amount Số tiền muốn rút
+   * @returns Kết quả kiểm tra với thông tin tổng đã rút và giới hạn còn lại
+   */
+  async checkDailyWithdrawalLimit(affiliateId: string, amount: number): Promise<{exceeds: boolean, totalWithdrawn: number, remainingLimit: number}> {
+    // Tìm affiliate dựa vào ID
+    const affiliate = await this.getAffiliateByAffiliateId(affiliateId);
+    if (!affiliate) {
+      return { exceeds: true, totalWithdrawn: 0, remainingLimit: 0 };
+    }
+    
+    const DAILY_LIMIT = 20000000; // 20 triệu VND
+    const today = new Date().toISOString().split('T')[0]; // format YYYY-MM-DD
+    
+    // Tính tổng số tiền đã rút trong ngày hôm nay
+    let totalWithdrawnToday = 0;
+    for (const withdrawal of affiliate.withdrawal_history) {
+      const withdrawalDate = new Date(withdrawal.request_date).toISOString().split('T')[0];
+      if (withdrawalDate === today) {
+        totalWithdrawnToday += withdrawal.amount;
+      }
+    }
+    
+    // Kiểm tra giới hạn
+    const remainingLimit = DAILY_LIMIT - totalWithdrawnToday;
+    const exceeds = (totalWithdrawnToday + amount) > DAILY_LIMIT;
+    
+    return {
+      exceeds,
+      totalWithdrawn: totalWithdrawnToday,
+      remainingLimit
+    };
+  }
+  
+  /**
+   * Cập nhật số dư của affiliate
+   * @param affiliateId ID của affiliate
+   * @param amount Số tiền cần trừ (số dương)
+   * @returns true nếu cập nhật thành công, false nếu không
+   */
+  async updateAffiliateBalance(affiliateId: string, amount: number): Promise<boolean> {
+    // Tìm affiliate dựa vào ID
+    const affiliate = await this.getAffiliateByAffiliateId(affiliateId);
+    if (!affiliate) {
+      return false;
+    }
+    
+    // Kiểm tra số dư
+    if (affiliate.remaining_balance < amount) {
+      return false;
+    }
+    
+    // Trừ số dư, cập nhật paid_balance
+    affiliate.remaining_balance -= amount;
+    affiliate.paid_balance += amount;
+    
+    return true;
+  }
   private affiliate: Affiliate;
   private topAffiliates: TopAffiliate[];
   private users: User[] = []; // Mảng lưu trữ người dùng mẫu
@@ -202,16 +301,34 @@ export class MemStorage implements IStorage {
   }
 
   async addWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void> {
+    // Tìm affiliate dựa vào user_id (ở đây là affiliate_id vì yêu cầu API truyền affiliate_id vào user_id)
+    const affiliate = await this.getAffiliateByAffiliateId(request.user_id);
+    
+    if (!affiliate) {
+      throw new Error("Affiliate not found");
+    }
+    
+    // Kiểm tra giới hạn rút tiền theo ngày
+    const dailyLimitCheck = await this.checkDailyWithdrawalLimit(request.user_id, request.amount_requested);
+    if (dailyLimitCheck.exceeds) {
+      throw new Error(`Vượt quá giới hạn rút tiền trong ngày. Hạn mức còn lại: ${dailyLimitCheck.remainingLimit.toLocaleString()} VND`);
+    }
+    
+    // Kiểm tra số dư
+    if (affiliate.remaining_balance < request.amount_requested) {
+      throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
+    }
+    
     // Add to withdrawal history
-    this.affiliate.withdrawal_history.unshift({
+    affiliate.withdrawal_history.unshift({
       request_date: request.request_time,
       amount: request.amount_requested,
       note: request.note || "",
-      status: "Processing"
+      status: "Pending" // Trạng thái ban đầu là Pending
     });
-
-    // Update remaining balance (would be updated by an external system in a real app)
-    this.affiliate.remaining_balance -= request.amount_requested;
+    
+    // Đổi trạng thái thành Processing và trừ tiền 
+    await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
   }
 
   async getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined> {

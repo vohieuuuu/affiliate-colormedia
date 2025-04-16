@@ -15,9 +15,10 @@ export type CustomerStatusType = z.infer<typeof CustomerStatus>;
 
 // Withdrawal status type
 export const WithdrawalStatus = z.enum([
-  "Processing",
-  "Completed",
-  "Rejected"
+  "Pending",     // Đang chờ xử lý
+  "Processing",  // Đang xử lý, đã trừ số dư
+  "Completed",   // Đã hoàn thành
+  "Rejected"     // Đã từ chối
 ]);
 
 export type WithdrawalStatusType = z.infer<typeof WithdrawalStatus>;
