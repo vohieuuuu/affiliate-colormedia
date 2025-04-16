@@ -197,10 +197,15 @@ export function setupDevAuthRoutes(app: any, storage: IStorage) {
       await storage.updateUserPassword(user.id, hashedPassword);
       await storage.markFirstLoginComplete(user.id);
       
+      // Tạo token mới cho người dùng
+      const newToken = generateToken();
+      (user as any).token = newToken;
+      
       res.json({
         status: "success",
         data: {
           message: "Đổi mật khẩu thành công",
+          token: newToken,
           development_mode: true
         }
       });

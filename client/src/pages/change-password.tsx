@@ -59,9 +59,19 @@ export default function ChangePasswordPage() {
       });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       // Xóa flag đổi mật khẩu nếu thành công
       clearPasswordChangeRequirement();
+      
+      // Lấy token mới nếu server trả về
+      if (response?.data?.token) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem("auth_token", response.data.token);
+        }
+      }
+      
+      // Tải lại thông tin người dùng
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       
       toast({
         title: "Đổi mật khẩu thành công",
