@@ -7,9 +7,10 @@ import { useAuth } from "@/hooks/use-auth";
 
 interface HeaderProps {
   fullName?: string;
+  affiliateId?: string;
 }
 
-export default function Header({ fullName }: HeaderProps) {
+export default function Header({ fullName, affiliateId }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { logoutMutation } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -62,7 +63,7 @@ export default function Header({ fullName }: HeaderProps) {
                     {fullName || "Affiliate User"}
                   </span>
                   <span className="text-xs text-white/80">
-                    ID: AFF123
+                    ID: {affiliateId || "---"}
                   </span>
                 </div>
               </div>
