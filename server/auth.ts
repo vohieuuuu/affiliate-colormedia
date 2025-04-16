@@ -3,34 +3,32 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import * as bcrypt from 'bcrypt';
+import { randomBytes } from "crypto";
 import type { User } from "@shared/schema";
 import { sendAccountActivationEmail } from "./email";
 
-// Promisify scrypt để sử dụng với async/await
-const scryptAsync = promisify(scrypt);
+// Số lượng round cho bcrypt (càng lớn càng khó giải mã nhưng càng tốn tài nguyên)
+const SALT_ROUNDS = 12;
 
 // Mật khẩu mặc định cho người dùng mới
 const DEFAULT_PASSWORD = "color1234@";
 
 /**
- * Mã hóa mật khẩu sử dụng scrypt và salt
+ * Mã hóa mật khẩu sử dụng bcrypt
+ * Phương pháp này tự động tạo salt và đính kèm vào hash
  */
 export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return bcrypt.hash(password, SALT_ROUNDS);
 }
 
 /**
  * So sánh mật khẩu nhập vào với mật khẩu đã lưu trong DB
+ * bcrypt.compare tự động trích xuất salt từ hash và 
+ * kiểm tra với mật khẩu đầu vào được hash cùng salt
  */
 export async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  return bcrypt.compare(supplied, stored);
 }
 
 /**

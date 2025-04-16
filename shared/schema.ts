@@ -97,6 +97,20 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   amount_requested: integer("amount_requested").notNull(),
   note: text("note"),
   request_time: timestamp("request_time").notNull().defaultNow(),
+  is_verified: integer("is_verified").notNull().default(0), // 0: chưa xác thực, 1: đã xác thực
+});
+
+// OTP verification schema
+export const otpVerifications = pgTable("otp_verifications", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id), // Reference to users table
+  otp_code: varchar("otp_code", { length: 10 }).notNull(), // Mã OTP
+  verification_type: varchar("verification_type", { length: 30 }).notNull().default("WITHDRAWAL"), // Loại xác thực
+  related_id: integer("related_id"), // ID của yêu cầu liên quan (ví dụ: ID của withdrawal_request)
+  expire_at: timestamp("expire_at").notNull(), // Thời gian hết hạn
+  created_at: timestamp("created_at").notNull().defaultNow(), // Thời gian tạo
+  is_used: integer("is_used").notNull().default(0), // 0: chưa dùng, 1: đã dùng
+  attempt_count: integer("attempt_count").notNull().default(0), // Số lần thử nhập OTP sai
 });
 
 // Note: Relations will be implemented when we add proper drizzle-orm/relations support
@@ -141,6 +155,7 @@ export type RegisterData = z.infer<typeof RegisterSchema>;
 export const insertUserSchema = createInsertSchema(users);
 export const insertAffiliateSchema = createInsertSchema(affiliates);
 export const insertWithdrawalRequestSchema = createInsertSchema(withdrawalRequests);
+export const insertOtpVerificationSchema = createInsertSchema(otpVerifications);
 
 // Define the withdrawal request payload sent to the webhook
 export const withdrawalRequestPayloadSchema = z.object({
@@ -164,3 +179,5 @@ export type InsertAffiliate = z.infer<typeof insertAffiliateSchema>;
 export type Affiliate = typeof affiliates.$inferSelect;
 export type InsertWithdrawalRequest = z.infer<typeof insertWithdrawalRequestSchema>;
 export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
+export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;
+export type OtpVerification = typeof otpVerifications.$inferSelect;
