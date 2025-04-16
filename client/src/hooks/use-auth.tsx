@@ -24,8 +24,14 @@ interface LoginResponse {
   requires_password_change: boolean;
 }
 
+// Định nghĩa kiểu dữ liệu cho form đăng nhập
+type LoginData = z.infer<typeof LoginSchema>;
+
+// Định nghĩa kiểu dữ liệu cho form đăng ký
+type RegisterData = Omit<z.infer<typeof RegisterSchema>, "confirmPassword">;
+
 // Định nghĩa kiểu dữ liệu cho context Auth
-type AuthContextType = {
+interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
@@ -34,22 +40,28 @@ type AuthContextType = {
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
   clearPasswordChangeRequirement: () => void;
+}
+
+// Khởi tạo context mặc định
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  isLoading: false,
+  error: null,
+  requiresPasswordChange: false,
+  loginMutation: {} as UseMutationResult<LoginResponse, Error, LoginData>,
+  logoutMutation: {} as UseMutationResult<void, Error, void>,
+  registerMutation: {} as UseMutationResult<User, Error, RegisterData>,
+  clearPasswordChangeRequirement: () => {}
 };
 
-// Định nghĩa kiểu dữ liệu cho form đăng nhập
-type LoginData = z.infer<typeof LoginSchema>;
-
-// Định nghĩa kiểu dữ liệu cho form đăng ký
-type RegisterData = Omit<z.infer<typeof RegisterSchema>, "confirmPassword">;
-
 // Tạo context
-export const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   
   // Kiểm tra xem người dùng có yêu cầu đổi mật khẩu hay không
-  const storedRequiresPasswordChange = sessionStorage.getItem("requires_password_change");
+  const storedRequiresPasswordChange = typeof window !== 'undefined' ? sessionStorage.getItem("requires_password_change") : null;
   const [requiresPasswordChange, setRequiresPasswordChange] = useState<boolean>(
     storedRequiresPasswordChange === "true"
   );
@@ -80,7 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Lưu và cập nhật trạng thái yêu cầu đổi mật khẩu
       const needsPasswordChange = response.requires_password_change;
-      sessionStorage.setItem("requires_password_change", needsPasswordChange.toString());
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem("requires_password_change", needsPasswordChange.toString());
+      }
       setRequiresPasswordChange(needsPasswordChange);
       
       toast({
@@ -127,7 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       // Xóa tất cả dữ liệu phiên khi đăng xuất
-      sessionStorage.removeItem("requires_password_change");
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem("requires_password_change");
+      }
       setRequiresPasswordChange(false);
       queryClient.setQueryData(["/api/auth/me"], null);
       
@@ -147,7 +163,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Xóa yêu cầu đổi mật khẩu khi hoàn thành
   const clearPasswordChangeRequirement = useCallback(() => {
-    sessionStorage.removeItem("requires_password_change");
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem("requires_password_change");
+    }
     setRequiresPasswordChange(false);
   }, []);
 

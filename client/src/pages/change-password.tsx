@@ -34,7 +34,7 @@ const changePasswordSchema = z.object({
 type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 
 export default function ChangePasswordPage() {
-  const { user } = useAuth();
+  const { user, clearPasswordChangeRequirement } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
@@ -53,19 +53,24 @@ export default function ChangePasswordPage() {
   const changePasswordMutation = useMutation({
     mutationFn: async (data: Omit<ChangePasswordData, "confirm_password">) => {
       const { confirm_password, ...passwordData } = data as any;
-      const res = await apiRequest("POST", "/api/auth/change-password", passwordData);
+      const res = await apiRequest("POST", "/api/auth/change-password", {
+        old_password: passwordData.current_password,
+        new_password: passwordData.new_password
+      });
       return await res.json();
     },
     onSuccess: () => {
+      // Xóa flag đổi mật khẩu nếu thành công
+      clearPasswordChangeRequirement();
+      
       toast({
         title: "Đổi mật khẩu thành công",
-        description: "Mật khẩu của bạn đã được cập nhật, vui lòng sử dụng mật khẩu mới để đăng nhập.",
+        description: "Mật khẩu của bạn đã được cập nhật, bạn sẽ được chuyển hướng đến trang chính.",
       });
       
-      // Đăng xuất và chuyển hướng về trang đăng nhập
+      // Chuyển hướng về trang dashboard
       setTimeout(() => {
-        queryClient.clear();
-        setLocation("/auth");
+        setLocation("/");
       }, 2000);
     },
     onError: (error: Error) => {
