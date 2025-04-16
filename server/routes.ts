@@ -494,7 +494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   username: affiliateData.email,
                   password: hashedPassword,
                   role: "AFFILIATE",
-                  is_first_login: 1
+                  is_first_login: true // sẽ được chuyển thành 1 trong hàm createUser
                 });
                 
                 // Gửi email kích hoạt
