@@ -7,6 +7,7 @@ import {
   InsertAffiliate,
   CustomerStatusType
 } from "@shared/schema";
+import { DatabaseStorage } from "./databaseStorage";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -289,4 +290,7 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Chọn loại storage dựa vào môi trường (sử dụng DB trong production)
+export const storage = process.env.NODE_ENV === "production" 
+  ? new DatabaseStorage() 
+  : new MemStorage();
