@@ -4,11 +4,14 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import DashboardInfoBar from "@/components/affiliate-dashboard/DashboardInfoBar";
 import StatisticsGrid from "@/components/affiliate-dashboard/StatisticsGrid";
+import StatisticsByPeriod from "@/components/affiliate-dashboard/StatisticsByPeriod";
 import LeaderboardSection from "@/components/affiliate-dashboard/LeaderboardSection";
 import ReferredCustomersSection from "@/components/affiliate-dashboard/ReferredCustomersSection";
+import FilterableCustomersSection from "@/components/affiliate-dashboard/FilterableCustomersSection";
 import WithdrawalHistorySection from "@/components/affiliate-dashboard/WithdrawalHistorySection";
 import TimelineModal from "@/components/affiliate-dashboard/TimelineModal";
 import WithdrawalModal from "@/components/affiliate-dashboard/WithdrawalModal";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReferredCustomer } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,8 +50,8 @@ export default function Dashboard() {
   // Handle success notification for withdrawal request
   const handleWithdrawalSuccess = () => {
     toast({
-      title: "Success!",
-      description: "Your withdrawal request has been submitted successfully.",
+      title: "Thành công!",
+      description: "Yêu cầu rút tiền của bạn đã được gửi thành công.",
       variant: "default",
     });
     setIsWithdrawalModalOpen(false);
@@ -58,7 +61,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Data</h1>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Lỗi tải dữ liệu</h1>
           <p className="text-gray-600">{(affiliateError as Error).message}</p>
         </div>
       </div>
@@ -93,25 +96,47 @@ export default function Dashboard() {
               onWithdrawalRequest={handleWithdrawalRequest} 
             />
             
-            <StatisticsGrid affiliate={affiliateData} />
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-              <LeaderboardSection 
-                topAffiliates={topAffiliates} 
-                isLoading={isTopAffiliatesLoading} 
-              />
-              
-              <div className="lg:col-span-2 space-y-8">
-                <ReferredCustomersSection 
-                  referredCustomers={affiliateData?.referred_customers} 
-                  onViewTimeline={handleViewTimeline} 
-                />
+            <Tabs defaultValue="overall" className="mt-8">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="overall">Tổng quan</TabsTrigger>
+                <TabsTrigger value="by-period">Theo thời gian</TabsTrigger>
+              </TabsList>
+              <TabsContent value="overall" className="mt-4 space-y-6">
+                <StatisticsGrid affiliate={affiliateData} />
                 
-                <WithdrawalHistorySection 
-                  withdrawalHistory={affiliateData?.withdrawal_history} 
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+                  <LeaderboardSection 
+                    topAffiliates={topAffiliates} 
+                    isLoading={isTopAffiliatesLoading} 
+                  />
+                  
+                  <div className="lg:col-span-2 space-y-8">
+                    <ReferredCustomersSection 
+                      referredCustomers={affiliateData?.referred_customers} 
+                      onViewTimeline={handleViewTimeline} 
+                    />
+                    
+                    <WithdrawalHistorySection 
+                      withdrawalHistory={affiliateData?.withdrawal_history} 
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="by-period" className="mt-4 space-y-6">
+                <StatisticsByPeriod defaultPeriod="month" />
+                
+                <div className="grid grid-cols-1 gap-8 mt-8">
+                  <FilterableCustomersSection 
+                    onViewTimeline={handleViewTimeline} 
+                  />
+                  
+                  <WithdrawalHistorySection 
+                    withdrawalHistory={affiliateData?.withdrawal_history} 
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </main>
