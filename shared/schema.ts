@@ -58,6 +58,7 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }).notNull(),
   role: varchar("role", { length: 20 }).$type<UserRoleType>().notNull().default("AFFILIATE"),
   is_active: integer("is_active").notNull().default(1),
+  is_first_login: integer("is_first_login").notNull().default(0), // Đánh dấu user cần đổi mật khẩu
   last_login: timestamp("last_login"),
   token: varchar("token", { length: 255 }),
   created_at: timestamp("created_at").notNull().defaultNow(),

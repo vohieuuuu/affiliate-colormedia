@@ -16,6 +16,7 @@ export interface IStorage {
   getTopAffiliates(): Promise<TopAffiliate[]>;
   addWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void>;
   createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate>;
+  getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined>;
   addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void>;
   updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
   seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;
@@ -29,6 +30,7 @@ export class MemStorage implements IStorage {
     // Mock data for a sample affiliate
     this.affiliate = {
       id: 1,
+      user_id: 1, // Thêm liên kết đến user_id
       affiliate_id: "AFF123",
       full_name: "Nguyen Van A",
       email: "a.nguyen@example.com",
@@ -163,6 +165,14 @@ export class MemStorage implements IStorage {
     this.affiliate.remaining_balance -= request.amount_requested;
   }
 
+  async getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined> {
+    // In memory storage, check if the affiliateId matches our current affiliate
+    if (this.affiliate.affiliate_id === affiliateId) {
+      return this.affiliate;
+    }
+    return undefined;
+  }
+
   async createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate> {
     // In a real implementation, this would add to the database
     // For the in-memory store, we'll simulate adding a new affiliate
@@ -171,6 +181,7 @@ export class MemStorage implements IStorage {
     // Create the affiliate object with default values for the stats
     const newAffiliate: Affiliate = {
       id: newId,
+      user_id: affiliateData.user_id || null, // Sử dụng user_id từ dữ liệu đầu vào nếu có
       affiliate_id: affiliateData.affiliate_id,
       full_name: affiliateData.full_name,
       email: affiliateData.email,

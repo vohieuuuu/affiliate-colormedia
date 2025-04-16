@@ -226,17 +226,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add a new affiliate
   app.post("/api/admin/affiliates", async (req, res) => {
     try {
-      // Validate request body using Zod schema
+      // Xác thực dữ liệu affiliate từ request body
       const affiliateData = insertAffiliateSchema.parse(req.body);
       
-      // Create the affiliate in storage
-      const newAffiliate = await storage.createAffiliate(affiliateData);
-      
-      // Return the newly created affiliate
-      res.status(201).json({
-        status: "success",
-        data: newAffiliate
-      });
+      // Kiểm tra xem affiliate_id có định dạng AFF.xxx hay không
+      if (affiliateData.affiliate_id.startsWith("AFF")) {
+        // Kiểm tra xem affiliate có tồn tại chưa
+        const existingAffiliate = await storage.getAffiliateByAffiliateId(affiliateData.affiliate_id);
+        
+        if (existingAffiliate) {
+          // Nếu đã tồn tại, cập nhật thông tin (chỉ cập nhật thông tin cơ bản)
+          // Trong demo này chúng ta giả định luôn là tạo mới để đơn giản
+          const updatedAffiliate = await storage.createAffiliate({
+            ...affiliateData,
+            user_id: existingAffiliate.user_id
+          });
+          
+          return res.status(200).json({
+            status: "success",
+            data: {
+              ...updatedAffiliate,
+              message: "Affiliate information updated"
+            }
+          });
+        } else {
+          // Nếu chưa tồn tại, tạo user mới rồi tạo affiliate
+          try {
+            // Import environment sử dụng database
+            if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
+              const { db } = await import("./db");
+              const { createUserForAffiliate } = await import("./auth");
+              
+              // Tạo user mới cho affiliate
+              const { user } = await createUserForAffiliate(
+                db,
+                affiliateData.email,
+                affiliateData.full_name
+              );
+              
+              // Tạo affiliate mới liên kết với user
+              const newAffiliateWithUser = await storage.createAffiliate({
+                ...affiliateData,
+                user_id: user.id
+              });
+              
+              return res.status(201).json({
+                status: "success",
+                data: {
+                  ...newAffiliateWithUser,
+                  message: "New affiliate created with user account"
+                }
+              });
+            } else {
+              // Trong môi trường development không dùng database
+              // Tạo affiliate mới không liên kết với user
+              const newAffiliate = await storage.createAffiliate(affiliateData);
+              
+              return res.status(201).json({
+                status: "success",
+                data: {
+                  ...newAffiliate,
+                  message: "New affiliate created (DEV mode - no user account)"
+                }
+              });
+            }
+          } catch (userError) {
+            console.error("Error creating user for affiliate:", userError);
+            return res.status(500).json({
+              status: "error",
+              error: {
+                code: "USER_CREATION_ERROR",
+                message: "Failed to create user account for affiliate"
+              }
+            });
+          }
+        }
+      } else {
+        // Nếu không có định dạng AFF, tạo affiliate bình thường
+        const newAffiliate = await storage.createAffiliate(affiliateData);
+        
+        return res.status(201).json({
+          status: "success",
+          data: newAffiliate
+        });
+      }
     } catch (error) {
       console.error("Error creating affiliate:", error);
       res.status(400).json({
