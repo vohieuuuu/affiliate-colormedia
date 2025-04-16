@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Moon, Sun, User, BarChart3, LogOut } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 interface HeaderProps {
   fullName?: string;
@@ -10,6 +11,7 @@ interface HeaderProps {
 
 export default function Header({ fullName }: HeaderProps) {
   const { theme, setTheme } = useTheme();
+  const { logoutMutation } = useAuth();
   const [mounted, setMounted] = useState(false);
   
   // After mounting, we have access to the theme
@@ -70,6 +72,9 @@ export default function Header({ fullName }: HeaderProps) {
               variant="ghost"
               size="icon"
               className="bg-white/10 text-white hover:bg-white/20"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+              title="Đăng xuất"
             >
               <LogOut className="h-5 w-5" />
             </Button>
