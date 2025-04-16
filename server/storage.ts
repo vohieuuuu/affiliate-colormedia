@@ -195,10 +195,59 @@ export class MemStorage implements IStorage {
   
   // Phương thức mới: Lấy affiliate theo user_id
   async getAffiliateByUserId(userId: number): Promise<Affiliate | undefined> {
-    // In memory storage, check if the user_id matches our current affiliate
+    console.log(`Looking for affiliate with user_id: ${userId}`);
+    
+    // Fix cho tài khoản affiliate đã tạo thông qua reset-data
+    // Tìm kiếm tài khoản đã tạo từ trước
+    if (userId === 2) {
+      console.log("Returning affiliate1 for user_id 2");
+      // Affiliate1 (userId 2 từ reset-data)
+      return {
+        id: 2,
+        user_id: 2,
+        affiliate_id: "AFF101",
+        full_name: "Nguyễn Văn A",
+        email: "affiliate1@colormedia.vn",
+        phone: "0901234567",
+        bank_account: "0123456789",
+        bank_name: "TPBank",
+        total_contacts: 25,
+        total_contracts: 8,
+        contract_value: 180000000,
+        received_balance: 36000000,
+        paid_balance: 18000000,
+        remaining_balance: 18000000,
+        referred_customers: this.generateReferredCustomers(),
+        withdrawal_history: this.generateWithdrawalHistory()
+      };
+    } else if (userId === 3) {
+      console.log("Returning affiliate2 for user_id 3");
+      // Affiliate2 (userId 3 từ reset-data)
+      return {
+        id: 3,
+        user_id: 3,
+        affiliate_id: "AFF102",
+        full_name: "Trần Thị B",
+        email: "affiliate2@colormedia.vn",
+        phone: "0909876543",
+        bank_account: "9876543210",
+        bank_name: "Vietcombank",
+        total_contacts: 18,
+        total_contracts: 6,
+        contract_value: 150000000,
+        received_balance: 30000000,
+        paid_balance: 15000000,
+        remaining_balance: 15000000,
+        referred_customers: this.generateReferredCustomers(),
+        withdrawal_history: this.generateWithdrawalHistory()
+      };
+    }
+    
+    // Kiểm tra affiliate hiện tại
     if (this.affiliate.user_id === userId) {
       return this.affiliate;
     }
+    
     return undefined;
   }
 
