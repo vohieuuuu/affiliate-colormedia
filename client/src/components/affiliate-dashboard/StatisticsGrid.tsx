@@ -86,8 +86,8 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
                 </span>
               </div>
             </div>
-            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-full">
-              <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            <div className="bg-[#07ADB8]/10 dark:bg-[#07ADB8]/30 p-3 rounded-full">
+              <TrendingUp className="h-6 w-6 text-[#07ADB8] dark:text-[#07ADB8]" />
             </div>
           </div>
           <div className="mt-4 flex items-center text-xs text-green-600">
@@ -99,7 +99,7 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
 
       {/* Commission Balance Card */}
       <Card className="border-none shadow-md overflow-hidden">
-        <div className="h-2 bg-amber-400" />
+        <div className="h-2 bg-[#FFC919]" />
         <CardContent className="p-5">
           <div className="flex justify-between items-start">
             <div>
@@ -110,8 +110,8 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
                 </span>
               </div>
             </div>
-            <div className="bg-amber-100 dark:bg-amber-900/30 p-3 rounded-full">
-              <Wallet className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            <div className="bg-[#FFC919]/10 dark:bg-[#FFC919]/30 p-3 rounded-full">
+              <Wallet className="h-6 w-6 text-[#FFC919] dark:text-[#FFC919]" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4 text-xs">
