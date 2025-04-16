@@ -7,14 +7,25 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Default API token cho tất cả các yêu cầu API
+const API_TOKEN = "vzzvc36lTcb7Pcean8QwndSX";
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = {
+    "Authorization": `Bearer ${API_TOKEN}`
+  };
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -31,6 +42,9 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        "Authorization": `Bearer ${API_TOKEN}`
+      }
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

@@ -12,11 +12,13 @@ https://api.colormedia.vn/api
 
 ## Xác thực
 
-Tất cả các yêu cầu API đều yêu cầu xác thực. API sử dụng JWT (JSON Web Token) để xác thực. Token phải được gửi trong header của mỗi yêu cầu:
+Tất cả các yêu cầu API đều yêu cầu xác thực (ngoại trừ endpoint kiểm tra trạng thái cơ sở dữ liệu). API sử dụng Bearer token để xác thực. Token mặc định là `vzzvc36lTcb7Pcean8QwndSX`, phải được gửi trong header của mỗi yêu cầu:
 
 ```
-Authorization: Bearer {your_jwt_token}
+Authorization: Bearer vzzvc36lTcb7Pcean8QwndSX
 ```
+
+Trong môi trường sản xuất, token này sẽ được thay thế bằng một giá trị bảo mật hơn thông qua biến môi trường `API_TOKEN`.
 
 ## Định dạng phản hồi
 

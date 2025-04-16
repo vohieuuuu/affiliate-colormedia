@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -8,7 +8,54 @@ import {
   CustomerStatus
 } from "@shared/schema";
 
+// API Token mặc định
+const API_TOKEN = "vzzvc36lTcb7Pcean8QwndSX";
+
+// Middleware xác thực Bearer token
+function authenticateToken(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token == null) {
+    return res.status(401).json({
+      status: "error",
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Authentication token is required"
+      }
+    });
+  }
+
+  if (token !== API_TOKEN) {
+    return res.status(403).json({
+      status: "error",
+      error: {
+        code: "FORBIDDEN",
+        message: "Invalid authentication token"
+      }
+    });
+  }
+
+  next();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Áp dụng middleware xác thực cho tất cả các API endpoints cần bảo vệ
+  const secureApiEndpoints = [
+    "/api/affiliate",
+    "/api/affiliates/top",
+    "/api/withdrawal-request",
+    "/api/admin/affiliates",
+    "/api/admin/customers",
+    "/api/admin/customers/:id/status",
+    "/api/admin/seed-data"
+  ];
+  
+  // Áp dụng middleware xác thực cho các endpoints cần bảo vệ
+  secureApiEndpoints.forEach(endpoint => {
+    app.use(endpoint, authenticateToken);
+  });
+  
   // API endpoint to get affiliate data
   app.get("/api/affiliate", async (req, res) => {
     try {
@@ -271,7 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API endpoint kiểm tra trạng thái cơ sở dữ liệu
+  // API endpoint kiểm tra trạng thái cơ sở dữ liệu - không yêu cầu xác thực
   app.get("/api/db-status", async (req, res) => {
     try {
       let dbStatus = "Not connected";
@@ -336,8 +383,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // API endpoint tạo bảng và cấu trúc cơ sở dữ liệu
-  app.post("/api/db-setup", async (req, res) => {
+  // API endpoint tạo bảng và cấu trúc cơ sở dữ liệu - bảo vệ bằng token
+  app.post("/api/db-setup", authenticateToken, async (req, res) => {
     try {
       const { force } = req.body;
       
