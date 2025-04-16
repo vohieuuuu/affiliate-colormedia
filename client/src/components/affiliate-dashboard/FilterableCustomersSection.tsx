@@ -26,7 +26,6 @@ import { Button } from "@/components/ui/button";
 import { Eye, ListFilter } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/formatters";
 import { 
-  CustomerStatusType, 
   StatisticsPeriodType, 
   ReferredCustomer 
 } from "@shared/schema";
@@ -40,7 +39,7 @@ export default function FilterableCustomersSection({
 }: FilterableCustomersSectionProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [period, setPeriod] = useState<StatisticsPeriodType>("all");
-  const [status, setStatus] = useState<CustomerStatusType | "all">("all");
+  const [status, setStatus] = useState<string>("all");
   const itemsPerPage = 5;
   
   // Reset to first page when filters change
@@ -108,7 +107,7 @@ export default function FilterableCustomersSection({
             
             <Select 
               value={status} 
-              onValueChange={(value) => setStatus(value as CustomerStatusType | "all")}
+              onValueChange={(value) => setStatus(value)}
             >
               <SelectTrigger className="w-[170px]">
                 <SelectValue placeholder="Chọn trạng thái" />

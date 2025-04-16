@@ -22,7 +22,7 @@ import {
   BarChart4
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
-import { CustomerStatusType, StatisticsPeriodType } from "@shared/schema";
+import { StatisticsPeriodType } from "@shared/schema";
 import { 
   BarChart, 
   Bar, 
