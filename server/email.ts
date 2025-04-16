@@ -1,14 +1,12 @@
 /**
- * Mô-đun gửi email sử dụng SendGrid
+ * Mô-đun gửi email sử dụng Nodemailer
  */
 
-import { MailService } from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 
-const mailService = new MailService();
-
-// Thông tin xác thực SendGrid
+// Thông tin xác thực email
 const EMAIL = "contact@colormedia.vn";
-const PASSWORD = "VUeOCEvFDKWGTZ7f";
+const PASSWORD = "email_password_here"; // Trong môi trường thực tế, sử dụng biến môi trường
 
 // Cấu hình dịch vụ email
 const FROM_EMAIL = "ColorMedia Affilate <contact@colormedia.vn>";
@@ -16,16 +14,27 @@ const SUPPORT_EMAIL = "support@colormedia.vn";
 const SUPPORT_PHONE = "0888 123 456";
 const LOGIN_URL = "https://affiliate.colormedia.vn";
 
-// Khởi tạo dịch vụ SendGrid nếu có API key
-try {
-  if (process.env.SENDGRID_API_KEY) {
-    mailService.setApiKey(process.env.SENDGRID_API_KEY);
-    console.log('SendGrid configured with API key');
-  } else {
-    console.log('No SendGrid API key provided, email will be logged to console');
+// Cấu hình nodemailer transporter
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com', // Hoặc smtp server khác tùy theo nhà cung cấp email
+  port: 587,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: EMAIL,
+    pass: PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false // Chấp nhận self-signed certificates trong môi trường dev
   }
-} catch (error) {
-  console.error('Error configuring SendGrid:', error);
+});
+
+// Trong môi trường phát triển, chỉ log thông tin, không gửi email thật
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+if (isDevelopment) {
+  console.log('Running in development mode, emails will be logged to console');
+} else {
+  console.log('Email service initialized for production');
 }
 
 /**
@@ -93,8 +102,17 @@ Trân trọng,
 Đội ngũ ColorMedia Affiliate
   `;
 
-  // Nếu không có API key, chỉ log email ra console
-  if (!process.env.SENDGRID_API_KEY) {
+  // Cấu hình email
+  const mailOptions = {
+    from: FROM_EMAIL,
+    to: email,
+    subject: subject,
+    text: textContent,
+    html: htmlContent,
+  };
+
+  // Nếu đang trong môi trường phát triển, chỉ log email
+  if (isDevelopment) {
     console.log('=========== ACCOUNT ACTIVATION EMAIL ===========');
     console.log(`TO: ${email}`);
     console.log(`SUBJECT: ${subject}`);
@@ -103,19 +121,10 @@ Trân trọng,
     return true;
   }
 
-  // Cấu hình email
-  const emailConfig = {
-    to: email,
-    from: FROM_EMAIL,
-    subject: subject,
-    text: textContent,
-    html: htmlContent,
-  };
-
+  // Gửi email trong môi trường production
   try {
-    // Gửi email
-    await mailService.send(emailConfig);
-    console.log(`Account activation email sent to ${email}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Account activation email sent to ${email}: ${info.messageId}`);
     return true;
   } catch (error) {
     console.error('Error sending activation email:', error);
