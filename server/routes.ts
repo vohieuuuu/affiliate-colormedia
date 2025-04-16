@@ -381,6 +381,303 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to retrieve top affiliates" });
     }
   });
+  
+  // API lấy thống kê khách hàng theo khoảng thời gian
+  app.get("/api/affiliate/customer-statistics", authenticateUser, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          status: "error", 
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Bạn phải đăng nhập để sử dụng tính năng này"
+          }
+        });
+      }
+      
+      // Lấy tham số từ URL
+      const periodType = (req.query.period as StatisticsPeriodType) || "all";
+      const status = req.query.status as CustomerStatusType | undefined;
+      
+      // Lấy thông tin affiliate
+      const affiliate = await storage.getAffiliateByUserId(req.user.id);
+      if (!affiliate) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "AFFILIATE_NOT_FOUND",
+            message: "Không tìm thấy thông tin affiliate"
+          }
+        });
+      }
+      
+      // Chuẩn bị kết quả thống kê
+      let customers = [...(affiliate.referred_customers || [])];
+      let periodStart = new Date();
+      let periodEnd = new Date();
+      
+      // Xác định khoảng thời gian
+      switch (periodType) {
+        case "week":
+          // Lấy ngày đầu tuần hiện tại (Thứ Hai)
+          periodStart = new Date();
+          periodStart.setDate(periodStart.getDate() - periodStart.getDay() + (periodStart.getDay() === 0 ? -6 : 1));
+          periodStart.setHours(0, 0, 0, 0);
+          
+          // Ngày cuối tuần là chủ nhật
+          periodEnd = new Date(periodStart);
+          periodEnd.setDate(periodEnd.getDate() + 6);
+          periodEnd.setHours(23, 59, 59, 999);
+          break;
+          
+        case "month":
+          // Ngày đầu tiên trong tháng
+          periodStart = new Date();
+          periodStart.setDate(1);
+          periodStart.setHours(0, 0, 0, 0);
+          
+          // Ngày cuối cùng trong tháng
+          periodEnd = new Date(periodStart);
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+          periodEnd.setDate(0);
+          periodEnd.setHours(23, 59, 59, 999);
+          break;
+          
+        case "year":
+          // Ngày đầu tiên trong năm
+          periodStart = new Date();
+          periodStart.setMonth(0, 1);
+          periodStart.setHours(0, 0, 0, 0);
+          
+          // Ngày cuối cùng trong năm
+          periodEnd = new Date(periodStart);
+          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          periodEnd.setDate(0);
+          periodEnd.setHours(23, 59, 59, 999);
+          break;
+          
+        default: // all - Tất cả thời gian
+          periodStart = new Date(0); // Từ thời điểm đầu tiên
+          periodEnd = new Date(); // Đến hiện tại
+      }
+      
+      // Lọc khách hàng theo khoảng thời gian
+      if (periodType !== "all") {
+        customers = customers.filter(customer => {
+          const createdDate = new Date(customer.created_at);
+          return createdDate >= periodStart && createdDate <= periodEnd;
+        });
+      }
+      
+      // Lọc khách hàng theo trạng thái (nếu có)
+      if (status) {
+        customers = customers.filter(customer => customer.status === status);
+      }
+      
+      // Tính toán các giá trị thống kê
+      const totalCustomers = customers.length;
+      const contractSignedCustomers = customers.filter(c => c.status === "Contract signed");
+      const totalContracts = contractSignedCustomers.length;
+      const totalContractValue = contractSignedCustomers.reduce((sum, c) => sum + (c.contract_value || 0), 0);
+      const totalCommission = contractSignedCustomers.reduce((sum, c) => sum + (c.commission || 0), 0);
+      
+      // Trả về kết quả
+      return res.json({
+        status: "success",
+        data: {
+          totalCustomers,
+          totalContracts,
+          totalContractValue,
+          totalCommission,
+          periodType,
+          periodStart: periodStart.toISOString(),
+          periodEnd: periodEnd.toISOString(),
+          customers
+        }
+      });
+    } catch (error: any) {
+      console.error("Error in /api/affiliate/customer-statistics:", error);
+      return res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: error.message || "Đã xảy ra lỗi khi lấy thống kê khách hàng"
+        }
+      });
+    }
+  });
+  
+  // API lấy dữ liệu theo chuỗi thời gian cho biểu đồ
+  app.get("/api/affiliate/time-series", authenticateUser, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          status: "error", 
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Bạn phải đăng nhập để sử dụng tính năng này"
+          }
+        });
+      }
+      
+      // Lấy tham số từ URL
+      const periodType = (req.query.period as StatisticsPeriodType) || "month";
+      
+      // Lấy thông tin affiliate
+      const affiliate = await storage.getAffiliateByUserId(req.user.id);
+      if (!affiliate) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "AFFILIATE_NOT_FOUND",
+            message: "Không tìm thấy thông tin affiliate"
+          }
+        });
+      }
+      
+      // Lấy tất cả khách hàng có trạng thái "Contract signed"
+      const contractCustomers = (affiliate.referred_customers || [])
+        .filter(c => c.status === "Contract signed")
+        .map(c => ({
+          ...c,
+          contractDate: c.contract_date ? new Date(c.contract_date) : new Date(c.created_at)
+        }));
+      
+      // Định dạng thời gian dựa vào periodType
+      let formatFunc: (date: Date) => string;
+      let periodData: { [key: string]: TimeSeriesDataPoint } = {};
+      
+      switch (periodType) {
+        case "week": {
+          // Format theo ngày trong tuần
+          formatFunc = (date: Date) => {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+          };
+          
+          // Lấy dữ liệu 7 ngày gần nhất
+          const today = new Date();
+          for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(today.getDate() - i);
+            const key = formatFunc(date);
+            periodData[key] = {
+              period: key,
+              contractValue: 0,
+              commission: 0,
+              contractCount: 0
+            };
+          }
+          break;
+        }
+        
+        case "month": {
+          // Format theo ngày trong tháng
+          formatFunc = (date: Date) => {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+          };
+          
+          // Lấy dữ liệu 30 ngày gần nhất
+          const today = new Date();
+          for (let i = 29; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(today.getDate() - i);
+            const key = formatFunc(date);
+            periodData[key] = {
+              period: key,
+              contractValue: 0,
+              commission: 0,
+              contractCount: 0
+            };
+          }
+          break;
+        }
+        
+        case "year": {
+          // Format theo tháng trong năm
+          formatFunc = (date: Date) => {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            return `${year}-${month.toString().padStart(2, '0')}`;
+          };
+          
+          // Lấy dữ liệu 12 tháng gần nhất
+          const today = new Date();
+          for (let i = 11; i >= 0; i--) {
+            const date = new Date();
+            date.setMonth(today.getMonth() - i);
+            const key = formatFunc(date);
+            periodData[key] = {
+              period: key,
+              contractValue: 0,
+              commission: 0,
+              contractCount: 0
+            };
+          }
+          break;
+        }
+        
+        default: {
+          // Format theo tháng trong năm
+          formatFunc = (date: Date) => {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            return `${year}-${month.toString().padStart(2, '0')}`;
+          };
+          
+          // Lấy dữ liệu 12 tháng gần nhất
+          const today = new Date();
+          for (let i = 11; i >= 0; i--) {
+            const date = new Date();
+            date.setMonth(today.getMonth() - i);
+            const key = formatFunc(date);
+            periodData[key] = {
+              period: key,
+              contractValue: 0,
+              commission: 0,
+              contractCount: 0
+            };
+          }
+        }
+      }
+      
+      // Tổng hợp dữ liệu
+      contractCustomers.forEach(customer => {
+        const periodKey = formatFunc(customer.contractDate);
+        if (periodData[periodKey]) {
+          periodData[periodKey].contractCount += 1;
+          periodData[periodKey].contractValue += customer.contract_value || 0;
+          periodData[periodKey].commission += customer.commission || 0;
+        }
+      });
+      
+      // Chuyển đổi từ object sang array
+      const data = Object.values(periodData);
+      
+      // Trả về kết quả
+      return res.json({
+        status: "success",
+        data: {
+          periodType,
+          data
+        }
+      });
+    } catch (error: any) {
+      console.error("Error in /api/affiliate/time-series:", error);
+      return res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: error.message || "Đã xảy ra lỗi khi lấy dữ liệu chuỗi thời gian"
+        }
+      });
+    }
+  });
 
   // API endpoint to request withdrawal OTP
   app.post("/api/withdrawal-request/send-otp", authenticateUser, ensureAffiliateMatchesUser, async (req, res) => {
