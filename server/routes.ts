@@ -130,21 +130,38 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Áp dụng middleware xác thực cho tất cả các API endpoints cần bảo vệ
+  // Áp dụng middleware xác thực cho các API endpoints
   const secureApiEndpoints = [
+    // API public hoặc được bảo vệ bằng token cơ bản
     "/api/affiliate",
     "/api/affiliates/top",
     "/api/withdrawal-request",
-    "/api/admin/affiliates",
+    
+    // API admin cần xác thực chính thức
+    "/api/admin/affiliates", 
     "/api/admin/customers",
     "/api/admin/customers/:id/status",
     "/api/admin/seed-data"
   ];
   
   // Áp dụng middleware xác thực cho các endpoints cần bảo vệ
-  secureApiEndpoints.forEach(endpoint => {
-    app.use(endpoint, authenticateToken);
-  });
+  if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
+    // Trong môi trường production hoặc sử dụng DB, áp dụng xác thực người dùng
+    secureApiEndpoints.forEach(endpoint => {
+      if (endpoint.startsWith("/api/admin")) {
+        // API admin cần token và quyền admin
+        app.use(endpoint, authenticateUser, requireAdmin);
+      } else {
+        // API khác cần token người dùng
+        app.use(endpoint, authenticateUser);
+      }
+    });
+  } else {
+    // Trong môi trường development, sử dụng token đơn giản
+    secureApiEndpoints.forEach(endpoint => {
+      app.use(endpoint, authenticateToken);
+    });
+  }
   
   // API endpoint to get affiliate data
   app.get("/api/affiliate", async (req, res) => {

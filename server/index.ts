@@ -37,6 +37,22 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Thiết lập các routes xác thực nếu sử dụng database
+  if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
+    try {
+      const { db } = await import("./db");
+      const { setupAuthRoutes } = await import("./auth");
+      
+      // Thiết lập route xác thực
+      setupAuthRoutes(app, db);
+      log("Authentication routes registered");
+    } catch (error) {
+      console.error("Failed to set up authentication routes:", error);
+    }
+  } else {
+    log("Using in-memory storage, authentication is simulated");
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
