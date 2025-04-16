@@ -256,7 +256,7 @@ export class MemStorage implements IStorage {
         contract_value: 180000000,
         received_balance: 36000000,
         paid_balance: 18000000,
-        remaining_balance: 18000000,
+        remaining_balance: 80000000,
         referred_customers: this.generateReferredCustomers(),
         withdrawal_history: this.generateWithdrawalHistory()
       };
@@ -276,7 +276,7 @@ export class MemStorage implements IStorage {
         contract_value: 150000000,
         received_balance: 30000000,
         paid_balance: 15000000,
-        remaining_balance: 15000000,
+        remaining_balance: 75000000,
         referred_customers: this.generateReferredCustomers(),
         withdrawal_history: this.generateWithdrawalHistory()
       };
