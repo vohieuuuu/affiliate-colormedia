@@ -9,7 +9,7 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, requiresPasswordChange } = useAuth();
 
   // Hiển thị trạng thái đang tải trong quá trình kiểm tra xác thực
   if (isLoading) {
@@ -27,6 +27,16 @@ export function ProtectedRoute({
     return (
       <Route path={path}>
         <Redirect to="/auth" />
+      </Route>
+    );
+  }
+
+  // Nếu người dùng cần đổi mật khẩu và đang không ở trang đổi mật khẩu, 
+  // chuyển hướng đến trang đổi mật khẩu
+  if (requiresPasswordChange && path !== "/change-password") {
+    return (
+      <Route path={path}>
+        <Redirect to="/change-password" />
       </Route>
     );
   }
