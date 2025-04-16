@@ -914,6 +914,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API endpoint làm sạch dữ liệu và tạo tài khoản test
+  app.post("/api/reset-data", async (req, res) => {
+    try {
+      // Tạo tài khoản Admin
+      const adminPassword = "admin@123";
+      const hashedAdminPassword = await hashPassword("admin@123");
+      
+      const admin = await storage.createUser({
+        username: "admin@colormedia.vn",
+        password: hashedAdminPassword,
+        role: "ADMIN",
+        is_first_login: false
+      });
+      
+      // Tạo tài khoản Affiliate 1
+      const affiliate1Password = "affiliate1@123";
+      const hashedAff1Password = await hashPassword(affiliate1Password);
+      
+      const affiliate1User = await storage.createUser({
+        username: "affiliate1@colormedia.vn",
+        password: hashedAff1Password,
+        role: "AFFILIATE",
+        is_first_login: false
+      });
+      
+      // Tạo hồ sơ Affiliate 1
+      const aff1Data = {
+        affiliate_id: "AFF101",
+        full_name: "Nguyễn Văn A",
+        email: "affiliate1@colormedia.vn",
+        phone: "0901234567",
+        bank_account: "0123456789",
+        bank_name: "TPBank",
+        user_id: affiliate1User.id
+      };
+      
+      const aff1 = await storage.createAffiliate(aff1Data);
+      
+      // Thêm dữ liệu khách hàng cho Affiliate 1
+      const customers1 = [
+        {
+          customer_name: "Công ty ABC",
+          status: "Contract signed",
+          updated_at: new Date().toISOString(),
+          note: "Khách hàng đã ký hợp đồng 6 tháng"
+        },
+        {
+          customer_name: "Công ty XYZ",
+          status: "Presenting idea",
+          updated_at: new Date().toISOString(),
+          note: "Đang thuyết trình ý tưởng"
+        }
+      ];
+      
+      for (const customer of customers1) {
+        await storage.addReferredCustomer(aff1.id, customer);
+      }
+      
+      // Tạo tài khoản Affiliate 2
+      const affiliate2Password = "affiliate2@123";
+      const hashedAff2Password = await hashPassword(affiliate2Password);
+      
+      const affiliate2User = await storage.createUser({
+        username: "affiliate2@colormedia.vn",
+        password: hashedAff2Password,
+        role: "AFFILIATE",
+        is_first_login: false
+      });
+      
+      // Tạo hồ sơ Affiliate 2
+      const aff2Data = {
+        affiliate_id: "AFF102",
+        full_name: "Trần Thị B",
+        email: "affiliate2@colormedia.vn",
+        phone: "0909876543",
+        bank_account: "9876543210",
+        bank_name: "Vietcombank",
+        user_id: affiliate2User.id
+      };
+      
+      const aff2 = await storage.createAffiliate(aff2Data);
+      
+      // Thêm dữ liệu khách hàng cho Affiliate 2
+      const customers2 = [
+        {
+          customer_name: "Công ty DEF",
+          status: "Contract signed",
+          updated_at: new Date().toISOString(),
+          note: "Khách hàng đã ký hợp đồng 12 tháng"
+        },
+        {
+          customer_name: "Công ty GHI",
+          status: "Contact received",
+          updated_at: new Date().toISOString(),
+          note: "Mới nhận thông tin liên hệ"
+        },
+        {
+          customer_name: "Công ty JKL",
+          status: "Pending reconciliation",
+          updated_at: new Date().toISOString(),
+          note: "Đang chờ xác nhận"
+        }
+      ];
+      
+      for (const customer of customers2) {
+        await storage.addReferredCustomer(aff2.id, customer);
+      }
+      
+      // Trả về thông tin tài khoản cho người dùng
+      res.status(200).json({
+        status: "success",
+        data: {
+          message: "Đã tạo mới dữ liệu thành công",
+          accounts: [
+            {
+              role: "Admin",
+              username: "admin@colormedia.vn",
+              password: adminPassword
+            },
+            {
+              role: "Affiliate 1",
+              username: "affiliate1@colormedia.vn",
+              password: affiliate1Password,
+              affiliate_id: aff1.affiliate_id
+            },
+            {
+              role: "Affiliate 2",
+              username: "affiliate2@colormedia.vn",
+              password: affiliate2Password,
+              affiliate_id: aff2.affiliate_id
+            }
+          ]
+        }
+      });
+    } catch (error) {
+      console.error("Lỗi khi tạo mới dữ liệu:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi tạo mới dữ liệu",
+          details: error instanceof Error ? error.message : "Unknown error"
+        }
+      });
+    }
+  });
+  
   // API endpoint tạo bảng và cấu trúc cơ sở dữ liệu - bảo vệ bằng token
   app.post("/api/db-setup", authenticateToken, async (req, res) => {
     try {

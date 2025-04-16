@@ -1,8 +1,8 @@
 // Script làm sạch dữ liệu mẫu cũ và tạo mới dữ liệu với 2 tài khoản
-// Node.js script sử dụng ES Modules
+// Node.js script sử dụng CommonJS
 
-import { storage } from '../server/storage.js';
-import { hashPassword } from '../server/auth.js';
+const { storage } = require('../server/storage');
+const { hashPassword } = require('../server/auth');
 
 async function resetData() {
   console.log("=== Bắt đầu làm sạch dữ liệu và tạo tài khoản mới ===");
