@@ -341,8 +341,8 @@ async function createDefaultDevAccount(storage: IStorage) {
     if (!adminUser) {
       console.log("DEV MODE: Creating default admin account");
       
-      // Mã hóa mật khẩu mặc định
-      const hashedPassword = await hashPassword("admin123");
+      // Sử dụng mật khẩu mặc định từ reset-data.js
+      const hashedPassword = await hashPassword("admin@123");
       
       // Tạo tài khoản admin
       const newUser = await storage.createUser({
