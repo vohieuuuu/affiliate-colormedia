@@ -396,8 +396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Lấy tham số từ URL
-      const periodType = (req.query.period as StatisticsPeriodType) || "all";
-      const status = req.query.status as CustomerStatusType | undefined;
+      const periodType = (req.query.period as string) || "all";
+      const status = req.query.status as string | undefined;
       
       // Lấy thông tin affiliate
       const affiliate = await storage.getAffiliateByUserId(req.user.id);
@@ -521,7 +521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Lấy tham số từ URL
-      const periodType = (req.query.period as StatisticsPeriodType) || "month";
+      const periodType = (req.query.period as string) || "month";
       
       // Lấy thông tin affiliate
       const affiliate = await storage.getAffiliateByUserId(req.user.id);
@@ -545,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Định dạng thời gian dựa vào periodType
       let formatFunc: (date: Date) => string;
-      let periodData: { [key: string]: TimeSeriesDataPoint } = {};
+      let periodData: { [key: string]: { period: string, contractValue: number, commission: number, contractCount: number } } = {};
       
       switch (periodType) {
         case "week": {
