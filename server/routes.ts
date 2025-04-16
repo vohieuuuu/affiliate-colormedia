@@ -5,13 +5,24 @@ import {
   withdrawalRequestPayloadSchema, 
   insertAffiliateSchema, 
   ReferredCustomerSchema, 
-  CustomerStatus
+  CustomerStatus,
+  UserRoleType,
+  User
 } from "@shared/schema";
 
-// API Token mặc định
+// Extend Express.Request to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
+
+// API Token mặc định (sẽ dùng cho xác thực quản trị viên)
 const API_TOKEN = "vzzvc36lTcb7Pcean8QwndSX";
 
-// Middleware xác thực Bearer token
+// Middleware xác thực Bearer token đơn giản
 function authenticateToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -37,6 +48,85 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
   }
 
   next();
+}
+
+// Middleware xác thực người dùng dựa trên token trong database
+async function authenticateUser(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token == null) {
+    return res.status(401).json({
+      status: "error",
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Authentication token is required"
+      }
+    });
+  }
+
+  try {
+    // Import cần thiết đối với các môi trường sử dụng database
+    if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+      const { users } = await import("@shared/schema");
+
+      // Tìm người dùng có token tương ứng
+      const [user] = await db.select().from(users).where(eq(users.token, token));
+      
+      if (!user) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Invalid or expired token"
+          }
+        });
+      }
+
+      // Lưu thông tin người dùng vào request để sử dụng ở các route tiếp theo
+      req.user = user;
+      next();
+    } else {
+      // Trong môi trường phát triển không sử dụng database, sử dụng token mặc định
+      if (token !== API_TOKEN) {
+        return res.status(403).json({
+          status: "error",
+          error: {
+            code: "FORBIDDEN",
+            message: "Invalid authentication token"
+          }
+        });
+      }
+      next();
+    }
+  } catch (error) {
+    console.error("Authentication error:", error);
+    return res.status(500).json({
+      status: "error",
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Authentication service error"
+      }
+    });
+  }
+}
+
+// Middleware kiểm tra quyền admin
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  // Nếu không có user (môi trường dev) hoặc user có role ADMIN, cho phép truy cập
+  if (!req.user || req.user.role === "ADMIN") {
+    return next();
+  }
+
+  return res.status(403).json({
+    status: "error",
+    error: {
+      code: "FORBIDDEN",
+      message: "Administrator privileges required"
+    }
+  });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {

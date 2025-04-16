@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, json, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -22,6 +22,15 @@ export const WithdrawalStatus = z.enum([
 
 export type WithdrawalStatusType = z.infer<typeof WithdrawalStatus>;
 
+// User role type
+export const UserRole = z.enum([
+  "ADMIN",        // Quản trị viên
+  "AFFILIATE",    // Người giới thiệu
+  "MANAGER"       // Quản lý
+]);
+
+export type UserRoleType = z.infer<typeof UserRole>;
+
 // Referred customer details type
 export const ReferredCustomerSchema = z.object({
   customer_name: z.string(),
@@ -42,9 +51,22 @@ export const WithdrawalHistorySchema = z.object({
 
 export type WithdrawalHistory = z.infer<typeof WithdrawalHistorySchema>;
 
+// Define users schema for authentication
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  role: varchar("role", { length: 20 }).$type<UserRoleType>().notNull().default("AFFILIATE"),
+  is_active: integer("is_active").notNull().default(1),
+  last_login: timestamp("last_login"),
+  token: varchar("token", { length: 255 }),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Define affiliate schema
 export const affiliates = pgTable("affiliates", {
   id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id), // Reference to users table
   affiliate_id: text("affiliate_id").notNull().unique(),
   full_name: text("full_name").notNull(),
   email: text("email").notNull(),
@@ -65,6 +87,7 @@ export const affiliates = pgTable("affiliates", {
 export const withdrawalRequests = pgTable("withdrawal_requests", {
   id: serial("id").primaryKey(),
   user_id: text("user_id").notNull(),
+  affiliate_id: integer("affiliate_id").references(() => affiliates.id), // Reference to affiliates table
   full_name: text("full_name").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
@@ -74,6 +97,8 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   note: text("note"),
   request_time: timestamp("request_time").notNull().defaultNow(),
 });
+
+// Note: Relations will be implemented when we add proper drizzle-orm/relations support
 
 // Top affiliate schema
 export const TopAffiliateSchema = z.object({
@@ -86,7 +111,33 @@ export const TopAffiliateSchema = z.object({
 
 export type TopAffiliate = z.infer<typeof TopAffiliateSchema>;
 
+// Login schema
+export const LoginSchema = z.object({
+  username: z.string().min(3).max(100),
+  password: z.string().min(6),
+});
+
+export type LoginData = z.infer<typeof LoginSchema>;
+
+// Registration schema
+export const RegisterSchema = z.object({
+  username: z.string().min(3).max(100),
+  password: z.string().min(6),
+  role: UserRole.optional(),
+  affiliate_data: z.object({
+    affiliate_id: z.string(),
+    full_name: z.string(),
+    email: z.string().email(),
+    phone: z.string(),
+    bank_name: z.string(),
+    bank_account: z.string(),
+  }).optional(),
+});
+
+export type RegisterData = z.infer<typeof RegisterSchema>;
+
 // Insert schemas
+export const insertUserSchema = createInsertSchema(users);
 export const insertAffiliateSchema = createInsertSchema(affiliates);
 export const insertWithdrawalRequestSchema = createInsertSchema(withdrawalRequests);
 
@@ -106,6 +157,8 @@ export const withdrawalRequestPayloadSchema = z.object({
 export type WithdrawalRequestPayload = z.infer<typeof withdrawalRequestPayloadSchema>;
 
 // Types
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
 export type InsertAffiliate = z.infer<typeof insertAffiliateSchema>;
 export type Affiliate = typeof affiliates.$inferSelect;
 export type InsertWithdrawalRequest = z.infer<typeof insertWithdrawalRequestSchema>;
