@@ -133,12 +133,99 @@ Trân trọng,
 }
 
 /**
- * Mã hóa và giải mã email/mật khẩu để sử dụng với hệ thống email
- * (Trong triển khai thực tế, nên sử dụng giải pháp bảo mật mạnh hơn)
+ * Gửi email thông báo khi yêu cầu rút tiền được tạo
  */
-export function getEmailCredentials() {
-  return {
-    email: EMAIL,
-    password: PASSWORD
+export async function sendWithdrawalRequestEmail(
+  name: string,
+  email: string,
+  amount: number,
+  bankInfo: {
+    bankName: string;
+    accountNumber: string;
+  }
+): Promise<boolean> {
+  // Chuẩn bị nội dung email
+  const subject = "Yêu cầu rút tiền đã được tạo - ColorMedia Affiliate";
+  const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  
+  const htmlContent = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="color: #07ADB8;">ColorMedia Affiliate</h1>
+      </div>
+      
+      <p>Chào <strong>${name}</strong>,</p>
+      
+      <p>Yêu cầu rút tiền của bạn đã được ghi nhận và đang được xử lý.</p>
+      
+      <div style="background-color: #f9f9f9; border-left: 4px solid #07ADB8; padding: 15px; margin: 20px 0;">
+        <p><strong>Chi tiết yêu cầu rút tiền:</strong></p>
+        <p>💰 Số tiền: <strong>${formattedAmount}</strong></p>
+        <p>🏦 Ngân hàng: <strong>${bankInfo.bankName}</strong></p>
+        <p>🔢 Số tài khoản: <strong>${bankInfo.accountNumber}</strong></p>
+        <p>⏱️ Thời gian yêu cầu: <strong>${new Date().toLocaleString('vi-VN')}</strong></p>
+      </div>
+      
+      <p>Đội ngũ của chúng tôi sẽ xử lý yêu cầu của bạn trong vòng 1-3 ngày làm việc. Bạn sẽ nhận được email xác nhận khi yêu cầu rút tiền đã được xử lý.</p>
+      
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+        <p>Nếu bạn có bất kỳ câu hỏi nào, hãy liên hệ với đội hỗ trợ của chúng tôi qua:</p>
+        <p>📧 Email: <a href="mailto:${SUPPORT_EMAIL}" style="color: #07ADB8; text-decoration: none;">${SUPPORT_EMAIL}</a></p>
+        <p>📞 Hotline: ${SUPPORT_PHONE}</p>
+      </div>
+      
+      <div style="margin-top: 30px; color: #777;">
+        <p>Trân trọng,<br>Đội ngũ ColorMedia Affiliate</p>
+      </div>
+    </div>
+  `;
+
+  const textContent = `
+Chào ${name},
+
+Yêu cầu rút tiền của bạn đã được ghi nhận và đang được xử lý.
+
+Chi tiết yêu cầu rút tiền:
+💰 Số tiền: ${formattedAmount}
+🏦 Ngân hàng: ${bankInfo.bankName}
+🔢 Số tài khoản: ${bankInfo.accountNumber}
+⏱️ Thời gian yêu cầu: ${new Date().toLocaleString('vi-VN')}
+
+Đội ngũ của chúng tôi sẽ xử lý yêu cầu của bạn trong vòng 1-3 ngày làm việc. Bạn sẽ nhận được email xác nhận khi yêu cầu rút tiền đã được xử lý.
+
+Nếu bạn có bất kỳ câu hỏi nào, hãy liên hệ với đội hỗ trợ của chúng tôi qua:
+📧 Email: ${SUPPORT_EMAIL}
+📞 Hotline: ${SUPPORT_PHONE}
+
+Trân trọng,
+Đội ngũ ColorMedia Affiliate
+  `;
+
+  // Cấu hình email
+  const mailOptions = {
+    from: FROM_EMAIL,
+    to: email,
+    subject: subject,
+    text: textContent,
+    html: htmlContent,
   };
+
+  // Nếu đang trong môi trường phát triển, chỉ log email
+  if (isDevelopment) {
+    console.log('=========== WITHDRAWAL REQUEST EMAIL ===========');
+    console.log(`TO: ${email}`);
+    console.log(`SUBJECT: ${subject}`);
+    console.log(`CONTENT: ${textContent}`);
+    console.log('===============================================');
+    return true;
+  }
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Withdrawal request email sent to ${email}: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending withdrawal request email:', error);
+    return false;
+  }
 }
