@@ -274,6 +274,66 @@ Trả về lịch sử rút tiền của affiliate hiện tại.
 }
 ```
 
+### Quản lý hệ thống
+
+#### Kiểm tra trạng thái cơ sở dữ liệu
+
+```
+GET /api/db-status
+```
+
+Kiểm tra trạng thái kết nối và thông tin cơ sở dữ liệu.
+
+**Phản hồi mẫu:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "storage_type": "PostgreSQL",
+    "database_status": "Connected",
+    "environment": "development",
+    "use_database": true,
+    "database_tables": {
+      "affiliates": {
+        "column_count": 14
+      },
+      "withdrawal_requests": {
+        "column_count": 9
+      }
+    }
+  }
+}
+```
+
+#### Thiết lập cơ sở dữ liệu
+
+```
+POST /api/db-setup
+```
+
+Thiết lập cấu trúc bảng cho cơ sở dữ liệu.
+
+**Body:**
+
+```json
+{
+  "force": true
+}
+```
+
+**Phản hồi mẫu:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Database setup completed successfully",
+    "details": "..."
+  }
+}
+```
+
 ### Quản lý dữ liệu
 
 #### Thêm Affiliate mới

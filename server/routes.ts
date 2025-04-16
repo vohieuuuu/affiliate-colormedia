@@ -271,6 +271,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint kiểm tra trạng thái cơ sở dữ liệu
+  app.get("/api/db-status", async (req, res) => {
+    try {
+      let dbStatus = "Not connected";
+      let storageType = "In-memory";
+      let tablesInfo = {};
+      
+      // Kiểm tra loại storage đang sử dụng
+      if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
+        storageType = "PostgreSQL";
+        
+        // Kiểm tra kết nối đến cơ sở dữ liệu
+        try {
+          // Thực hiện truy vấn kiểm tra đơn giản
+          const { db } = await import("./db");
+          const result = await db.execute('SELECT NOW()');
+          dbStatus = "Connected";
+          
+          // Kiểm tra các bảng hiện có
+          const tablesResult = await db.execute(`
+            SELECT 
+              table_name, 
+              (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
+            FROM 
+              information_schema.tables t
+            WHERE 
+              table_schema = 'public'
+          `);
+          
+          if (tablesResult.rows) {
+            tablesInfo = tablesResult.rows.reduce((acc: Record<string, any>, row: any) => {
+              acc[row.table_name] = {
+                column_count: parseInt(row.column_count)
+              };
+              return acc;
+            }, {});
+          }
+        } catch (dbError: any) {
+          console.error("Database connection error:", dbError);
+          dbStatus = `Error: ${dbError.message || 'Unknown error'}`;
+        }
+      }
+      
+      res.json({
+        status: "success",
+        data: {
+          storage_type: storageType,
+          database_status: dbStatus,
+          environment: process.env.NODE_ENV || "development",
+          use_database: process.env.USE_DATABASE === "true",
+          database_tables: tablesInfo
+        }
+      });
+    } catch (error) {
+      console.error("Error checking database status:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to check database status"
+        }
+      });
+    }
+  });
+  
+  // API endpoint tạo bảng và cấu trúc cơ sở dữ liệu
+  app.post("/api/db-setup", async (req, res) => {
+    try {
+      const { force } = req.body;
+      
+      if (process.env.NODE_ENV === "production" && force !== true) {
+        return res.status(403).json({
+          status: "error",
+          error: {
+            code: "FORBIDDEN",
+            message: "This operation is not allowed in production environment without force=true"
+          }
+        });
+      }
+      
+      const { exec } = require("child_process");
+      
+      // Thực thi lệnh migrate để tạo và cập nhật bảng
+      exec("npm run db:push", (error: any, stdout: string, stderr: string) => {
+        if (error) {
+          console.error(`Error executing db:push: ${error.message}`);
+          return res.status(500).json({
+            status: "error",
+            error: {
+              code: "MIGRATION_ERROR",
+              message: error.message,
+              details: stderr
+            }
+          });
+        }
+        
+        res.json({
+          status: "success",
+          data: {
+            message: "Database setup completed successfully",
+            details: stdout
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Error setting up database:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to set up database"
+        }
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
