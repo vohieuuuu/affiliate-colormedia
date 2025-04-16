@@ -71,9 +71,30 @@ async function resetData() {
         status: "Presenting idea",
         updated_at: new Date().toISOString(),
         note: "Đang thuyết trình ý tưởng"
+      },
+      {
+        customer_name: "Công ty LMN",
+        status: "Contract signed",
+        updated_at: new Date().toISOString(),
+        note: "Hợp đồng quảng cáo 12 tháng, giá trị 200 triệu"
+      },
+      {
+        customer_name: "Công ty PQR",
+        status: "Contract signed",
+        updated_at: new Date().toISOString(),
+        note: "Hợp đồng marketing 24 tháng, giá trị 400 triệu"
       }
     ];
     
+    // Cập nhật số liệu thống kê cho affiliate1
+    aff1.total_contacts = 10;
+    aff1.total_contracts = 5;
+    aff1.contract_value = 180000000;
+    aff1.received_balance = 36000000;
+    aff1.paid_balance = 16000000;
+    aff1.remaining_balance = 80000000;
+    
+    // Thêm khách hàng
     for (const customer of customers1) {
       await storage.addReferredCustomer(aff1.id, customer);
     }
@@ -130,6 +151,15 @@ async function resetData() {
       }
     ];
     
+    // Cập nhật số liệu thống kê cho affiliate2
+    aff2.total_contacts = 8;
+    aff2.total_contracts = 4;
+    aff2.contract_value = 150000000;
+    aff2.received_balance = 30000000;
+    aff2.paid_balance = 15000000;
+    aff2.remaining_balance = 75000000;
+    
+    // Thêm khách hàng
     for (const customer of customers2) {
       await storage.addReferredCustomer(aff2.id, customer);
     }
