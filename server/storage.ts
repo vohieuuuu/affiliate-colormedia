@@ -7,6 +7,7 @@ import type {
   OtpVerification,
   ReferredCustomer,
   TopAffiliate,
+  VideoData,
   WithdrawalHistory,
   WithdrawalRequestPayload,
   WithdrawalStatusType,
@@ -57,6 +58,12 @@ export interface IStorage {
   verifyOtp(userId: number, otpCode: string, verificationType: string): Promise<boolean>;
   increaseOtpAttempt(userId: number, otpCode: string): Promise<number>;
   invalidateOtp(userId: number, otpCode: string): Promise<void>;
+  
+  // Phương thức quản lý video
+  getTopVideos(limit?: number): Promise<VideoData[]>;
+  addVideo(video: VideoData): Promise<VideoData>;
+  updateVideo(id: number, video: Partial<VideoData>): Promise<VideoData | undefined>;
+  deleteVideo(id: number): Promise<boolean>;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, json, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, json, varchar, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -237,3 +237,41 @@ export type InsertWithdrawalRequest = z.infer<typeof insertWithdrawalRequestSche
 export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
 export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
+
+// Video schema
+export const VideoSchema = pgTable("videos", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  youtube_id: text("youtube_id").notNull(), // YouTube video ID (e.g., dQw4w9WgXcQ)
+  thumbnail_url: text("thumbnail_url"),
+  order: integer("order").notNull().default(0), // For custom ordering
+  is_featured: boolean("is_featured").notNull().default(false),
+  published_at: timestamp("published_at").notNull().defaultNow(),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const VideoDataSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string().optional(),
+  youtube_id: z.string(),
+  thumbnail_url: z.string().optional(),
+  order: z.number(),
+  is_featured: z.boolean().default(false),
+  published_at: z.string(),
+  created_at: z.string(),
+});
+
+export type VideoData = z.infer<typeof VideoDataSchema>;
+
+// Schema for storing videos in memory storage
+export const VideoCollectionSchema = z.object({
+  videos: z.array(VideoDataSchema),
+});
+
+export type VideoCollection = z.infer<typeof VideoCollectionSchema>;
+
+export const insertVideoSchema = createInsertSchema(VideoSchema);
+export type InsertVideo = z.infer<typeof insertVideoSchema>;
+export type Video = typeof VideoSchema.$inferSelect;

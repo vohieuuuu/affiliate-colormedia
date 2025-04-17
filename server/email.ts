@@ -2,7 +2,7 @@
  * Mô-đun gửi email sử dụng Nodemailer
  */
 
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 // Lấy thông tin xác thực email từ biến môi trường
 const EMAIL = process.env.SMTP_USER || "contact@colormedia.vn";
@@ -12,7 +12,7 @@ const SMTP_PORT = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 465;
 
 // Cấu hình dịch vụ email
 const FROM_EMAIL = "ColorMedia Affilate <contact@colormedia.vn>";
-const SUPPORT_EMAIL = "support@colormedia.vn";
+const SUPPORT_EMAIL = "contact@colormedia.vn";
 const SUPPORT_PHONE = "0888 123 456";
 const LOGIN_URL = "https://affiliate.colormedia.vn";
 
@@ -26,23 +26,26 @@ const transporter = nodemailer.createTransport({
     pass: PASSWORD,
   },
   tls: {
-    rejectUnauthorized: false // Chấp nhận self-signed certificates trong môi trường dev
-  }
+    rejectUnauthorized: false, // Chấp nhận self-signed certificates trong môi trường dev
+  },
 });
 
 // Kiểm tra môi trường và thiết lập cấu hình
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const isDevelopment = process.env.NODE_ENV !== "production";
 // SEND_REAL_EMAILS=true sẽ cho phép gửi email thật kể cả trong môi trường dev
-const sendRealEmails = process.env.SEND_REAL_EMAILS === 'true' || !isDevelopment;
+const sendRealEmails =
+  process.env.SEND_REAL_EMAILS === "true" || !isDevelopment;
 
 // Thông báo cấu hình email
 if (isDevelopment && !sendRealEmails) {
-  console.log('Running in development mode, emails will be logged to console');
+  console.log("Running in development mode, emails will be logged to console");
 } else if (isDevelopment && sendRealEmails) {
-  console.log('Running in development mode BUT emails WILL BE SENT to real recipients');
+  console.log(
+    "Running in development mode BUT emails WILL BE SENT to real recipients",
+  );
   console.log(`Email config: ${SMTP_HOST}:${SMTP_PORT} (User: ${EMAIL})`);
 } else {
-  console.log('Email service initialized for production');
+  console.log("Email service initialized for production");
 }
 
 /**
@@ -51,7 +54,7 @@ if (isDevelopment && !sendRealEmails) {
 export async function sendAccountActivationEmail(
   name: string,
   email: string,
-  temporaryPassword: string
+  temporaryPassword: string,
 ): Promise<boolean> {
   // Chuẩn bị nội dung email
   const subject = "Kích hoạt tài khoản ColorMedia Affiliate của bạn";
@@ -121,12 +124,12 @@ Trân trọng,
 
   // Luôn log email trong môi trường development
   if (isDevelopment) {
-    console.log('=========== ACCOUNT ACTIVATION EMAIL ===========');
+    console.log("=========== ACCOUNT ACTIVATION EMAIL ===========");
     console.log(`TO: ${email}`);
     console.log(`SUBJECT: ${subject}`);
     console.log(`CONTENT: ${textContent}`);
-    console.log('=================================================');
-    
+    console.log("=================================================");
+
     // Nếu không gửi email thật thì trả về thành công
     if (!sendRealEmails) {
       return true;
@@ -139,7 +142,7 @@ Trân trọng,
     console.log(`Account activation email sent to ${email}: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error('Error sending activation email:', error);
+    console.error("Error sending activation email:", error);
     return false;
   }
 }
@@ -152,18 +155,20 @@ export async function sendOtpVerificationEmail(
   email: string,
   otpCode: string,
   expiryMinutes: number = 5,
-  verificationType: string = "rút tiền"
+  verificationType: string = "rút tiền",
 ): Promise<boolean> {
   // Override email for testing purposes
   const testEmail = "voxuanhieu.designer@gmail.com";
-  
+
   if (isDevelopment) {
-    console.log(`OVERRIDE: Redirecting OTP email from ${email} to test email ${testEmail}`);
+    console.log(
+      `OVERRIDE: Redirecting OTP email from ${email} to test email ${testEmail}`,
+    );
     email = testEmail;
   }
   // Chuẩn bị nội dung email
   const subject = `Mã xác thực OTP cho giao dịch ${verificationType} - ColorMedia Affiliate`;
-  
+
   const htmlContent = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
       <div style="text-align: center; margin-bottom: 20px;">
@@ -222,13 +227,13 @@ Trân trọng,
 
   // Luôn log email trong môi trường development
   if (isDevelopment) {
-    console.log('=========== OTP VERIFICATION EMAIL ===========');
+    console.log("=========== OTP VERIFICATION EMAIL ===========");
     console.log(`TO: ${email}`);
     console.log(`SUBJECT: ${subject}`);
     console.log(`OTP CODE: ${otpCode}`);
     console.log(`CONTENT: ${textContent}`);
-    console.log('==============================================');
-    
+    console.log("==============================================");
+
     // Nếu không gửi email thật thì trả về thành công
     if (!sendRealEmails) {
       return true;
@@ -241,7 +246,7 @@ Trân trọng,
     console.log(`OTP verification email sent to ${email}: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error('Error sending OTP verification email:', error);
+    console.error("Error sending OTP verification email:", error);
     return false;
   }
 }
@@ -256,19 +261,24 @@ export async function sendWithdrawalRequestEmail(
   bankInfo: {
     bankName: string;
     accountNumber: string;
-  }
+  },
 ): Promise<boolean> {
   // Override email for testing purposes
   const testEmail = "voxuanhieu.designer@gmail.com";
-  
+
   if (isDevelopment) {
-    console.log(`OVERRIDE: Redirecting withdrawal confirmation email from ${email} to test email ${testEmail}`);
+    console.log(
+      `OVERRIDE: Redirecting withdrawal confirmation email from ${email} to test email ${testEmail}`,
+    );
     email = testEmail;
   }
   // Chuẩn bị nội dung email
   const subject = "Yêu cầu rút tiền đã được tạo - ColorMedia Affiliate";
-  const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-  
+  const formattedAmount = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
+
   const htmlContent = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
       <div style="text-align: center; margin-bottom: 20px;">
@@ -284,7 +294,7 @@ export async function sendWithdrawalRequestEmail(
         <p>💰 Số tiền: <strong>${formattedAmount}</strong></p>
         <p>🏦 Ngân hàng: <strong>${bankInfo.bankName}</strong></p>
         <p>🔢 Số tài khoản: <strong>${bankInfo.accountNumber}</strong></p>
-        <p>⏱️ Thời gian yêu cầu: <strong>${new Date().toLocaleString('vi-VN')}</strong></p>
+        <p>⏱️ Thời gian yêu cầu: <strong>${new Date().toLocaleString("vi-VN")}</strong></p>
       </div>
       
       <p>Đội ngũ của chúng tôi sẽ xử lý yêu cầu của bạn trong vòng 1-3 ngày làm việc. Bạn sẽ nhận được email xác nhận khi yêu cầu rút tiền đã được xử lý.</p>
@@ -310,7 +320,7 @@ Chi tiết yêu cầu rút tiền:
 💰 Số tiền: ${formattedAmount}
 🏦 Ngân hàng: ${bankInfo.bankName}
 🔢 Số tài khoản: ${bankInfo.accountNumber}
-⏱️ Thời gian yêu cầu: ${new Date().toLocaleString('vi-VN')}
+⏱️ Thời gian yêu cầu: ${new Date().toLocaleString("vi-VN")}
 
 Đội ngũ của chúng tôi sẽ xử lý yêu cầu của bạn trong vòng 1-3 ngày làm việc. Bạn sẽ nhận được email xác nhận khi yêu cầu rút tiền đã được xử lý.
 
@@ -333,12 +343,12 @@ Trân trọng,
 
   // Luôn log email trong môi trường development
   if (isDevelopment) {
-    console.log('=========== WITHDRAWAL REQUEST EMAIL ===========');
+    console.log("=========== WITHDRAWAL REQUEST EMAIL ===========");
     console.log(`TO: ${email}`);
     console.log(`SUBJECT: ${subject}`);
     console.log(`CONTENT: ${textContent}`);
-    console.log('===============================================');
-    
+    console.log("===============================================");
+
     // Nếu không gửi email thật thì trả về thành công
     if (!sendRealEmails) {
       return true;
@@ -351,7 +361,7 @@ Trân trọng,
     console.log(`Withdrawal request email sent to ${email}: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error('Error sending withdrawal request email:', error);
+    console.error("Error sending withdrawal request email:", error);
     return false;
   }
 }
