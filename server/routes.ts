@@ -339,6 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "/api/admin/affiliates", 
     "/api/admin/customers",
     "/api/admin/customers/:id/status",
+    "/api/admin/customers/:id/contract",
     "/api/admin/seed-data"
   ];
   
@@ -1733,6 +1734,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update customer status
+  // API endpoint để cập nhật thông tin hợp đồng cho khách hàng
+  app.post("/api/admin/customers/:id/contract", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const { 
+        contract_value, 
+        contract_date, 
+        note,
+        affiliate_id 
+      } = req.body;
+      
+      if (isNaN(customerId) || !contract_value) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Valid customer ID and contract value are required"
+          }
+        });
+      }
+      
+      // Kiểm tra affiliate_id trong body
+      if (!affiliate_id) {
+        return res.status(400).json({
+          status: "error", 
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "affiliate_id is required in request body to identify the customer's affiliate"
+          }
+        });
+      }
+      
+      // Lấy affiliate từ storage
+      const affiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
+      if (!affiliate) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: `Affiliate with ID ${affiliate_id} not found`
+          }
+        });
+      }
+      
+      // Tìm khách hàng trong danh sách của affiliate theo ID
+      const customerIndex = affiliate.referred_customers.findIndex(
+        customer => customer.id === customerId
+      );
+      
+      if (customerIndex === -1) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND", 
+            message: `Customer with ID ${customerId} not found for affiliate ${affiliate_id}`
+          }
+        });
+      }
+      
+      // Lấy thông tin khách hàng hiện tại
+      const customer = affiliate.referred_customers[customerIndex];
+      
+      // Tạo bản cập nhật cho khách hàng
+      const updatedCustomer: ReferredCustomer = {
+        ...customer,
+        status: "Contract signed",  // Cập nhật trạng thái thành đã ký hợp đồng
+        contract_value: contract_value,
+        contract_date: contract_date || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        note: note || customer.note || "",
+        commission: contract_value * 0.03 // Tính hoa hồng 3% từ giá trị hợp đồng
+      };
+      
+      // Tính toán các thay đổi về số dư
+      const newCommission = contract_value * 0.03;
+      const balanceUpdates = {
+        contract_value: contract_value,
+        received_balance: affiliate.received_balance + newCommission,
+        remaining_balance: affiliate.remaining_balance + newCommission
+      };
+      
+      // Cập nhật khách hàng và số dư của affiliate
+      const result = await storage.updateCustomerWithContract(
+        customerId,
+        updatedCustomer,
+        balanceUpdates
+      );
+      
+      if (!result) {
+        return res.status(500).json({
+          status: "error",
+          error: {
+            code: "UPDATE_FAILED",
+            message: "Failed to update customer contract information"
+          }
+        });
+      }
+      
+      // Trả về thông tin khách hàng đã cập nhật
+      return res.status(200).json({
+        status: "success",
+        data: result
+      });
+      
+    } catch (error: any) {
+      console.error("Error updating customer contract:", error);
+      return res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: error.message || "An error occurred while updating the customer contract"
+        }
+      });
+    }
+  });
+
   app.put("/api/admin/customers/:id/status", async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
