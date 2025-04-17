@@ -517,20 +517,21 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
-    // Since we're using an in-memory store with array,
-    // we'll use the index in the array as a proxy for ID
-    // In a real DB implementation, we would query by actual ID
-    console.log(`MemStorage: Updating customer status for affiliate ${affiliateId}, customer ID ${customerId}, valid range is 0-${targetAffiliate.referred_customers.length - 1}`);
+    // Tìm khách hàng theo ID thực (không phải vị trí trong mảng)
+    const customerIndex = targetAffiliate.referred_customers.findIndex(
+      customer => customer.id === customerId
+    );
     
-    // Kiểm tra cẩn thận với customerId, quan trọng là phải xử lý cả trường hợp ID = 0
-    if (customerId === undefined || customerId === null || 
-        customerId < 0 || customerId >= targetAffiliate.referred_customers.length) {
-      console.error(`Customer with ID ${customerId} not found for affiliate ${affiliateId}, valid range is 0-${targetAffiliate.referred_customers.length - 1}`);
+    console.log(`MemStorage: Finding customer with ID ${customerId} for affiliate ${affiliateId}, found at index ${customerIndex}`);
+    
+    // Nếu không tìm thấy khách hàng
+    if (customerIndex === -1) {
+      console.error(`Customer with ID ${customerId} not found for affiliate ${affiliateId}`);
       return undefined;
     }
     
     // Lấy thông tin khách hàng hiện tại
-    const customer = targetAffiliate.referred_customers[customerId];
+    const customer = targetAffiliate.referred_customers[customerIndex];
     const oldStatus = customer.status;
     const now = new Date().toISOString();
     
@@ -538,7 +539,7 @@ export class MemStorage implements IStorage {
     
     // Chỉ cập nhật các trường cần thiết, giữ nguyên thông tin khách hàng
     // Cập nhật trạng thái mới và ghi chú mới
-    targetAffiliate.referred_customers[customerId] = {
+    targetAffiliate.referred_customers[customerIndex] = {
       ...customer, // Giữ nguyên các thông tin khác của khách hàng
       status, // Cập nhật trạng thái mới
       note: description, // Cập nhật ghi chú mới
