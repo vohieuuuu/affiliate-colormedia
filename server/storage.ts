@@ -178,7 +178,24 @@ export class MemStorage implements IStorage {
     
     return true;
   }
-  private affiliate: Affiliate;
+  private affiliate: Affiliate = {
+    id: 0,
+    user_id: 0,
+    affiliate_id: "",
+    full_name: "",
+    email: "",
+    phone: "",
+    bank_account: "",
+    bank_name: "",
+    total_contacts: 0,
+    total_contracts: 0,
+    contract_value: 0,
+    received_balance: 0,
+    paid_balance: 0,
+    remaining_balance: 0,
+    referred_customers: [],
+    withdrawal_history: []
+  };
   private topAffiliates: TopAffiliate[];
   private allAffiliates: Affiliate[] = []; // Mảng lưu trữ tất cả các affiliates trong hệ thống
   private users: User[] = []; // Mảng lưu trữ người dùng mẫu
@@ -326,6 +343,10 @@ export class MemStorage implements IStorage {
   }
 
   async getCurrentAffiliate(): Promise<Affiliate | undefined> {
+    if (this.allAffiliates.length > 0) {
+      // Nếu có affiliate trong danh sách thì trả về affiliate đầu tiên
+      return this.allAffiliates[0];
+    }
     return this.affiliate;
   }
 

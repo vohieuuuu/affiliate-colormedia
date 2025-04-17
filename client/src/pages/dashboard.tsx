@@ -27,7 +27,7 @@ export default function Dashboard() {
   });
   
   // Extract affiliate data from response
-  const affiliateData = apiAffiliateResponse?.status === "success" 
+  const affiliateData = apiAffiliateResponse && 'status' in apiAffiliateResponse && apiAffiliateResponse.status === "success" 
     ? apiAffiliateResponse.data 
     : undefined;
 
@@ -37,7 +37,7 @@ export default function Dashboard() {
   });
   
   // Extract top affiliates data from response
-  const topAffiliates = apiTopAffiliatesResponse?.status === "success" 
+  const topAffiliates = apiTopAffiliatesResponse && 'status' in apiTopAffiliatesResponse && apiTopAffiliatesResponse.status === "success" 
     ? apiTopAffiliatesResponse.data 
     : [];
 
