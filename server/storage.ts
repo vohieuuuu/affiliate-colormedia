@@ -87,13 +87,25 @@ export class MemStorage implements IStorage {
    * @returns Kết quả kiểm tra với thông tin tổng đã rút và giới hạn còn lại
    */
   async checkDailyWithdrawalLimit(affiliateId: string, amount: number): Promise<{exceeds: boolean, totalWithdrawn: number, remainingLimit: number}> {
+    // Xác định giới hạn rút tiền trong ngày: 20 triệu VND
+    const DAILY_LIMIT = 20000000; // 20 triệu VND
+    
+    // Nếu là admin hoặc test account đặc biệt, bỏ qua việc kiểm tra giới hạn
+    if (affiliateId === "ADMIN-AFF") {
+      console.log("Admin account - bypassing daily withdrawal limit check");
+      return {
+        exceeds: false,
+        totalWithdrawn: 0,
+        remainingLimit: DAILY_LIMIT
+      };
+    }
+    
     // Tìm affiliate dựa vào ID
     const affiliate = await this.getAffiliateByAffiliateId(affiliateId);
     if (!affiliate) {
       return { exceeds: true, totalWithdrawn: 0, remainingLimit: 0 };
     }
     
-    const DAILY_LIMIT = 20000000; // 20 triệu VND
     const today = new Date().toISOString().split('T')[0]; // format YYYY-MM-DD
     
     // Tính tổng số tiền đã rút trong ngày hôm nay
