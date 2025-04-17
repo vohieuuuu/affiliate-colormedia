@@ -1606,21 +1606,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           customer_name: "Công ty ABC",
           status: CustomerStatus.enum["Contract signed"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          note: "Khách hàng đã ký hợp đồng 6 tháng"
+          created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 ngày trước
+          updated_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(), // 25 ngày trước
+          contract_value: 50000000,
+          commission: 1500000,
+          contract_date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Khách hàng đã ký hợp đồng 6 tháng trị giá 50,000,000 VND",
+          phone: "0938123456",
+          email: "abc@example.com"
         },
         {
           customer_name: "Công ty XYZ",
+          status: CustomerStatus.enum["Contract signed"],
+          created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), // 20 ngày trước
+          updated_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), // 15 ngày trước
+          contract_value: 80000000,
+          commission: 2400000,
+          contract_date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Khách hàng đã ký hợp đồng 12 tháng trị giá 80,000,000 VND",
+          phone: "0938123457",
+          email: "xyz@example.com"
+        },
+        {
+          customer_name: "Công ty Tech Solutions",
           status: CustomerStatus.enum["Presenting idea"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          note: "Đang thuyết trình ý tưởng"
+          created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 ngày trước
+          updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 ngày trước
+          note: "Đang thuyết trình ý tưởng cho dự án web app",
+          phone: "0938123458",
+          email: "tech@example.com"
+        },
+        {
+          customer_name: "Công ty Global Traders",
+          status: CustomerStatus.enum["Contact received"],
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 ngày trước
+          updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 ngày trước
+          note: "Mới nhận thông tin liên hệ, cần sắp xếp cuộc gặp",
+          phone: "0938123459",
+          email: "global@example.com"
         }
       ];
       
+      // Thêm khách hàng và cập nhật lại thông tin affiliate
       for (const customer of customers1) {
         await storage.addReferredCustomer(aff1.id, customer);
+      }
+      
+      // Cập nhật số dư và thống kê cho affiliate 1
+      const aff1TotalContractValue = 130000000; // 50M + 80M
+      const aff1CommissionEarned = 3900000; // 3% của tổng hợp đồng
+      
+      // Cập nhật affiliate 1 với dữ liệu mới
+      await storage.createAffiliate({
+        ...aff1Data,
+        total_contacts: customers1.length,
+        total_contracts: 2, // Đã ký 2 hợp đồng
+        contract_value: aff1TotalContractValue,
+        received_balance: aff1CommissionEarned,
+        paid_balance: 1000000, // Đã rút 1 triệu
+        remaining_balance: aff1CommissionEarned - 1000000, // Số dư còn lại
+      });
+      
+      // Tạo lịch sử rút tiền cho affiliate 1
+      const aff1WithdrawalHistory = [
+        {
+          user_id: aff1.affiliate_id,
+          full_name: aff1.full_name,
+          email: aff1.email,
+          phone: aff1.phone,
+          bank_account: aff1.bank_account,
+          bank_name: aff1.bank_name,
+          request_time: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+          amount_requested: 1000000,
+          status: "Completed",
+          completed_time: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Rút tiền hoa hồng tháng trước",
+          transaction_id: "TXN-001"
+        }
+      ];
+      
+      // Thêm lịch sử rút tiền
+      for (const withdrawal of aff1WithdrawalHistory) {
+        await storage.addWithdrawalRequest(withdrawal);
       }
       
       // Tạo tài khoản Affiliate 2
@@ -1652,28 +1719,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           customer_name: "Công ty DEF",
           status: CustomerStatus.enum["Contract signed"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          note: "Khách hàng đã ký hợp đồng 12 tháng"
+          created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), // 60 ngày trước
+          updated_at: new Date(Date.now() - 55 * 24 * 60 * 60 * 1000).toISOString(), // 55 ngày trước
+          contract_value: 200000000,
+          commission: 6000000,
+          contract_date: new Date(Date.now() - 55 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Khách hàng đã ký hợp đồng 12 tháng trị giá 200,000,000 VND"
         },
         {
           customer_name: "Công ty GHI",
-          status: CustomerStatus.enum["Contact received"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          note: "Mới nhận thông tin liên hệ"
+          status: CustomerStatus.enum["Contract signed"],
+          created_at: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(), // 40 ngày trước
+          updated_at: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(), // 35 ngày trước
+          contract_value: 150000000,
+          commission: 4500000,
+          contract_date: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Khách hàng đã ký hợp đồng 6 tháng trị giá 150,000,000 VND"
         },
         {
           customer_name: "Công ty JKL",
           status: CustomerStatus.enum["Pending reconciliation"],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          note: "Đang chờ xác nhận"
+          created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), // 15 ngày trước
+          updated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 ngày trước
+          note: "Đang chờ đối chiếu hợp đồng, có thể ký trong tuần tới"
+        },
+        {
+          customer_name: "Công ty MNO",
+          status: CustomerStatus.enum["Contact received"],
+          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 ngày trước
+          updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 ngày trước
+          note: "Mới nhận thông tin liên hệ, cần lên kế hoạch thuyết trình"
         }
       ];
       
+      // Thêm khách hàng và cập nhật lại thông tin affiliate
       for (const customer of customers2) {
         await storage.addReferredCustomer(aff2.id, customer);
+      }
+      
+      // Cập nhật số dư và thống kê cho affiliate 2
+      const aff2TotalContractValue = 350000000; // 200M + 150M
+      const aff2CommissionEarned = 10500000; // 3% của tổng hợp đồng
+      
+      // Cập nhật affiliate 2 với dữ liệu mới
+      await storage.createAffiliate({
+        ...aff2Data,
+        total_contacts: customers2.length,
+        total_contracts: 2, // Đã ký 2 hợp đồng
+        contract_value: aff2TotalContractValue,
+        received_balance: aff2CommissionEarned,
+        paid_balance: 7500000, // Đã rút 7.5 triệu
+        remaining_balance: aff2CommissionEarned - 7500000, // Số dư còn lại
+      });
+      
+      // Tạo lịch sử rút tiền cho affiliate 2
+      const aff2WithdrawalHistory = [
+        {
+          user_id: aff2.affiliate_id,
+          full_name: aff2.full_name,
+          email: aff2.email,
+          phone: aff2.phone,
+          bank_account: aff2.bank_account,
+          bank_name: aff2.bank_name,
+          request_time: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          amount_requested: 5000000,
+          status: "Completed",
+          completed_time: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Rút tiền hoa hồng tháng trước",
+          transaction_id: "TXN-002"
+        },
+        {
+          user_id: aff2.affiliate_id,
+          full_name: aff2.full_name,
+          email: aff2.email,
+          phone: aff2.phone,
+          bank_account: aff2.bank_account,
+          bank_name: aff2.bank_name,
+          request_time: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          amount_requested: 2500000,
+          status: "Completed",
+          completed_time: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Rút tiền bổ sung",
+          transaction_id: "TXN-003"
+        },
+        {
+          user_id: aff2.affiliate_id,
+          full_name: aff2.full_name,
+          email: aff2.email,
+          phone: aff2.phone,
+          bank_account: aff2.bank_account,
+          bank_name: aff2.bank_name,
+          request_time: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          amount_requested: 1000000,
+          status: "Pending",
+          note: "Rút tiền chi tiêu cá nhân"
+        }
+      ];
+      
+      // Thêm lịch sử rút tiền
+      for (const withdrawal of aff2WithdrawalHistory) {
+        await storage.addWithdrawalRequest(withdrawal);
       }
       
       // Trả về thông tin tài khoản cho người dùng
