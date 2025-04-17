@@ -1187,38 +1187,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Kiểm tra xem email đã tồn tại trong hệ thống chưa
                 const existingUser = await storage.getUserByUsername(affiliateData.email);
                 
-                let userId;
-                
+                // Kiểm tra xem email này đã được sử dụng cho affiliate nào chưa
                 if (existingUser) {
                   console.log(`User with email ${affiliateData.email} already exists (ID: ${existingUser.id})`);
-                  userId = existingUser.id;
                   
-                  // Nếu cần gửi lại email kích hoạt, uncomment đoạn code bên dưới
-                  // await sendAccountActivationEmail(
-                  //   affiliateData.full_name,
-                  //   affiliateData.email,
-                  //   "color1234@" // Password không thay đổi
-                  // );
-                } else {
-                  // Mã hóa mật khẩu
-                  const hashedPassword = await hashPassword(temporaryPassword);
+                  // Kiểm tra xem email này đã kết hợp với affiliate nào chưa
+                  const existingAffiliate = await storage.getAffiliateByUserId(existingUser.id);
                   
-                  // Tạo tài khoản người dùng mới
-                  const newUser = await storage.createUser({
-                    username: affiliateData.email,
-                    password: hashedPassword,
-                    role: "AFFILIATE",
-                    is_first_login: true // sẽ được chuyển thành 1 trong hàm createUser
-                  });
-                  
-                  userId = newUser.id;
-                  
-                  // Gửi email kích hoạt
-                  await sendAccountActivationEmail(
-                    affiliateData.full_name,
-                    affiliateData.email,
-                    temporaryPassword
-                  );
+                  if (existingAffiliate) {
+                    // Email đã được sử dụng cho một affiliate khác
+                    console.log(`Email ${affiliateData.email} is already used by affiliate ${existingAffiliate.affiliate_id}`);
+                    return res.status(400).json({
+                      status: "error",
+                      error: {
+                        code: "EMAIL_ALREADY_IN_USE",
+                        message: `Email ${affiliateData.email} đã được sử dụng bởi affiliate khác. Vui lòng sử dụng email khác.`
+                      }
+                    });
+                  }
+                }
+                
+                let userId;
+                
+                try {
+                  // Nếu đã qua được kiểm tra bên trên, hoặc là email chưa tồn tại, hoặc là tồn tại nhưng chưa kết hợp với affiliate nào
+                  if (existingUser) {
+                    userId = existingUser.id;
+                  } else {
+                    // Mã hóa mật khẩu
+                    const hashedPassword = await hashPassword(temporaryPassword);
+                    
+                    // Tạo tài khoản người dùng mới
+                    const newUser = await storage.createUser({
+                      username: affiliateData.email,
+                      password: hashedPassword,
+                      role: "AFFILIATE",
+                      is_first_login: true // sẽ được chuyển thành 1 trong hàm createUser
+                    });
+                    
+                    userId = newUser.id;
+                    
+                    // Gửi email kích hoạt
+                    await sendAccountActivationEmail(
+                      affiliateData.full_name,
+                      affiliateData.email,
+                      temporaryPassword
+                    );
+                  }
+                } catch (emailError) {
+                  console.error("Error sending activation email:", emailError);
+                  // Trường hợp gửi email thất bại nhưng vẫn tạo được tài khoản người dùng
+                  if (!userId && existingUser) {
+                    userId = existingUser.id;
+                  } else if (!userId) {
+                    // Không tạo được người dùng hoặc không gửi được email
+                    throw new Error("Không thể tạo tài khoản hoặc gửi email kích hoạt");
+                  }
                 }
                 
                 // Tạo affiliate mới và liên kết với user
@@ -1234,20 +1258,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     message: "New affiliate created with simulated user account (DEV mode)"
                   }
                 });
-              } catch (emailError) {
-                console.error("Error sending activation email:", emailError);
+              } catch (error) {
+                console.error("Error creating affiliate or sending email:", error);
                 
-                // Vẫn tạo affiliate nếu gửi email thất bại
-                const newAffiliate = await storage.createAffiliate({
-                  ...affiliateData,
-                  user_id: userId
-                });
-                
-                return res.status(201).json({
-                  status: "success",
-                  data: {
-                    ...newAffiliate,
-                    message: "New affiliate created but failed to send email notification (DEV mode)"
+                return res.status(500).json({
+                  status: "error",
+                  error: {
+                    code: "AFFILIATE_CREATION_ERROR",
+                    message: "Không thể tạo affiliate. " + (error instanceof Error ? error.message : "Unknown error")
                   }
                 });
               }

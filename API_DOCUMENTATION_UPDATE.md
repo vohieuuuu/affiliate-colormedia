@@ -43,7 +43,7 @@ Affiliate 2:
    - API không còn yêu cầu `user_id` trong body của request nữa.
    - Hệ thống sẽ tự động tạo tài khoản người dùng với mật khẩu mặc định là "color1234@".
    - Email kích hoạt sẽ được gửi đến địa chỉ email của affiliate với thông tin đăng nhập.
-   - API sẽ kiểm tra xem email của affiliate đã tồn tại trong hệ thống chưa. Nếu đã tồn tại, sẽ sử dụng tài khoản người dùng hiện có thay vì tạo mới.
+   - API kiểm tra xem email đã được sử dụng cho affiliate nào chưa. Nếu email đã tồn tại và đã được liên kết với một affiliate, hệ thống sẽ báo lỗi và yêu cầu sử dụng email khác.
 
 3. **Thông tin dữ liệu test**:
    - API `POST /api/reset-data` đã được cập nhật để tạo tài khoản test và dữ liệu mẫu.
