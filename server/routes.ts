@@ -1437,13 +1437,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Add the customer to the affiliate
-      await storage.addReferredCustomer(affiliate_id, customerData);
+      // Thêm khách hàng và lấy kết quả với ID
+      const newCustomer = await storage.addReferredCustomer(affiliate_id, customerData);
       
       // Return success response
       res.status(201).json({
         status: "success",
         data: {
-          id: 0, // In a real DB implementation, this would be the actual ID
+          id: newCustomer.id, // Sử dụng ID được tạo tự động
           name,
           phone,
           email,
@@ -1698,8 +1699,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Lấy danh sách khách hàng từ affiliate
-      const customers = affiliate.referred_customers.map((customer, index) => ({
-        id: index, // Sử dụng index làm ID cho client
+      const customers = affiliate.referred_customers.map((customer) => ({
+        id: customer.id || 0, // Sử dụng ID của khách hàng hoặc mặc định là 0
         name: customer.customer_name,
         phone: customer.phone,
         email: customer.email,

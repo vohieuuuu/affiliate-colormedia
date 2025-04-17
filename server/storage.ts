@@ -29,7 +29,7 @@ export interface IStorage {
   getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined>;
   getAffiliateByUserId(userId: number): Promise<Affiliate | undefined>; // Phương thức để lấy affiliate từ user_id
   getAffiliateByEmail(email: string): Promise<Affiliate | undefined>; // Phương thức mới để lấy affiliate từ email
-  addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<void>;
+  addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<ReferredCustomer>;
   updateCustomerStatus(
     affiliateId: string,
     customerId: number, 
@@ -431,7 +431,7 @@ export class MemStorage implements IStorage {
     return newAffiliate;
   }
 
-  async addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<void> {
+  async addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<ReferredCustomer> {
     // Tìm affiliate dựa vào affiliate_id
     const affiliate = await this.getAffiliateByAffiliateId(affiliateId);
     
@@ -439,12 +439,22 @@ export class MemStorage implements IStorage {
       throw new Error(`Affiliate not found with ID: ${affiliateId}`);
     }
     
-    // Tạo id tự động cho khách hàng mới
+    // Tạo ID tự động cho khách hàng mới
+    // Tìm ID lớn nhất hiện có trong danh sách khách hàng của tất cả các affiliate
+    const allCustomers: ReferredCustomer[] = this.allAffiliates.flatMap(aff => aff.referred_customers);
+    
+    // Tìm ID lớn nhất hiện có (nếu có) và tăng lên 1
+    const maxCustomerId = allCustomers.length > 0 
+      ? Math.max(...allCustomers.filter(c => c.id !== undefined).map(c => c.id || 0)) 
+      : -1;
+    const newCustomerId = maxCustomerId + 1;
+    
     const now = new Date().toISOString();
     
-    // Tạo thông tin khách hàng mới
+    // Tạo thông tin khách hàng mới với ID duy nhất
     const newCustomer: ReferredCustomer = {
       ...customerData,
+      id: newCustomerId,
       created_at: now,
       updated_at: now
     };
@@ -486,6 +496,10 @@ export class MemStorage implements IStorage {
         this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
       }
     }
+    
+    // Trả về đối tượng khách hàng mới được tạo với ID
+    console.log(`Created new customer with ID ${newCustomer.id} for affiliate ${affiliateId}`);
+    return newCustomer;
   }
 
   async updateCustomerStatus(
