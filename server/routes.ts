@@ -227,15 +227,15 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
     });
   }
   
-  // Nếu user là admin và đang ở môi trường phát triển, tạo dữ liệu mẫu
-  if (req.user.role === "ADMIN" && process.env.NODE_ENV === "development") {
+  // Nếu user là admin, luôn tạo dữ liệu mẫu cho xác thực OTP
+  if (req.user.role === "ADMIN") {
     console.log("DEV MODE: Using default affiliate data for admin in OTP middleware");
     req.affiliate = {
       id: 1,
       user_id: req.user.id,
       affiliate_id: "ADMIN-AFF",
       full_name: "ColorMedia Admin",
-      email: "voxuanhieu.designer@gmail.com", // Email test cho OTP
+      email: req.user.username, // Sử dụng email của admin để nhận OTP
       phone: "0909123456",
       bank_account: "9876543210",
       bank_name: "VietcomBank",
