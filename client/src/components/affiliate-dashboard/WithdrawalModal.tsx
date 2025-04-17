@@ -42,7 +42,22 @@ export default function WithdrawalModal({
   
   // Giới hạn số tiền có thể rút: Min(20M VND hoặc số dư khả dụng)
   const DAILY_WITHDRAWAL_LIMIT = 20000000; // 20 triệu VND
-  const maxAmount = Math.min(affiliate?.remaining_balance || 0, DAILY_WITHDRAWAL_LIMIT);
+  
+  // Tính toán số tiền đã rút trong ngày hôm nay
+  const today = new Date().toISOString().split('T')[0]; // format YYYY-MM-DD
+  const withdrawnToday = (affiliate?.withdrawal_history || [])
+    .filter(w => {
+      const requestDate = new Date(w.request_date).toISOString().split('T')[0];
+      return requestDate === today && 
+        (w.status === "Completed" || w.status === "Processing" || w.status === "Pending");
+    })
+    .reduce((sum, w) => sum + w.amount, 0);
+  
+  // Số tiền còn có thể rút trong ngày
+  const remainingDailyLimit = Math.max(0, DAILY_WITHDRAWAL_LIMIT - withdrawnToday);
+  
+  // Số tiền tối đa có thể rút (min của: số dư khả dụng và giới hạn rút tiền còn lại trong ngày)
+  const maxAmount = Math.min(affiliate?.remaining_balance || 0, remainingDailyLimit);
   
   // Gửi yêu cầu OTP
   const { mutate: requestOtp, isPending: isRequestingOtp } = useMutation({
@@ -236,6 +251,16 @@ export default function WithdrawalModal({
                   <p className="text-xs text-amber-600 dark:text-amber-400">
                     Giới hạn rút tiền mỗi ngày: {formatCurrency(DAILY_WITHDRAWAL_LIMIT)} VND
                   </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Đã rút hôm nay: {formatCurrency(withdrawnToday)} VND
+                  </p>
+                  <p className={`text-xs ${remainingDailyLimit > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400 font-medium'}`}>
+                    Còn có thể rút hôm nay: {formatCurrency(remainingDailyLimit)} VND
+                    {remainingDailyLimit <= 0 && " (đã đạt giới hạn)"}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="italic">Lưu ý: Giới hạn sẽ được đặt lại vào 9:00 sáng mỗi ngày</span>
+                  </p>
                 </div>
               </div>
               
@@ -292,7 +317,10 @@ export default function WithdrawalModal({
               <Button variant="outline" type="button" onClick={handleClose}>
                 Hủy
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                disabled={isLoading || parseFloat(amount) > maxAmount || remainingDailyLimit <= 0}
+              >
                 {isLoading ? "Đang xử lý..." : "Tiếp tục"}
               </Button>
             </DialogFooter>

@@ -106,13 +106,29 @@ export class MemStorage implements IStorage {
       return { exceeds: true, totalWithdrawn: 0, remainingLimit: 0 };
     }
     
-    const today = new Date().toISOString().split('T')[0]; // format YYYY-MM-DD
+    // Tạo ngày hiện tại ở timezone Việt Nam (UTC+7)
+    const now = new Date();
+    now.setHours(now.getHours() + 7); // Thêm 7 giờ để chuyển sang múi giờ Việt Nam
     
-    // Tính tổng số tiền đã rút trong ngày hôm nay
+    // Tạo thời điểm reset giới hạn (9:00 sáng mỗi ngày, múi giờ Việt Nam)
+    const resetTime = new Date(now);
+    resetTime.setHours(9, 0, 0, 0);
+    
+    // Nếu thời gian hiện tại trước 9:00 sáng, thời điểm reset là 9:00 sáng ngày hôm qua
+    if (now < resetTime) {
+      resetTime.setDate(resetTime.getDate() - 1);
+    }
+    
+    // Chuyển về UTC để so sánh với dữ liệu
+    resetTime.setHours(resetTime.getHours() - 7);
+    
+    // Tính tổng số tiền đã rút từ 9:00 sáng đến hiện tại
     let totalWithdrawnToday = 0;
     for (const withdrawal of affiliate.withdrawal_history) {
-      const withdrawalDate = new Date(withdrawal.request_date).toISOString().split('T')[0];
-      if (withdrawalDate === today) {
+      const withdrawalDate = new Date(withdrawal.request_date);
+      // Chỉ tính các yêu cầu rút tiền sau thời điểm reset và có trạng thái hợp lệ
+      if (withdrawalDate >= resetTime && 
+          (withdrawal.status === "Pending" || withdrawal.status === "Processing" || withdrawal.status === "Completed")) {
         totalWithdrawnToday += withdrawal.amount;
       }
     }
