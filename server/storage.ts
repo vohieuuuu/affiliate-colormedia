@@ -172,15 +172,16 @@ export class MemStorage implements IStorage {
     return true;
   }
 
+  // Affiliate rỗng, không có dữ liệu mẫu
   private affiliate: Affiliate = {
-    id: 2,
-    user_id: 2,
-    affiliate_id: "AFF001",
+    id: 0,
+    user_id: 0,
+    affiliate_id: "",
     full_name: "",
-    email: "affiliate@example.com",
-    phone: "0987654321",
-    bank_account: "1234567890",
-    bank_name: "Vietcombank",
+    email: "",
+    phone: "",
+    bank_account: "",
+    bank_name: "",
     total_contacts: 0,
     total_contracts: 0,
     contract_value: 0,
@@ -197,38 +198,20 @@ export class MemStorage implements IStorage {
   private otpVerifications: OtpVerification[] = []; // Mảng lưu trữ các mã OTP
 
   constructor() {
-    // Khởi tạo dữ liệu trống
-    this.affiliate.referred_customers = []; // Không tạo khách hàng mẫu
-    this.affiliate.withdrawal_history = this.generateWithdrawalHistory();
+    // Khởi tạo dữ liệu trống - không tạo khách hàng mẫu và không tạo lịch sử rút tiền
+    this.affiliate.referred_customers = []; 
+    this.affiliate.withdrawal_history = [];
     
-    // Tính toán các dữ liệu tổng hợp
-    this.affiliate.total_contacts = this.affiliate.referred_customers.length;
-    this.affiliate.total_contracts = this.affiliate.referred_customers.filter(c => c.status === "Contract signed").length;
-    this.affiliate.contract_value = this.affiliate.referred_customers.reduce((sum, c) => sum + (c.contract_value || 0), 0);
-    this.affiliate.received_balance = this.affiliate.referred_customers.reduce((sum, c) => sum + (c.commission || 0), 0);
-    this.affiliate.remaining_balance = this.affiliate.received_balance - this.affiliate.paid_balance;
+    // Đặt tất cả các thống kê về 0
+    this.affiliate.total_contacts = 0;
+    this.affiliate.total_contracts = 0;
+    this.affiliate.contract_value = 0;
+    this.affiliate.received_balance = 0;
+    this.affiliate.remaining_balance = 0;
+    this.affiliate.paid_balance = 0;
     
-    // Khởi tạo danh sách top affiliates
-    this.topAffiliates = [
-      {
-        id: 1,
-        full_name: "Affiliate 1",
-        total_contracts: 8,
-        contract_value: 480000000
-      },
-      {
-        id: 2,
-        full_name: "Affiliate 2",
-        total_contracts: 5,
-        contract_value: 320000000
-      },
-      {
-        id: 3,
-        full_name: "Affiliate 3",
-        total_contracts: 3,
-        contract_value: 180000000
-      }
-    ];
+    // Khởi tạo danh sách top affiliates trống
+    this.topAffiliates = [];
     
     // Thêm affiliate hiện tại vào danh sách top (nếu có thông tin hợp lệ)
     if (this.affiliate.full_name) {
@@ -271,33 +254,8 @@ export class MemStorage implements IStorage {
   }
 
   private generateWithdrawalHistory(): WithdrawalHistory[] {
-    const history: WithdrawalHistory[] = [];
-    const statuses: WithdrawalStatusType[] = ["Pending", "Processing", "Completed", "Rejected"];
-    
-    // Tạo mẫu 5 lịch sử rút tiền
-    for (let i = 0; i < 5; i++) {
-      const requestDate = new Date();
-      requestDate.setDate(requestDate.getDate() - i * 5); // Mỗi yêu cầu cách nhau 5 ngày
-      
-      const statusIndex = Math.floor(Math.random() * statuses.length);
-      const status = statuses[statusIndex];
-      
-      const amount = 1000000 + Math.floor(Math.random() * 4000000); // 1-5 triệu VND
-      
-      // Nếu là Completed hoặc Processing, cộng vào paid_balance
-      if (status === "Completed" || status === "Processing") {
-        this.affiliate.paid_balance += amount;
-      }
-      
-      history.push({
-        request_date: requestDate.toISOString(),
-        amount,
-        status,
-        note: `Yêu cầu rút tiền #${i+1}`
-      });
-    }
-    
-    return history;
+    // Trả về mảng trống - không tạo dữ liệu mẫu lịch sử rút tiền
+    return [];
   }
 
   async getCurrentAffiliate(): Promise<Affiliate | undefined> {
