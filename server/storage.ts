@@ -606,18 +606,27 @@ export class MemStorage implements IStorage {
       }
     }
     
-    // Bỏ qua kiểm tra role để tương thích với logic backend cũ
-    // Nếu là user từ reset-data, trả về affiliate tương ứng
+    // Kiểm tra xem người dùng này có phải là affiliate vừa tạo không
+    if (this.allAffiliates.length > 0) {
+      // Tìm affiliate có user_id trùng khớp trong allAffiliates
+      const userAffiliate = this.allAffiliates.find(aff => aff.user_id === userId);
+      if (userAffiliate) {
+        console.log(`Found affiliate in allAffiliates for user_id ${userId}: ${userAffiliate.full_name}`);
+        return userAffiliate;
+      }
+    }
+    
+    // Nếu không tìm thấy trong allAffiliates, sử dụng dữ liệu mẫu cho user_id 2
     if (userId === 2) {
       console.log("Returning affiliate1 for user_id 2");
       return {
         id: 2,
         user_id: 2,
         affiliate_id: "AFF101",
-        full_name: "Nguyễn Văn A",
-        email: "affiliate1@colormedia.vn",
-        phone: "0901234567",
-        bank_account: "0123456789",
+        full_name: "Võ Xuân Hiếu",  // Thay bằng dữ liệu mới
+        email: "voxuanhieu.designer@gmail.com",  // Thay bằng email mới
+        phone: "0987654321",
+        bank_account: "9876543210",
         bank_name: "TPBank",
         total_contacts: 25,
         total_contracts: 8,
