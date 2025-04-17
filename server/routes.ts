@@ -6,6 +6,7 @@ import {
   withdrawalRequestPayloadSchema, 
   insertAffiliateSchema, 
   ReferredCustomerSchema, 
+  ReferredCustomer,
   CustomerStatus,
   CustomerStatusType,
   UserRoleType,
@@ -1735,7 +1736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update customer status
   // API endpoint để cập nhật thông tin hợp đồng cho khách hàng
-  app.post("/api/admin/customers/:id/contract", async (req, res) => {
+  app.put("/api/admin/customers/:id/contract", async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
       const { 
@@ -1796,23 +1797,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Lấy thông tin khách hàng hiện tại
       const customer = affiliate.referred_customers[customerIndex];
       
+      // Tính toán hoa hồng và giá trị bổ sung
+      const additionalContractValue = contract_value;
+      const additionalCommission = additionalContractValue * 0.03;
+      
       // Tạo bản cập nhật cho khách hàng
-      const updatedCustomer: ReferredCustomer = {
+      const updatedCustomer = {
         ...customer,
         status: "Contract signed",  // Cập nhật trạng thái thành đã ký hợp đồng
-        contract_value: contract_value,
+        contract_value: additionalContractValue,
         contract_date: contract_date || new Date().toISOString(),
         updated_at: new Date().toISOString(),
         note: note || customer.note || "",
-        commission: contract_value * 0.03 // Tính hoa hồng 3% từ giá trị hợp đồng
+        commission: additionalCommission // Tính hoa hồng 3% từ giá trị hợp đồng
       };
       
       // Tính toán các thay đổi về số dư
-      const newCommission = contract_value * 0.03;
       const balanceUpdates = {
-        contract_value: contract_value,
-        received_balance: affiliate.received_balance + newCommission,
-        remaining_balance: affiliate.remaining_balance + newCommission
+        contract_value: additionalContractValue,
+        received_balance: affiliate.received_balance + additionalCommission,
+        remaining_balance: affiliate.remaining_balance + additionalCommission
       };
       
       // Cập nhật khách hàng và số dư của affiliate
@@ -1832,10 +1836,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Trả về thông tin khách hàng đã cập nhật
+      // Trả về thông tin theo định dạng yêu cầu trong tài liệu API
       return res.status(200).json({
         status: "success",
-        data: result
+        data: {
+          id: result.id || customerId,
+          name: result.customer_name,
+          status: result.status,
+          contract_value: result.contract_value,
+          additional_contract_value: additionalContractValue,
+          commission: result.commission,
+          additional_commission: additionalCommission,
+          updated_at: result.updated_at,
+          affiliate_balance: {
+            total_contract_value: affiliate.contract_value + additionalContractValue,
+            total_received_balance: affiliate.received_balance + additionalCommission,
+            paid_balance: affiliate.paid_balance || 0,
+            remaining_balance: affiliate.remaining_balance + additionalCommission,
+            actual_balance: affiliate.remaining_balance + additionalCommission
+          }
+        }
       });
       
     } catch (error: any) {
