@@ -718,20 +718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Kiểm tra xem có lệnh rút tiền đang xử lý nào không
-      const hasPendingWithdrawal = affiliate.withdrawal_history.some(
-        w => w.status === "Pending" || w.status === "Processing"
-      );
-      
-      if (hasPendingWithdrawal) {
-        return res.status(400).json({
-          status: "error",
-          error: {
-            code: "PENDING_WITHDRAWAL_EXISTS",
-            message: "Bạn đã có một yêu cầu rút tiền đang được xử lý. Vui lòng đợi hoàn tất trước khi tạo yêu cầu mới."
-          }
-        });
-      }
+      // Đã loại bỏ kiểm tra lệnh rút tiền đang xử lý theo yêu cầu
       
       // Kiểm tra giới hạn rút tiền trong ngày (được đặt lại vào 9:00 sáng mỗi ngày)
       const amountValue = parseFloat(amount);
