@@ -308,8 +308,7 @@ Trân trọng,
 
   // Gửi email trong môi trường production hoặc khi cấu hình gửi email thật
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Withdrawal request email sent to ${email}: ${info.messageId}`);
+    await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
     console.error("Error sending withdrawal request email:", error);
