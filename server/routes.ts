@@ -7,6 +7,7 @@ import {
   insertAffiliateSchema, 
   ReferredCustomerSchema, 
   CustomerStatus,
+  CustomerStatusType,
   UserRoleType,
   User,
   Affiliate
@@ -1130,6 +1131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerData = ReferredCustomerSchema.parse({
         customer_name: name,
         status: status || "Contact received",
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         note: description
       });
@@ -1166,6 +1168,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: {
           code: "VALIDATION_ERROR",
           message: error instanceof Error ? error.message : "Invalid customer data"
+        }
+      });
+    }
+  });
+
+  // Update contract value for customer and calculate 3% commission
+  app.put("/api/admin/customers/:id/contract", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const { contract_value: contractValueInput, name, phone, email, status } = req.body;
+      
+      if (isNaN(customerId) || !contractValueInput) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Valid customer ID and contract value are required"
+          }
+        });
+      }
+      
+      const contractValue = parseFloat(contractValueInput);
+      if (isNaN(contractValue) || contractValue <= 0) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Contract value must be a positive number"
+          }
+        });
+      }
+
+      // Lấy thông tin affiliate từ storage
+      const affiliate = await storage.getCurrentAffiliate();
+      
+      if (!affiliate || !affiliate.referred_customers || customerId >= affiliate.referred_customers.length) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: "Customer not found"
+          }
+        });
+      }
+      
+      // Lấy giá trị hợp đồng cũ (nếu có)
+      const oldContractValue = affiliate.referred_customers[customerId].contract_value || 0;
+      
+      // Tính toán chỉ dựa trên giá trị hợp đồng mới được thêm vào
+      const additionalContractValue = contractValue - oldContractValue;
+      
+      // Tính hoa hồng 3% chỉ từ phần giá trị hợp đồng mới tăng thêm
+      const additionalCommission = additionalContractValue * 0.03;
+      
+      // Tổng hoa hồng (cả cũ và mới)
+      const totalCommission = (affiliate.referred_customers[customerId].commission || 0) + additionalCommission;
+      
+      // Xử lý cập nhật trạng thái khách hàng thành "Contract signed" nếu cần
+      const statusToUpdate = status || 
+                          (affiliate.referred_customers[customerId].status !== "Contract signed" 
+                           ? "Contract signed" 
+                           : affiliate.referred_customers[customerId].status);
+      
+      // Tạo mô tả chi tiết cho giao dịch
+      const description = `Cập nhật giá trị hợp đồng: Từ ${oldContractValue.toLocaleString('vi-VN')} VND lên ${contractValue.toLocaleString('vi-VN')} VND (tăng thêm ${additionalContractValue.toLocaleString('vi-VN')} VND). Hoa hồng bổ sung 3%: ${additionalCommission.toLocaleString('vi-VN')} VND. Tổng hoa hồng: ${totalCommission.toLocaleString('vi-VN')} VND`;
+      
+      // Cập nhật số dư tích lũy của affiliate
+      const updatedAffiliateBalance = {
+        contract_value: affiliate.contract_value + additionalContractValue,
+        received_balance: affiliate.received_balance + additionalCommission,
+        remaining_balance: affiliate.remaining_balance + additionalCommission
+      };
+      
+      // Cập nhật khách hàng với thông tin mới
+      const customerData = {
+        ...affiliate.referred_customers[customerId],
+        customer_name: name || affiliate.referred_customers[customerId].customer_name,
+        status: statusToUpdate,  
+        contract_value: contractValue,
+        commission: totalCommission,
+        updated_at: new Date().toISOString(),
+        note: description
+      };
+      
+      // Cập nhật toàn bộ thông tin khách hàng và affiliate
+      const updatedCustomer = await storage.updateCustomerWithContract(
+        customerId,
+        customerData,
+        updatedAffiliateBalance
+      );
+      
+      if (!updatedCustomer) {
+        return res.status(500).json({
+          status: "error",
+          error: {
+            code: "UPDATE_ERROR",
+            message: "Failed to update customer contract value"
+          }
+        });
+      }
+      
+      // Tính toán số dư thực nhận = Số dư tích lũy - số dư đã rút
+      const actualBalance = updatedAffiliateBalance.received_balance - affiliate.paid_balance;
+      
+      // Trả về kết quả
+      res.json({
+        status: "success",
+        data: {
+          id: customerId,
+          name: updatedCustomer.customer_name,
+          status: updatedCustomer.status,
+          contract_value: contractValue,
+          additional_contract_value: additionalContractValue,
+          commission: totalCommission,
+          additional_commission: additionalCommission,
+          updated_at: updatedCustomer.updated_at,
+          affiliate_balance: {
+            total_contract_value: updatedAffiliateBalance.contract_value,
+            total_received_balance: updatedAffiliateBalance.received_balance,
+            paid_balance: affiliate.paid_balance,
+            remaining_balance: updatedAffiliateBalance.remaining_balance,
+            actual_balance: actualBalance
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error("Error updating contract value:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to update contract value"
         }
       });
     }
@@ -1378,12 +1513,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           customer_name: "Công ty ABC",
           status: CustomerStatus.enum["Contract signed"],
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           note: "Khách hàng đã ký hợp đồng 6 tháng"
         },
         {
           customer_name: "Công ty XYZ",
           status: CustomerStatus.enum["Presenting idea"],
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           note: "Đang thuyết trình ý tưởng"
         }
@@ -1422,18 +1559,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           customer_name: "Công ty DEF",
           status: CustomerStatus.enum["Contract signed"],
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           note: "Khách hàng đã ký hợp đồng 12 tháng"
         },
         {
           customer_name: "Công ty GHI",
           status: CustomerStatus.enum["Contact received"],
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           note: "Mới nhận thông tin liên hệ"
         },
         {
           customer_name: "Công ty JKL",
           status: CustomerStatus.enum["Pending reconciliation"],
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           note: "Đang chờ xác nhận"
         }

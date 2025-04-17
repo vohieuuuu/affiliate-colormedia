@@ -302,7 +302,7 @@ export class DatabaseStorage implements IStorage {
     // 3. Nếu trạng thái là "Contract signed", cập nhật thông tin hợp đồng
     if (newCustomer.status === "Contract signed") {
       const contractValue = newCustomer.contract_value || 20000000; // 20M VND
-      const commission = contractValue * 0.1; // 10% hoa hồng
+      const commission = contractValue * 0.03; // 3% hoa hồng theo yêu cầu mới
       
       newCustomer.contract_value = contractValue;
       newCustomer.commission = commission;
@@ -326,7 +326,7 @@ export class DatabaseStorage implements IStorage {
       total_contracts += 1;
       const contractValue = newCustomer.contract_value || 20000000;
       contract_value += contractValue;
-      const commission = contractValue * 0.1; // 10% hoa hồng
+      const commission = contractValue * 0.03; // 3% hoa hồng theo yêu cầu mới
       remaining_balance += commission;
       received_balance += commission;
     }
@@ -376,7 +376,7 @@ export class DatabaseStorage implements IStorage {
       total_contracts += 1;
       const defaultValue = 20000000; // 20M VND
       contract_value += defaultValue;
-      const commission = defaultValue * 0.1; // 10% hoa hồng
+      const commission = defaultValue * 0.03; // 3% hoa hồng theo yêu cầu mới
       remaining_balance += commission;
       received_balance += commission;
       
@@ -456,7 +456,7 @@ export class DatabaseStorage implements IStorage {
           
           const now = new Date().toISOString();
           const contractValue = status === "Contract signed" ? 20000000 : undefined;
-          const commission = contractValue ? contractValue * 0.1 : undefined;
+          const commission = contractValue ? contractValue * 0.03 : undefined;
           
           const customerData: ReferredCustomer = {
             customer_name: companyName,

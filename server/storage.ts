@@ -29,6 +29,15 @@ export interface IStorage {
   getAffiliateByUserId(userId: number): Promise<Affiliate | undefined>; // Phương thức mới để lấy affiliate từ user_id
   addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void>;
   updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
+  updateCustomerWithContract(
+    customerId: number, 
+    customerData: ReferredCustomer, 
+    balanceUpdates: { 
+      contract_value: number; 
+      received_balance: number; 
+      remaining_balance: number 
+    }
+  ): Promise<ReferredCustomer | undefined>;
   seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;
   
   // Phương thức quản lý user
@@ -669,7 +678,7 @@ export class MemStorage implements IStorage {
         this.affiliate.total_contracts += 1;
         // Mặc định giá trị hợp đồng và hoa hồng
         const contractValue = 20000000; // Default 20M VND
-        const commission = contractValue * 0.1; // 10% commission
+        const commission = contractValue * 0.03; // 3% commission - Cập nhật thành 3% thay vì 10%
         
         // Cập nhật thông tin về hợp đồng và hoa hồng cho khách hàng
         customer.contract_value = contractValue;
@@ -695,6 +704,63 @@ export class MemStorage implements IStorage {
     }
     
     return undefined;
+  }
+  
+  async updateCustomerWithContract(
+    customerId: number, 
+    customerData: ReferredCustomer, 
+    balanceUpdates: { 
+      contract_value: number; 
+      received_balance: number; 
+      remaining_balance: number 
+    }
+  ): Promise<ReferredCustomer | undefined> {
+    // Kiểm tra xem khách hàng có tồn tại không
+    if (customerId < 0 || customerId >= this.affiliate.referred_customers.length) {
+      console.error(`Customer with ID ${customerId} not found`);
+      return undefined;
+    }
+    
+    try {
+      // Cập nhật thông tin khách hàng
+      this.affiliate.referred_customers[customerId] = {
+        ...customerData,
+        updated_at: new Date().toISOString() // Đảm bảo cập nhật thời gian mới nhất
+      };
+      
+      // Cập nhật thông tin tổng hợp của affiliate
+      this.affiliate.contract_value = balanceUpdates.contract_value;
+      this.affiliate.received_balance = balanceUpdates.received_balance;
+      this.affiliate.remaining_balance = balanceUpdates.remaining_balance;
+      
+      // Nếu khách hàng có contract_value, tăng total_contracts của affiliate nếu cần
+      if (customerData.contract_value && customerData.contract_value > 0) {
+        // Nếu trạng thái là "Contract signed" và không có contract_date, thêm contract_date
+        if (customerData.status === "Contract signed" && !customerData.contract_date) {
+          this.affiliate.referred_customers[customerId].contract_date = new Date().toISOString();
+        }
+        
+        // Cập nhật thông tin trong danh sách top affiliates
+        const affiliateInTop = this.topAffiliates.find(a => a.id === this.affiliate.id);
+        if (affiliateInTop) {
+          affiliateInTop.contract_value = balanceUpdates.contract_value;
+          affiliateInTop.total_contracts = this.affiliate.total_contracts;
+          // Re-sort the list
+          this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
+        }
+      }
+      
+      // Ghi log thành công
+      console.log(`Successfully updated customer #${customerId} with contract value ${customerData.contract_value}`);
+      console.log(`Updated affiliate balance: contract_value=${this.affiliate.contract_value}, received_balance=${this.affiliate.received_balance}, remaining_balance=${this.affiliate.remaining_balance}`);
+      
+      // Trả về khách hàng đã được cập nhật
+      return this.affiliate.referred_customers[customerId];
+      
+    } catch (error) {
+      console.error("Error updating customer with contract:", error);
+      return undefined;
+    }
   }
 
   async seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }> {
