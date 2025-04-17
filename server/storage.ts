@@ -28,7 +28,7 @@ export interface IStorage {
   getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined>;
   getAffiliateByUserId(userId: number): Promise<Affiliate | undefined>; // Phương thức để lấy affiliate từ user_id
   getAffiliateByEmail(email: string): Promise<Affiliate | undefined>; // Phương thức mới để lấy affiliate từ email
-  addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void>;
+  addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<void>;
   updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
   updateCustomerWithContract(
     customerId: number, 
