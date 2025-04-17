@@ -1184,28 +1184,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Mật khẩu mặc định
                 const temporaryPassword = "color1234@";
                 
-                // Mã hóa mật khẩu
-                const hashedPassword = await hashPassword(temporaryPassword);
+                // Kiểm tra xem email đã tồn tại trong hệ thống chưa
+                const existingUser = await storage.getUserByUsername(affiliateData.email);
                 
-                // Tạo tài khoản người dùng
-                const newUser = await storage.createUser({
-                  username: affiliateData.email,
-                  password: hashedPassword,
-                  role: "AFFILIATE",
-                  is_first_login: true // sẽ được chuyển thành 1 trong hàm createUser
-                });
+                let userId;
                 
-                // Gửi email kích hoạt
-                await sendAccountActivationEmail(
-                  affiliateData.full_name,
-                  affiliateData.email,
-                  temporaryPassword
-                );
+                if (existingUser) {
+                  console.log(`User with email ${affiliateData.email} already exists (ID: ${existingUser.id})`);
+                  userId = existingUser.id;
+                  
+                  // Nếu cần gửi lại email kích hoạt, uncomment đoạn code bên dưới
+                  // await sendAccountActivationEmail(
+                  //   affiliateData.full_name,
+                  //   affiliateData.email,
+                  //   "color1234@" // Password không thay đổi
+                  // );
+                } else {
+                  // Mã hóa mật khẩu
+                  const hashedPassword = await hashPassword(temporaryPassword);
+                  
+                  // Tạo tài khoản người dùng mới
+                  const newUser = await storage.createUser({
+                    username: affiliateData.email,
+                    password: hashedPassword,
+                    role: "AFFILIATE",
+                    is_first_login: true // sẽ được chuyển thành 1 trong hàm createUser
+                  });
+                  
+                  userId = newUser.id;
+                  
+                  // Gửi email kích hoạt
+                  await sendAccountActivationEmail(
+                    affiliateData.full_name,
+                    affiliateData.email,
+                    temporaryPassword
+                  );
+                }
                 
                 // Tạo affiliate mới và liên kết với user
                 const newAffiliate = await storage.createAffiliate({
                   ...affiliateData,
-                  user_id: newUser.id
+                  user_id: userId
                 });
                 
                 return res.status(201).json({
@@ -1221,7 +1240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Vẫn tạo affiliate nếu gửi email thất bại
                 const newAffiliate = await storage.createAffiliate({
                   ...affiliateData,
-                  user_id: newUser.id
+                  user_id: userId
                 });
                 
                 return res.status(201).json({
