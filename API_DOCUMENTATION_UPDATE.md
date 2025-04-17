@@ -31,6 +31,7 @@ Lưu ý: Các API được bảo vệ bằng token `Bearer` yêu cầu xác th�
 - `POST /api/withdrawal-request/resend-otp` - Gửi lại OTP
 
 ### Admin APIs
+- `GET /api/admin/affiliates` - Lấy danh sách tất cả affiliate (Admin)
 - `POST /api/admin/affiliates` - Tạo affiliate mới (Admin)
 - `POST /api/admin/customers` - Thêm khách hàng giới thiệu mới (Admin)
 - `PUT /api/admin/customers/:id/status` - Cập nhật trạng thái khách hàng (Admin)
@@ -263,6 +264,67 @@ GET /api/affiliate
 ```bash
 curl -X GET "http://localhost:5000/api/affiliate" \
   -H "Authorization: Bearer {your-token}"
+```
+
+#### Lấy danh sách tất cả Affiliate (Admin)
+
+```
+GET /api/admin/affiliates
+```
+
+**Chức năng:** Lấy danh sách tất cả affiliate trong hệ thống (chỉ dành cho Admin)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 2,
+      "user_id": 2,
+      "affiliate_id": "AFF101",
+      "full_name": "Nguyễn Văn A",
+      "email": "affiliate1@colormedia.vn",
+      "phone": "0901234567",
+      "bank_account": "0123456789",
+      "bank_name": "TPBank",
+      "total_contacts": 25,
+      "total_contracts": 8,
+      "contract_value": 180000000,
+      "received_balance": 36000000,
+      "paid_balance": 18000000,
+      "remaining_balance": 80000000,
+      "referred_customers": [...],
+      "withdrawal_history": [...]
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "affiliate_id": "AFF102",
+      "full_name": "Trần Thị B",
+      "email": "affiliate2@colormedia.vn",
+      "phone": "0909876543",
+      "bank_account": "9876543210",
+      "bank_name": "Vietcombank",
+      "total_contacts": 18,
+      "total_contracts": 6,
+      "contract_value": 150000000,
+      "received_balance": 30000000,
+      "paid_balance": 15000000,
+      "remaining_balance": 75000000,
+      "referred_customers": [...],
+      "withdrawal_history": [...]
+    }
+  ]
+}
+```
+
+**Yêu cầu Header:** `Authorization: Bearer {token}` (Token với quyền Admin)
+
+**Curl Example:**
+```bash
+curl -X GET "http://localhost:5000/api/admin/affiliates" \
+  -H "Authorization: Bearer {admin-token}"
 ```
 
 #### Lấy danh sách Top Affiliates
