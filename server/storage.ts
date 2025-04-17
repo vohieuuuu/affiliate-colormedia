@@ -595,6 +595,12 @@ export class MemStorage implements IStorage {
         // Re-sort the list
         this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
       }
+      
+      // Cập nhật lại thông tin cho affiliate hiện tại
+      if (targetAffiliate.affiliate_id === this.affiliate.affiliate_id) {
+        this.affiliate = { ...targetAffiliate };
+        console.log(`Updated current affiliate with new contract data: total_contracts=${this.affiliate.total_contracts}`);
+      }
     }
     
     console.log(`Updated customer: ${JSON.stringify(updatedCustomer)}`);  // Thêm log để theo dõi dữ liệu

@@ -445,6 +445,8 @@ export class DatabaseStorage implements IStorage {
         commission: commission,
         contract_date: now
       };
+      
+      console.log(`Updated total_contracts to ${total_contracts} for affiliate ${affiliateId}`);
     }
     
     // Cập nhật khách hàng trong danh sách
