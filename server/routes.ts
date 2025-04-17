@@ -1459,6 +1459,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate customer data
       const customerData = ReferredCustomerSchema.parse({
         customer_name: name,
+        phone: phone || "",
+        email: email || "",
         status: status || "Contact received",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
