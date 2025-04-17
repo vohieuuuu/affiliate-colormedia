@@ -1402,7 +1402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Kiểm tra xem affiliate có tồn tại không
-      const affiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
+      let affiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
       
       if (!affiliate) {
         // Nếu không tìm thấy affiliate, tạo mới một affiliate với ID đó
@@ -1421,7 +1421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         // Tạo affiliate mới với affiliate_id đã cung cấp
-        const newAffiliate = await storage.createAffiliate({
+        affiliate = await storage.createAffiliate({
           affiliate_id,
           full_name: `Affiliate ${affiliate_id}`,
           email: username,
@@ -1432,6 +1432,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         console.log(`Created new affiliate with ID ${affiliate_id} and user ID ${newUser.id}`);
+      } else {
+        console.log(`Using existing affiliate with ID ${affiliate_id}`);
       }
       
       // Add the customer to the affiliate

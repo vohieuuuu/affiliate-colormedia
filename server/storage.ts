@@ -423,18 +423,34 @@ export class MemStorage implements IStorage {
   async createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate> {
     console.log(`Creating new affiliate with ID: ${affiliateData.affiliate_id}`);
     
+    // Kiểm tra xem affiliate_id đã tồn tại chưa
+    const existingAffiliate = await this.getAffiliateByAffiliateId(affiliateData.affiliate_id);
+    if (existingAffiliate) {
+      console.log(`Affiliate with ID ${affiliateData.affiliate_id} already exists, returning existing affiliate`);
+      
+      // Nếu có thông tin mới, cập nhật thông tin cho affiliate hiện có
+      if (affiliateData.full_name) existingAffiliate.full_name = affiliateData.full_name;
+      if (affiliateData.email) existingAffiliate.email = affiliateData.email;
+      if (affiliateData.phone) existingAffiliate.phone = affiliateData.phone;
+      if (affiliateData.bank_account) existingAffiliate.bank_account = affiliateData.bank_account;
+      if (affiliateData.bank_name) existingAffiliate.bank_name = affiliateData.bank_name;
+      if (affiliateData.user_id) existingAffiliate.user_id = affiliateData.user_id;
+      
+      return existingAffiliate;
+    }
+    
     // Tạo affiliate mới với ID tăng dần
     const newId = this.allAffiliates.length > 0 ? Math.max(...this.allAffiliates.map(a => a.id)) + 1 : 1;
     
     const newAffiliate: Affiliate = {
       id: newId,
-      user_id: 2, // Default user ID
+      user_id: affiliateData.user_id || 2, // Sử dụng user_id được cung cấp hoặc mặc định
       affiliate_id: affiliateData.affiliate_id,
       full_name: affiliateData.full_name,
       email: affiliateData.email,
       phone: affiliateData.phone,
-      bank_account: affiliateData.bank_account,
-      bank_name: affiliateData.bank_name,
+      bank_account: affiliateData.bank_account || "",
+      bank_name: affiliateData.bank_name || "",
       total_contacts: 0,
       total_contracts: 0,
       contract_value: 0,
