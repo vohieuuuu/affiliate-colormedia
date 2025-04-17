@@ -718,6 +718,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Kiểm tra giới hạn rút tiền trong ngày (được đặt lại vào 9:00 sáng mỗi ngày)
+      const amountValue = parseFloat(amount);
+      const dailyLimitCheck = await storage.checkDailyWithdrawalLimit(affiliate.affiliate_id, amountValue);
+      
+      if (dailyLimitCheck.exceeds) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "DAILY_LIMIT_EXCEEDED",
+            message: `Vượt quá giới hạn rút tiền trong ngày. Bạn đã rút ${dailyLimitCheck.totalWithdrawn.toLocaleString()} VND từ 9:00 sáng hôm nay. Số tiền còn có thể rút: ${dailyLimitCheck.remainingLimit.toLocaleString()} VND. Giới hạn sẽ được đặt lại vào 9:00 sáng ngày mai.`
+          }
+        });
+      }
+      
       // Lưu thông tin request tạm thời vào session hoặc cache
       const withdrawalData = {
         user_id: affiliate.affiliate_id,
