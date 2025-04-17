@@ -53,6 +53,10 @@ export default function WithdrawalModal({
     })
     .reduce((sum, w) => sum + w.amount, 0);
   
+  // Kiểm tra xem đã có lệnh rút tiền nào đang trong trạng thái "Pending" hoặc "Processing" không
+  const hasPendingWithdrawal = (affiliate?.withdrawal_history || [])
+    .some(w => w.status === "Pending" || w.status === "Processing");
+  
   // Số tiền còn có thể rút trong ngày
   const remainingDailyLimit = Math.max(0, DAILY_WITHDRAWAL_LIMIT - withdrawnToday);
   
@@ -258,6 +262,11 @@ export default function WithdrawalModal({
                     Còn có thể rút hôm nay: {formatCurrency(remainingDailyLimit)} VND
                     {remainingDailyLimit <= 0 && " (đã đạt giới hạn)"}
                   </p>
+                  {hasPendingWithdrawal && (
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                      ⚠️ Bạn hiện có một yêu cầu rút tiền đang được xử lý. Vui lòng đợi hoàn tất trước khi tạo yêu cầu mới.
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     <span className="italic">Lưu ý: Giới hạn sẽ được đặt lại vào 9:00 sáng mỗi ngày</span>
                   </p>
@@ -319,7 +328,7 @@ export default function WithdrawalModal({
               </Button>
               <Button 
                 type="submit" 
-                disabled={isLoading || parseFloat(amount) > maxAmount || remainingDailyLimit <= 0}
+                disabled={isLoading || parseFloat(amount) > maxAmount || remainingDailyLimit <= 0 || hasPendingWithdrawal}
               >
                 {isLoading ? "Đang xử lý..." : "Tiếp tục"}
               </Button>
