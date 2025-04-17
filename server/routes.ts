@@ -1646,12 +1646,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Return the updated customer
+      // Log thông tin khách hàng sau khi cập nhật
+      console.log(`Customer ${customerId} after update: ${JSON.stringify(updatedCustomer)}`);
+      
+      // Return the updated customer with the correct name
       res.json({
         status: "success",
         data: {
           id: customerId,
-          name: updatedCustomer.customer_name,
+          name: updatedCustomer.customer_name, // Tên từ đối tượng đã cập nhật
           status: updatedCustomer.status,
           updated_at: updatedCustomer.updated_at,
           events: [

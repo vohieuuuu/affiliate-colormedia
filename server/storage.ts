@@ -559,6 +559,9 @@ export class MemStorage implements IStorage {
       updated_at: now // Cập nhật thời gian
     };
     
+    // Lấy lại đối tượng đã cập nhật
+    const updatedCustomer = this.affiliate.referred_customers[customerId];
+    
     // If the status is changed to "Contract signed", update contracts count and value
     if (status === "Contract signed" && oldStatus !== "Contract signed") {
       this.affiliate.total_contracts += 1;
@@ -567,9 +570,9 @@ export class MemStorage implements IStorage {
       const commission = contractValue * 0.03; // 3% commission - Cập nhật thành 3% thay vì 10%
       
       // Cập nhật thông tin về hợp đồng và hoa hồng cho khách hàng
-      this.affiliate.referred_customers[customerId].contract_value = contractValue;
-      this.affiliate.referred_customers[customerId].commission = commission;
-      this.affiliate.referred_customers[customerId].contract_date = now;
+      updatedCustomer.contract_value = contractValue;
+      updatedCustomer.commission = commission;
+      updatedCustomer.contract_date = now;
       
       // Cập nhật số liệu cho affiliate
       this.affiliate.contract_value += contractValue;
@@ -586,7 +589,8 @@ export class MemStorage implements IStorage {
       }
     }
     
-    return customer;
+    console.log(`Updated customer: ${JSON.stringify(updatedCustomer)}`);  // Thêm log để theo dõi dữ liệu
+    return updatedCustomer;  // Trả về đối tượng đã cập nhật, không phải đối tượng cũ
   }
   
   async updateCustomerWithContract(
