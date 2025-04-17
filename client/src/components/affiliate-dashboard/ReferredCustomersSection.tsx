@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Table, 
   TableBody, 
@@ -10,8 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ReferredCustomer } from "@shared/schema";
-import { Eye } from "lucide-react";
+import { Eye, RefreshCw } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ReferredCustomersSectionProps {
   referredCustomers?: ReferredCustomer[];
@@ -49,11 +50,38 @@ export default function ReferredCustomersSection({
     }
   };
   
+  const queryClient = useQueryClient();
+  
+  // Định kỳ làm mới dữ liệu khách hàng được giới thiệu mỗi 15 giây
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Làm mới dữ liệu khách hàng được giới thiệu
+      queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+    }, 15000);
+    
+    return () => clearInterval(interval);
+  }, [queryClient]);
+  
+  // Hàm làm mới dữ liệu thủ công
+  const handleRefreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+  };
+
   return (
     <Card>
-      <CardHeader className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-        <CardTitle>Referred Customers</CardTitle>
-        <CardDescription>Track the progress of your referrals</CardDescription>
+      <CardHeader className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700 flex flex-row justify-between items-center">
+        <div>
+          <CardTitle>Referred Customers</CardTitle>
+          <CardDescription>Track the progress of your referrals</CardDescription>
+        </div>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={handleRefreshData}
+          title="Refresh Data"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">

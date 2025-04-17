@@ -22,7 +22,7 @@ export default function Dashboard() {
   const [selectedCustomer, setSelectedCustomer] = useState<ReferredCustomer | null>(null);
   
   // Fetch affiliate data
-  const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, error: affiliateError } = useQuery({
+  const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, error: affiliateError, refetch: refetchAffiliate } = useQuery({
     queryKey: ['/api/affiliate'],
   });
   
