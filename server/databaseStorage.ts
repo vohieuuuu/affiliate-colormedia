@@ -380,26 +380,39 @@ export class DatabaseStorage implements IStorage {
     status: CustomerStatusType, 
     description: string
   ): Promise<ReferredCustomer | undefined> {
-    // Lưu ý: customerId là index trong mảng referred_customers
-    // 1. Lấy affiliate đầu tiên (giả sử chúng ta chỉ làm việc với affiliate hiện tại)
-    const [affiliate] = await db.select().from(affiliates).limit(1);
+    // Tìm affiliate theo ID
+    const [affiliate] = await db.select()
+      .from(affiliates)
+      .where(eq(affiliates.affiliate_id, affiliateId));
+      
+    if (!affiliate) {
+      console.error(`Affiliate with ID ${affiliateId} not found`);
+      return undefined;
+    }
     
-    // Kiểm tra cẩn thận với customerId, quan trọng là phải xử lý cả trường hợp ID = 0
-    if (!affiliate || !affiliate.referred_customers || 
-        customerId === undefined || customerId === null || 
-        customerId < 0 || customerId >= affiliate.referred_customers.length) {
-      console.error(`Customer with ID ${customerId} not found, valid range is 0-${affiliate?.referred_customers?.length - 1 || 0}`);
+    // Lấy danh sách khách hàng và tìm theo ID thực
+    const customers = [...(affiliate.referred_customers || [])]; // Tạo bản sao
+    
+    // Tìm khách hàng theo ID duy nhất
+    const customerIndex = customers.findIndex(
+      customer => customer.id === customerId
+    );
+    
+    console.log(`DatabaseStorage: Finding customer with ID ${customerId} for affiliate ${affiliateId}, found at index ${customerIndex}`);
+    
+    // Nếu không tìm thấy khách hàng
+    if (customerIndex === -1) {
+      console.error(`Customer with ID ${customerId} not found for affiliate ${affiliateId}`);
       return undefined;
     }
     
     // 2. Cập nhật thông tin khách hàng
-    const customers = [...affiliate.referred_customers]; // Tạo bản sao
-    const oldStatus = customers[customerId].status;
+    const oldStatus = customers[customerIndex].status;
     const now = new Date().toISOString();
     
     // Tạo đối tượng khách hàng cập nhật
     let updatedCustomer = {
-      ...customers[customerId],
+      ...customers[customerIndex],
       status,
       note: description,
       updated_at: now
