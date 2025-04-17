@@ -1612,6 +1612,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lấy danh sách khách hàng của một affiliate
+  app.get("/api/admin/affiliates/:affiliate_id/customers", async (req, res) => {
+    try {
+      const { affiliate_id } = req.params;
+      
+      if (!affiliate_id) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Affiliate ID is required"
+          }
+        });
+      }
+      
+      const affiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
+      if (!affiliate) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: `Affiliate with ID ${affiliate_id} not found`
+          }
+        });
+      }
+      
+      // Lấy danh sách khách hàng từ affiliate
+      const customers = affiliate.referred_customers.map((customer, index) => ({
+        id: index, // Sử dụng index làm ID cho client
+        name: customer.customer_name,
+        phone: customer.phone,
+        email: customer.email,
+        status: customer.status,
+        created_at: customer.created_at,
+        updated_at: customer.updated_at,
+        contract_value: customer.contract_value || null,
+        contract_date: customer.contract_date || null,
+        commission: customer.commission || null,
+        note: customer.note || "",
+        affiliate_id: affiliate_id
+      }));
+      
+      res.status(200).json({
+        status: "success",
+        data: customers
+      });
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Failed to fetch customers"
+        }
+      });
+    }
+  });
+
   // Update customer status
   app.put("/api/admin/customers/:id/status", async (req, res) => {
     try {
