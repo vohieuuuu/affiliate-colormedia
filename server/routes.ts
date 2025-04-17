@@ -1114,7 +1114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin API Routes for Data Management
 
-  // Add a new affiliate
+  // Add a new affiliate (POST - chỉ tạo mới)
   app.post("/api/admin/affiliates", async (req, res) => {
     try {
       // Xác thực dữ liệu affiliate từ request body, loại bỏ user_id nếu có
@@ -1129,18 +1129,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const existingAffiliate = await storage.getAffiliateByAffiliateId(affiliateData.affiliate_id);
         
         if (existingAffiliate) {
-          // Nếu đã tồn tại, cập nhật thông tin (chỉ cập nhật thông tin cơ bản)
-          // Trong demo này chúng ta giả định luôn là tạo mới để đơn giản
-          const updatedAffiliate = await storage.createAffiliate({
-            ...affiliateData,
-            user_id: existingAffiliate.user_id
-          });
-          
-          return res.status(200).json({
-            status: "success",
-            data: {
-              ...updatedAffiliate,
-              message: "Affiliate information updated"
+          // Nếu đã tồn tại, báo lỗi vì POST chỉ dùng để tạo mới
+          return res.status(409).json({
+            status: "error",
+            error: {
+              code: "AFFILIATE_ALREADY_EXISTS",
+              message: `Affiliate với ID ${affiliateData.affiliate_id} đã tồn tại. Hãy sử dụng PUT /api/admin/affiliates/${affiliateData.affiliate_id} để cập nhật.`
             }
           });
         } else {
@@ -1288,6 +1282,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error creating affiliate:", error);
+      res.status(400).json({
+        status: "error",
+        error: {
+          code: "VALIDATION_ERROR",
+          message: error instanceof Error ? error.message : "Invalid affiliate data"
+        }
+      });
+    }
+  });
+
+  // Update an existing affiliate (PUT - chỉ cập nhật)
+  app.put("/api/admin/affiliates/:affiliate_id", async (req, res) => {
+    try {
+      const { affiliate_id } = req.params;
+      
+      // Xác thực dữ liệu affiliate từ request body, loại bỏ user_id và affiliate_id nếu có
+      const { user_id, affiliate_id: reqAffiliateId, ...affiliateDataFromRequest } = req.body;
+      
+      // Kiểm tra xem affiliate có tồn tại chưa
+      const existingAffiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
+      
+      if (!existingAffiliate) {
+        // Nếu không tồn tại, báo lỗi
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "AFFILIATE_NOT_FOUND",
+            message: `Affiliate với ID ${affiliate_id} không tồn tại. Hãy sử dụng POST /api/admin/affiliates để tạo mới.`
+          }
+        });
+      }
+      
+      // Cập nhật thông tin (chỉ cập nhật thông tin cơ bản)
+      // Trong môi trường memory, dùng createAffiliate để cập nhật
+      const updatedAffiliate = await storage.createAffiliate({
+        ...affiliateDataFromRequest,
+        affiliate_id, // Sử dụng affiliate_id từ URL param
+        user_id: existingAffiliate.user_id // Giữ nguyên user_id
+      });
+      
+      return res.status(200).json({
+        status: "success",
+        data: {
+          ...updatedAffiliate,
+          message: "Affiliate information updated successfully"
+        }
+      });
+    } catch (error) {
+      console.error("Error updating affiliate:", error);
       res.status(400).json({
         status: "error",
         error: {
