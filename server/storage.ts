@@ -545,14 +545,19 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
+    // Lấy thông tin khách hàng hiện tại
     const customer = this.affiliate.referred_customers[customerId];
     const oldStatus = customer.status;
     const now = new Date().toISOString();
     
-    // Update the customer status
-    customer.status = status;
-    customer.note = description;
-    customer.updated_at = now;
+    // Chỉ cập nhật các trường cần thiết, giữ nguyên thông tin khách hàng
+    // Cập nhật trạng thái mới và ghi chú mới
+    this.affiliate.referred_customers[customerId] = {
+      ...customer, // Giữ nguyên các thông tin khác của khách hàng
+      status, // Cập nhật trạng thái mới
+      note: description, // Cập nhật ghi chú mới
+      updated_at: now // Cập nhật thời gian
+    };
     
     // If the status is changed to "Contract signed", update contracts count and value
     if (status === "Contract signed" && oldStatus !== "Contract signed") {
@@ -562,9 +567,9 @@ export class MemStorage implements IStorage {
       const commission = contractValue * 0.03; // 3% commission - Cập nhật thành 3% thay vì 10%
       
       // Cập nhật thông tin về hợp đồng và hoa hồng cho khách hàng
-      customer.contract_value = contractValue;
-      customer.commission = commission;
-      customer.contract_date = now;
+      this.affiliate.referred_customers[customerId].contract_value = contractValue;
+      this.affiliate.referred_customers[customerId].commission = commission;
+      this.affiliate.referred_customers[customerId].contract_date = now;
       
       // Cập nhật số liệu cho affiliate
       this.affiliate.contract_value += contractValue;
