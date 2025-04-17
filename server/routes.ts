@@ -367,6 +367,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // });
   }
   
+  // API endpoint to register a new affiliate for a user
+  app.post("/api/register-affiliate", authenticateUser, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication required"
+          }
+        });
+      }
+
+      // Validate request body
+      const { full_name, email, phone, bank_account, bank_name } = req.body;
+      if (!full_name || !email || !phone || !bank_account || !bank_name) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_INPUT",
+            message: "Missing required fields"
+          }
+        });
+      }
+
+      // Generate affiliate ID (e.g., AFF followed by user ID and random number)
+      const affiliateId = `AFF${req.user.id}${Math.floor(Math.random() * 1000)}`;
+
+      // Create affiliate data
+      const affiliateData = {
+        affiliate_id: affiliateId,
+        user_id: req.user.id,
+        full_name,
+        email,
+        phone,
+        bank_account,
+        bank_name
+      };
+
+      // Create affiliate in storage
+      const newAffiliate = await storage.createAffiliate(affiliateData);
+
+      res.status(201).json({
+        status: "success",
+        data: newAffiliate
+      });
+    } catch (error) {
+      console.error("Error creating affiliate:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Failed to create affiliate"
+        }
+      });
+    }
+  });
+
   // API endpoint to get affiliate data
   app.get("/api/affiliate", authenticateUser, async (req, res) => {
     try {
