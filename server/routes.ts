@@ -282,6 +282,14 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Middleware đảm bảo tất cả API response đều có Content-Type: application/json
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      res.setHeader('Content-Type', 'application/json');
+    }
+    next();
+  });
+
   // Thiết lập xác thực cho môi trường phát triển
   if (!(process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production")) {
     // Trong môi trường phát triển, sử dụng các route xác thực đơn giản
@@ -377,9 +385,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/affiliates/top", async (req, res) => {
     try {
       const topAffiliates = await storage.getTopAffiliates();
-      res.json(topAffiliates);
+      res.setHeader('Content-Type', 'application/json');
+      res.json({
+        status: "success",
+        data: topAffiliates
+      });
     } catch (error) {
-      res.status(500).json({ message: "Failed to retrieve top affiliates" });
+      res.status(500).json({ 
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Failed to retrieve top affiliates"
+        }
+      });
     }
   });
   
