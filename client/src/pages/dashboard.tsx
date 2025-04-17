@@ -125,6 +125,8 @@ export default function Dashboard() {
                     <WithdrawalHistorySection 
                       withdrawalHistory={affiliateData?.withdrawal_history} 
                     />
+                    
+                    <VideosSection />
                   </div>
                 </div>
               </TabsContent>
