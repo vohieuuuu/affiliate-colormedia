@@ -1216,11 +1216,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Lấy giá trị hợp đồng cũ (nếu có)
       const oldContractValue = affiliate.referred_customers[customerId].contract_value || 0;
       
-      // Tính toán chỉ dựa trên giá trị hợp đồng mới được thêm vào
-      const additionalContractValue = contractValue - oldContractValue;
+      // Giá trị hợp đồng mới là một hợp đồng riêng biệt, không trừ đi giá trị cũ
+      const additionalContractValue = contractValue;
       
-      // Tính hoa hồng 3% chỉ từ phần giá trị hợp đồng mới tăng thêm
+      // Tính hoa hồng 3% từ toàn bộ giá trị hợp đồng mới
       const additionalCommission = additionalContractValue * 0.03;
+      
+      // Tổng giá trị hợp đồng của khách hàng là tổng tích lũy (cộng dồn)
+      const totalContractValue = oldContractValue + additionalContractValue;
       
       // Tổng hoa hồng (cả cũ và mới)
       const totalCommission = (affiliate.referred_customers[customerId].commission || 0) + additionalCommission;
@@ -1232,7 +1235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                            : affiliate.referred_customers[customerId].status);
       
       // Tạo mô tả chi tiết cho giao dịch
-      const description = `Cập nhật giá trị hợp đồng: Từ ${oldContractValue.toLocaleString('vi-VN')} VND lên ${contractValue.toLocaleString('vi-VN')} VND (tăng thêm ${additionalContractValue.toLocaleString('vi-VN')} VND). Hoa hồng bổ sung 3%: ${additionalCommission.toLocaleString('vi-VN')} VND. Tổng hoa hồng: ${totalCommission.toLocaleString('vi-VN')} VND`;
+      const description = `Nhận thêm hợp đồng mới trị giá ${additionalContractValue.toLocaleString('vi-VN')} VND. Tính hoa hồng 3%: ${additionalCommission.toLocaleString('vi-VN')} VND. Tổng giá trị hợp đồng tích lũy: ${totalContractValue.toLocaleString('vi-VN')} VND. Tổng hoa hồng: ${totalCommission.toLocaleString('vi-VN')} VND`;
       
       // Cập nhật số dư tích lũy của affiliate
       const updatedAffiliateBalance = {
@@ -1245,8 +1248,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerData = {
         ...affiliate.referred_customers[customerId],
         customer_name: name || affiliate.referred_customers[customerId].customer_name,
+        phone: phone || affiliate.referred_customers[customerId].phone,
+        email: email || affiliate.referred_customers[customerId].email,
         status: statusToUpdate,  
-        contract_value: contractValue,
+        contract_value: totalContractValue, // Lưu tổng giá trị tích lũy
         commission: totalCommission,
         updated_at: new Date().toISOString(),
         note: description
