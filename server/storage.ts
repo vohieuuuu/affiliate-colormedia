@@ -206,6 +206,7 @@ export class MemStorage implements IStorage {
   private allAffiliates: Affiliate[] = []; // Mảng lưu trữ tất cả các affiliates trong hệ thống
   private users: User[] = []; // Mảng lưu trữ người dùng mẫu
   private otpVerifications: OtpVerification[] = []; // Mảng lưu trữ các mã OTP
+  private videos: VideoData[] = []; // Mảng lưu trữ các video của ColorMedia
 
   constructor() {
     // Khởi tạo dữ liệu trống - không tạo khách hàng mẫu và không tạo lịch sử rút tiền
@@ -878,6 +879,158 @@ export class MemStorage implements IStorage {
       this.otpVerifications[otpIndex].is_used = 1;
       console.log(`DEV MODE: Invalidated OTP for user ID ${userId}`);
     }
+  }
+  
+  /**
+   * Lấy danh sách top videos
+   * @param limit số lượng video cần lấy
+   * @returns danh sách top videos
+   */
+  async getTopVideos(limit: number = 5): Promise<VideoData[]> {
+    // Nếu không có video nào, khởi tạo dữ liệu mẫu
+    if (this.videos.length === 0) {
+      this.initializeDefaultVideos();
+    }
+    
+    // Sắp xếp theo thứ tự và lấy số lượng yêu cầu
+    return this.videos
+      .sort((a, b) => a.order - b.order)
+      .filter(video => video.is_featured)
+      .slice(0, limit);
+  }
+  
+  /**
+   * Thêm video mới
+   * @param video dữ liệu video
+   * @returns video đã thêm
+   */
+  async addVideo(video: VideoData): Promise<VideoData> {
+    // Tạo ID mới
+    const newId = this.videos.length > 0 
+      ? Math.max(...this.videos.map(v => v.id)) + 1 
+      : 1;
+    
+    // Tạo mới video với ID được gán
+    const newVideo: VideoData = {
+      ...video,
+      id: newId,
+      created_at: new Date().toISOString(),
+      published_at: video.published_at || new Date().toISOString()
+    };
+    
+    // Thêm vào danh sách
+    this.videos.push(newVideo);
+    console.log(`Added new video: ${newVideo.title}`);
+    
+    return newVideo;
+  }
+  
+  /**
+   * Cập nhật video
+   * @param id ID của video
+   * @param video dữ liệu cập nhật
+   * @returns video đã cập nhật hoặc undefined nếu không tìm thấy
+   */
+  async updateVideo(id: number, video: Partial<VideoData>): Promise<VideoData | undefined> {
+    const index = this.videos.findIndex(v => v.id === id);
+    
+    if (index === -1) {
+      return undefined;
+    }
+    
+    // Cập nhật thông tin
+    this.videos[index] = {
+      ...this.videos[index],
+      ...video
+    };
+    
+    console.log(`Updated video ID ${id}: ${this.videos[index].title}`);
+    return this.videos[index];
+  }
+  
+  /**
+   * Xóa video
+   * @param id ID của video
+   * @returns true nếu xóa thành công, false nếu không tìm thấy
+   */
+  async deleteVideo(id: number): Promise<boolean> {
+    const index = this.videos.findIndex(v => v.id === id);
+    
+    if (index === -1) {
+      return false;
+    }
+    
+    // Xóa video
+    this.videos.splice(index, 1);
+    console.log(`Deleted video ID ${id}`);
+    
+    return true;
+  }
+  
+  /**
+   * Khởi tạo danh sách video mặc định
+   */
+  private initializeDefaultVideos(): void {
+    // Video ColorMedia từ YouTube
+    this.videos = [
+      {
+        id: 1,
+        title: "Colormedia - Brand Identity & Promotion",
+        description: "Giới thiệu về ColorMedia và các dịch vụ của chúng tôi",
+        youtube_id: "vSKtTKN7WJQ",
+        thumbnail_url: "https://img.youtube.com/vi/vSKtTKN7WJQ/maxresdefault.jpg",
+        order: 1,
+        is_featured: true,
+        published_at: "2023-04-15T00:00:00.000Z",
+        created_at: "2023-04-15T00:00:00.000Z"
+      },
+      {
+        id: 2,
+        title: "ColorMedia - Tư vấn & Thiết kế",
+        description: "Dịch vụ tư vấn và thiết kế chuyên nghiệp",
+        youtube_id: "BtplBnyr_CQ",
+        thumbnail_url: "https://img.youtube.com/vi/BtplBnyr_CQ/maxresdefault.jpg",
+        order: 2,
+        is_featured: true,
+        published_at: "2023-05-10T00:00:00.000Z",
+        created_at: "2023-05-10T00:00:00.000Z"
+      },
+      {
+        id: 3,
+        title: "ColorMedia - Xây dựng thương hiệu",
+        description: "Giải pháp xây dựng thương hiệu toàn diện",
+        youtube_id: "YnAE0VC8L3E",
+        thumbnail_url: "https://img.youtube.com/vi/YnAE0VC8L3E/maxresdefault.jpg",
+        order: 3,
+        is_featured: true,
+        published_at: "2023-06-05T00:00:00.000Z",
+        created_at: "2023-06-05T00:00:00.000Z"
+      },
+      {
+        id: 4,
+        title: "ColorMedia - Quảng cáo trực tuyến",
+        description: "Dịch vụ quảng cáo trực tuyến đa nền tảng",
+        youtube_id: "Qj1KbL9ixBk",
+        thumbnail_url: "https://img.youtube.com/vi/Qj1KbL9ixBk/maxresdefault.jpg",
+        order: 4,
+        is_featured: true,
+        published_at: "2023-07-20T00:00:00.000Z",
+        created_at: "2023-07-20T00:00:00.000Z"
+      },
+      {
+        id: 5,
+        title: "ColorMedia - Giải pháp kỹ thuật số",
+        description: "Các giải pháp công nghệ cho doanh nghiệp",
+        youtube_id: "q6xiIfT-l4c",
+        thumbnail_url: "https://img.youtube.com/vi/q6xiIfT-l4c/maxresdefault.jpg",
+        order: 5,
+        is_featured: true,
+        published_at: "2023-08-15T00:00:00.000Z",
+        created_at: "2023-08-15T00:00:00.000Z"
+      }
+    ];
+    
+    console.log(`Initialized ${this.videos.length} default videos`);
   }
 }
 

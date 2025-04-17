@@ -9,6 +9,7 @@ import {
   UserRoleType,
   InsertOtpVerification,
   OtpVerification,
+  VideoData,
   affiliates,
   withdrawalRequests,
   users,
@@ -840,5 +841,88 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error invalidating OTP:", error);
     }
+  }
+  
+  // Phương thức quản lý video (triển khai cơ bản)
+  
+  /**
+   * Lấy danh sách top videos
+   * @param limit số lượng video cần lấy
+   * @returns danh sách top videos
+   */
+  async getTopVideos(limit: number = 5): Promise<VideoData[]> {
+    // Dữ liệu mẫu để tránh lỗi interface
+    return [
+      {
+        id: 1,
+        title: "Colormedia - Brand Identity & Promotion",
+        description: "Giới thiệu về ColorMedia và các dịch vụ của chúng tôi",
+        youtube_id: "vSKtTKN7WJQ",
+        thumbnail_url: "https://img.youtube.com/vi/vSKtTKN7WJQ/maxresdefault.jpg",
+        order: 1,
+        is_featured: true,
+        published_at: "2023-04-15T00:00:00.000Z",
+        created_at: "2023-04-15T00:00:00.000Z"
+      },
+      {
+        id: 2,
+        title: "ColorMedia - Tư vấn & Thiết kế",
+        description: "Dịch vụ tư vấn và thiết kế chuyên nghiệp",
+        youtube_id: "BtplBnyr_CQ",
+        thumbnail_url: "https://img.youtube.com/vi/BtplBnyr_CQ/maxresdefault.jpg",
+        order: 2,
+        is_featured: true,
+        published_at: "2023-05-10T00:00:00.000Z",
+        created_at: "2023-05-10T00:00:00.000Z"
+      }
+    ].slice(0, limit);
+  }
+  
+  /**
+   * Thêm video mới
+   * @param video dữ liệu video
+   * @returns video đã thêm
+   */
+  async addVideo(video: VideoData): Promise<VideoData> {
+    // TODO: Implement when VideoSchema table is created
+    return {
+      ...video,
+      id: 1,
+      created_at: new Date().toISOString()
+    };
+  }
+  
+  /**
+   * Cập nhật video
+   * @param id ID của video
+   * @param video dữ liệu cập nhật
+   * @returns video đã cập nhật hoặc undefined nếu không tìm thấy
+   */
+  async updateVideo(id: number, video: Partial<VideoData>): Promise<VideoData | undefined> {
+    // TODO: Implement when VideoSchema table is created
+    return {
+      id,
+      title: video.title || "Video tiêu đề",
+      youtube_id: video.youtube_id || "dQw4w9WgXcQ",
+      order: video.order || 1,
+      is_featured: video.is_featured !== undefined ? video.is_featured : true,
+      published_at: video.published_at || new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+  }
+  
+  /**
+   * Xóa video
+   * @param id ID của video
+   * @returns true nếu xóa thành công, false nếu không tìm thấy
+   */
+  async deleteVideo(id: number): Promise<boolean> {
+    // TODO: Implement when VideoSchema table is created
+    return true;
+  }
+  
+  async seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }> {
+    // TODO: Implement seedData method
+    return { affiliates_added: 0, customers_added: 0, withdrawals_added: 0 };
   }
 }
