@@ -1779,22 +1779,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Tìm khách hàng trong danh sách của affiliate theo ID
-      const customerIndex = affiliate.referred_customers.findIndex(
-        customer => customer.id === customerId
-      );
-      
-      if (customerIndex === -1) {
+      // Sử dụng customerId như là index trong mảng khách hàng (tương tự API status)
+      if (customerId < 0 || customerId >= affiliate.referred_customers.length) {
         return res.status(404).json({
           status: "error",
           error: {
             code: "NOT_FOUND", 
-            message: `Customer with ID ${customerId} not found for affiliate ${affiliate_id}`
+            message: `Customer at index ${customerId} not found for affiliate ${affiliate_id}`
           }
         });
       }
       
-      // Lấy thông tin khách hàng hiện tại
+      // Lấy thông tin khách hàng hiện tại trực tiếp từ index
+      const customerIndex = customerId;
       const customer = affiliate.referred_customers[customerIndex];
       
       // Tính toán hoa hồng và giá trị bổ sung
@@ -1804,7 +1801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Tạo bản cập nhật cho khách hàng
       const updatedCustomer = {
         ...customer,
-        status: "Contract signed",  // Cập nhật trạng thái thành đã ký hợp đồng
+        status: CustomerStatus.enum["Contract signed"],  // Cập nhật trạng thái thành đã ký hợp đồng
         contract_value: additionalContractValue,
         contract_date: contract_date || new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -1911,20 +1908,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Tìm khách hàng trong danh sách của affiliate theo ID
-      const customerIndex = affiliate.referred_customers.findIndex(
-        customer => customer.id === customerId
-      );
-      
-      if (customerIndex === -1) {
+      // Sử dụng customerId như là index trong mảng (như API contract)
+      if (customerId < 0 || customerId >= affiliate.referred_customers.length) {
         return res.status(404).json({
           status: "error",
           error: {
             code: "NOT_FOUND", 
-            message: `Customer with ID ${customerId} not found for affiliate ${affiliate_id}`
+            message: `Customer at index ${customerId} not found for affiliate ${affiliate_id}`
           }
         });
       }
+      
+      // Sử dụng index như là vị trí của khách hàng trong mảng
+      const customerIndex = customerId;
       
       // Update the customer status using the index in the array
       const updatedCustomer = await storage.updateCustomerStatus(
