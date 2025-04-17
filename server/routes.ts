@@ -11,7 +11,8 @@ import {
   CustomerStatusType,
   UserRoleType,
   User,
-  Affiliate
+  Affiliate,
+  VideoData
 } from "@shared/schema";
 import { setupDevAuthRoutes } from "./devAuth";
 
