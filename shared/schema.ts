@@ -245,6 +245,7 @@ export const VideoSchema = pgTable("videos", {
   description: text("description"),
   youtube_id: text("youtube_id").notNull(), // YouTube video ID (e.g., dQw4w9WgXcQ)
   thumbnail_url: text("thumbnail_url"),
+  views: integer("views"), // Số lượt xem video
   order: integer("order").notNull().default(0), // For custom ordering
   is_featured: boolean("is_featured").notNull().default(false),
   published_at: timestamp("published_at").notNull().defaultNow(),
@@ -257,6 +258,7 @@ export const VideoDataSchema = z.object({
   description: z.string().optional(),
   youtube_id: z.string(),
   thumbnail_url: z.string().optional(),
+  views: z.number().optional(),
   order: z.number(),
   is_featured: z.boolean().default(false),
   published_at: z.string(),
