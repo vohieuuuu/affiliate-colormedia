@@ -550,6 +550,8 @@ export class MemStorage implements IStorage {
     const oldStatus = customer.status;
     const now = new Date().toISOString();
     
+    console.log(`Current customer data before update: ${JSON.stringify(customer)}`);
+    
     // Chỉ cập nhật các trường cần thiết, giữ nguyên thông tin khách hàng
     // Cập nhật trạng thái mới và ghi chú mới
     this.affiliate.referred_customers[customerId] = {
@@ -558,6 +560,13 @@ export class MemStorage implements IStorage {
       note: description, // Cập nhật ghi chú mới
       updated_at: now // Cập nhật thời gian
     };
+    
+    // Đảm bảo tên khách hàng được giữ nguyên (không thay đổi về giá trị mặc định)
+    // Đây là bước sửa lỗi chính - giữ nguyên tên customer_name
+    if (customer.customer_name && customer.customer_name !== `Công ty TNHH ${customerId+1}`) {
+      this.affiliate.referred_customers[customerId].customer_name = customer.customer_name;
+      console.log(`Preserved customer name: ${customer.customer_name}`);
+    }
     
     // Lấy lại đối tượng đã cập nhật
     const updatedCustomer = this.affiliate.referred_customers[customerId];
@@ -613,11 +622,21 @@ export class MemStorage implements IStorage {
     }
     
     try {
+      // Lưu lại tên khách hàng hiện tại (trước khi cập nhật) để đảm bảo không bị mất
+      const currentCustomerName = this.affiliate.referred_customers[customerId].customer_name;
+      console.log(`Current customer name before contract update: ${currentCustomerName}`);
+      
       // Cập nhật thông tin khách hàng
       this.affiliate.referred_customers[customerId] = {
         ...customerData,
         updated_at: new Date().toISOString() // Đảm bảo cập nhật thời gian mới nhất
       };
+      
+      // Đảm bảo giữ nguyên tên khách hàng nếu không có tên mới được cung cấp
+      if (!customerData.customer_name && currentCustomerName) {
+        this.affiliate.referred_customers[customerId].customer_name = currentCustomerName;
+        console.log(`Preserved customer name in contract update: ${currentCustomerName}`);
+      }
       
       // Cập nhật thông tin tổng hợp của affiliate
       this.affiliate.contract_value = balanceUpdates.contract_value;
