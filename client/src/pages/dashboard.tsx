@@ -32,9 +32,14 @@ export default function Dashboard() {
     : undefined;
 
   // Fetch top affiliates
-  const { data: topAffiliates, isLoading: isTopAffiliatesLoading, error: topAffiliatesError } = useQuery({
+  const { data: apiTopAffiliatesResponse, isLoading: isTopAffiliatesLoading, error: topAffiliatesError } = useQuery({
     queryKey: ['/api/affiliates/top'],
   });
+  
+  // Extract top affiliates data from response
+  const topAffiliates = apiTopAffiliatesResponse?.status === "success" 
+    ? apiTopAffiliatesResponse.data 
+    : [];
 
   // Handle timeline view click
   const handleViewTimeline = (customer: ReferredCustomer) => {
