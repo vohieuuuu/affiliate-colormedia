@@ -814,6 +814,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate lại dữ liệu rút tiền
       const validatedPayload = withdrawalRequestPayloadSchema.parse(withdrawal_data);
       
+      // Đảm bảo user_id trong payload là affiliate_id
+      if (req.affiliate) {
+        validatedPayload.user_id = req.affiliate.affiliate_id;
+      } else if (req.user?.role === "ADMIN") {
+        // Đối với admin, lấy affiliate_id từ payload
+      } else {
+        throw new Error("Không tìm thấy thông tin Affiliate");
+      }
+      
       // Hoàn tất yêu cầu rút tiền
       await storage.addWithdrawalRequest(validatedPayload);
       
