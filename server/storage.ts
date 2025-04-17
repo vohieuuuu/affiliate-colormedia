@@ -706,53 +706,58 @@ export class MemStorage implements IStorage {
     return newAffiliate;
   }
 
-  async addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void> {
-    // For the in-memory store, we'll only add to the current affiliate's list
-    if (this.affiliate.id === affiliateId) {
-      const now = new Date().toISOString();
-      // Đảm bảo có đầy đủ dữ liệu cho khách hàng
-      const newCustomer: ReferredCustomer = {
-        ...customerData,
-        created_at: customerData.created_at || now,
-        updated_at: now
-      };
+  async addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<void> {
+    // Tìm affiliate bằng affiliateId (mã AFF)
+    const affiliate = await this.getAffiliateByAffiliateId(affiliateId);
+    
+    if (!affiliate) {
+      console.error(`Affiliate not found with ID ${affiliateId}`);
+      throw new Error(`Affiliate not found with ID ${affiliateId}`);
+    }
+    
+    const now = new Date().toISOString();
+    // Đảm bảo có đầy đủ dữ liệu cho khách hàng
+    const newCustomer: ReferredCustomer = {
+      ...customerData,
+      created_at: customerData.created_at || now,
+      updated_at: now
+    };
+    
+    // Nếu là hợp đồng đã ký, thêm thông tin về giá trị hợp đồng và hoa hồng
+    if (newCustomer.status === "Contract signed") {
+      const contractValue = newCustomer.contract_value || 20000000; // Default 20M VND
+      const commission = contractValue * 0.03; // 3% hoa hồng (đã cập nhật từ 10%)
       
-      // Nếu là hợp đồng đã ký, thêm thông tin về giá trị hợp đồng và hoa hồng
-      if (newCustomer.status === "Contract signed") {
-        const contractValue = newCustomer.contract_value || 20000000; // Default 20M VND
-        const commission = contractValue * 0.1; // 10% hoa hồng
-        
-        // Cập nhật thông tin khách hàng
-        newCustomer.contract_value = contractValue;
-        newCustomer.commission = commission;
-        newCustomer.contract_date = newCustomer.contract_date || now;
-      }
+      // Cập nhật thông tin khách hàng
+      newCustomer.contract_value = contractValue;
+      newCustomer.commission = commission;
+      newCustomer.contract_date = newCustomer.contract_date || now;
+    }
+    
+    // Thêm khách hàng mới vào danh sách
+    affiliate.referred_customers.unshift(newCustomer);
+    
+    // Update the affiliate stats
+    affiliate.total_contacts += 1;
+    
+    // If status is "Contract signed", update contracts count and value
+    if (newCustomer.status === "Contract signed") {
+      affiliate.total_contracts += 1;
       
-      // Thêm khách hàng mới vào danh sách
-      this.affiliate.referred_customers.unshift(newCustomer);
+      const contractValue = newCustomer.contract_value || 20000000;
+      const commission = contractValue * 0.03; // 3% hoa hồng (đã cập nhật từ 10%)
       
-      // Update the affiliate stats
-      this.affiliate.total_contacts += 1;
+      affiliate.contract_value += contractValue;
+      affiliate.remaining_balance += commission;
+      affiliate.received_balance += commission;
       
-      // If status is "Contract signed", update contracts count and value
-      if (newCustomer.status === "Contract signed") {
-        this.affiliate.total_contracts += 1;
-        
-        const contractValue = newCustomer.contract_value || 20000000;
-        const commission = contractValue * 0.1;
-        
-        this.affiliate.contract_value += contractValue;
-        this.affiliate.remaining_balance += commission;
-        this.affiliate.received_balance += commission;
-        
-        // Update in top affiliates list
-        const affiliateInTop = this.topAffiliates.find(a => a.id === affiliateId);
-        if (affiliateInTop) {
-          affiliateInTop.total_contracts += 1;
-          affiliateInTop.contract_value += contractValue;
-          // Re-sort the list
-          this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
-        }
+      // Update in top affiliates list
+      const affiliateInTop = this.topAffiliates.find(a => a.id === affiliate.id);
+      if (affiliateInTop) {
+        affiliateInTop.total_contracts += 1;
+        affiliateInTop.contract_value += contractValue;
+        // Re-sort the list
+        this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
       }
     }
   }

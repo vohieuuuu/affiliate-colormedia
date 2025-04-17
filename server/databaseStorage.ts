@@ -294,11 +294,11 @@ export class DatabaseStorage implements IStorage {
     return newAffiliate;
   }
 
-  async addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void> {
-    // 1. Tìm affiliate theo ID
+  async addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<void> {
+    // 1. Tìm affiliate theo affiliateId (mã AFF)
     const [affiliate] = await db.select()
       .from(affiliates)
-      .where(eq(affiliates.id, affiliateId));
+      .where(eq(affiliates.affiliate_id, affiliateId));
     
     if (!affiliate) {
       throw new Error("Affiliate not found");
@@ -355,7 +355,7 @@ export class DatabaseStorage implements IStorage {
         remaining_balance,
         received_balance
       })
-      .where(eq(affiliates.id, affiliateId));
+      .where(eq(affiliates.id, affiliate.id));
   }
 
   async updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined> {
@@ -550,7 +550,7 @@ export class DatabaseStorage implements IStorage {
             note: `Khách hàng được giới thiệu bởi ${newAffiliate.full_name}`
           };
           
-          await this.addReferredCustomer(newAffiliate.id, customerData);
+          await this.addReferredCustomer(newAffiliate.affiliate_id, customerData);
           customers_added++;
         }
       } catch (error) {

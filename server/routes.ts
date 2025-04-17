@@ -1747,7 +1747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Thêm khách hàng và cập nhật lại thông tin affiliate
       for (const customer of customers1) {
-        await storage.addReferredCustomer(aff1.id, customer);
+        await storage.addReferredCustomer(aff1.affiliate_id, customer);
       }
       
       // Cập nhật số dư và thống kê cho affiliate 1
