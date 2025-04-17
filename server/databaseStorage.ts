@@ -42,6 +42,20 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAffiliateByEmail(email: string): Promise<Affiliate | undefined> {
+    // Tìm affiliate theo email
+    try {
+      const [affiliate] = await db.select()
+        .from(affiliates)
+        .where(eq(affiliates.email, email));
+      
+      return affiliate || undefined;
+    } catch (error) {
+      console.error("Error getting affiliate by email:", error);
+      return undefined;
+    }
+  }
+  
   async getAffiliateByUserId(userId: number): Promise<Affiliate | undefined> {
     // Tìm affiliate theo ID của người dùng liên kết
     try {

@@ -26,7 +26,8 @@ export interface IStorage {
   updateAffiliateBalance(affiliateId: string, amount: number): Promise<boolean>;
   createAffiliate(affiliateData: InsertAffiliate): Promise<Affiliate>;
   getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined>;
-  getAffiliateByUserId(userId: number): Promise<Affiliate | undefined>; // Phương thức mới để lấy affiliate từ user_id
+  getAffiliateByUserId(userId: number): Promise<Affiliate | undefined>; // Phương thức để lấy affiliate từ user_id
+  getAffiliateByEmail(email: string): Promise<Affiliate | undefined>; // Phương thức mới để lấy affiliate từ email
   addReferredCustomer(affiliateId: number, customerData: ReferredCustomer): Promise<void>;
   updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
   updateCustomerWithContract(
@@ -456,6 +457,103 @@ export class MemStorage implements IStorage {
     }
     
     console.log(`No affiliate found with affiliate_id: ${affiliateId}`);
+    return undefined;
+  }
+  
+  // Phương thức mới: Lấy affiliate theo email
+  async getAffiliateByEmail(email: string): Promise<Affiliate | undefined> {
+    console.log(`Looking for affiliate with email: ${email}`);
+    
+    // Kiểm tra email với affiliate chính
+    if (this.affiliate.email === email) {
+      console.log(`Found main affiliate with email: ${email}`);
+      return this.affiliate;
+    }
+    
+    // Kiểm tra email với admin
+    if (email === "admin@colormedia.vn") {
+      console.log(`Found admin affiliate with email: ${email}`);
+      return {
+        id: 1,
+        user_id: 1,
+        affiliate_id: "ADMIN-AFF",
+        full_name: "ColorMedia Admin",
+        email: "admin@colormedia.vn",
+        phone: "0909123456",
+        bank_account: "9876543210",
+        bank_name: "VietcomBank",
+        total_contacts: 30,
+        total_contracts: 12,
+        contract_value: 240000000,
+        received_balance: 48000000,
+        paid_balance: 20000000,
+        remaining_balance: 95000000,
+        referred_customers: this.generateReferredCustomers(),
+        withdrawal_history: this.generateWithdrawalHistory()
+      };
+    }
+    
+    // Kiểm tra email với affiliate1
+    if (email === "affiliate1@colormedia.vn") {
+      console.log(`Found test affiliate1 with email: ${email}`);
+      return {
+        id: 2,
+        user_id: 2,
+        affiliate_id: "AFF101",
+        full_name: "Nguyễn Văn A",
+        email: "affiliate1@colormedia.vn",
+        phone: "0901234567",
+        bank_account: "0123456789",
+        bank_name: "TPBank",
+        total_contacts: 25,
+        total_contracts: 8,
+        contract_value: 180000000,
+        received_balance: 36000000,
+        paid_balance: 18000000,
+        remaining_balance: 80000000,
+        referred_customers: this.generateReferredCustomers(),
+        withdrawal_history: this.generateWithdrawalHistory()
+      };
+    }
+    
+    // Kiểm tra email với affiliate2
+    if (email === "affiliate2@colormedia.vn") {
+      console.log(`Found test affiliate2 with email: ${email}`);
+      return {
+        id: 3,
+        user_id: 3,
+        affiliate_id: "AFF102",
+        full_name: "Trần Thị B",
+        email: "affiliate2@colormedia.vn",
+        phone: "0909876543",
+        bank_account: "9876543210",
+        bank_name: "Vietcombank",
+        total_contacts: 18,
+        total_contracts: 6,
+        contract_value: 150000000,
+        received_balance: 30000000,
+        paid_balance: 15000000,
+        remaining_balance: 75000000,
+        referred_customers: this.generateReferredCustomers(),
+        withdrawal_history: this.generateWithdrawalHistory()
+      };
+    }
+    
+    // Kiểm tra trong danh sách users nếu có email trùng khớp
+    // và đã có affiliate liên kết với user đó
+    for (const user of this.users) {
+      if (user.username === email) {
+        console.log(`Found user with matching email: ${email}`);
+        // Kiểm tra xem user này đã có affiliate chưa
+        const affiliate = await this.getAffiliateByUserId(user.id);
+        if (affiliate) {
+          console.log(`Found affiliate linked to user with email: ${email}`);
+          return affiliate;
+        }
+      }
+    }
+    
+    console.log(`No affiliate found with email: ${email}`);
     return undefined;
   }
   
