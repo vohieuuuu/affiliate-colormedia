@@ -401,6 +401,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API để lấy danh sách affiliate (Admin)
+  app.get("/api/admin/affiliates", authenticateUser, requireAdmin, async (req, res) => {
+    try {
+      // Lấy danh sách tất cả các affiliate
+      const affiliates = [];
+      
+      // Trong môi trường development, tạo danh sách từ dữ liệu mẫu
+      if (process.env.NODE_ENV === "development" || !(process.env.USE_DATABASE === "true")) {
+        // Lấy affiliate từ storage.topAffiliates có thể được sử dụng ở đây
+        const topAffiliates = await storage.getTopAffiliates();
+        
+        // Truy xuất thông tin chi tiết cho mỗi affiliate
+        for (const topAffiliate of topAffiliates) {
+          const affiliate = await storage.getAffiliateByAffiliateId(`AFF${100 + topAffiliate.id}`);
+          if (affiliate) {
+            affiliates.push(affiliate);
+          }
+        }
+      } else {
+        // Trong môi trường production, lấy từ database
+        // (Phần triển khai database sẽ được thêm sau)
+      }
+      
+      res.status(200).json({
+        status: "success",
+        data: affiliates
+      });
+    } catch (error) {
+      console.error("Error retrieving affiliates:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Failed to retrieve affiliates"
+        }
+      });
+    }
+  });
+
   // API để lấy danh sách khách hàng 
   app.get("/api/customers", async (req, res) => {
     try {
