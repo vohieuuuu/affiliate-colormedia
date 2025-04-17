@@ -1674,7 +1674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/customers/:id/status", async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      const { status, description } = req.body;
+      const { status, description, affiliate_id } = req.body;
       
       if (isNaN(customerId) || !status) {
         return res.status(400).json({
@@ -1688,6 +1688,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate status
       const validatedStatus = CustomerStatus.parse(status);
+      
+      // Kiểm tra affiliate_id trong body
+      if (!affiliate_id) {
+        return res.status(400).json({
+          status: "error", 
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "affiliate_id is required in request body to identify the customer's affiliate"
+          }
+        });
+      }
+      
+      // Lấy affiliate từ storage
+      const affiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
+      if (!affiliate) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: `Affiliate with ID ${affiliate_id} not found`
+          }
+        });
+      }
+      
+      // Kiểm tra khách hàng tồn tại trong danh sách của affiliate
+      if (customerId < 0 || customerId >= affiliate.referred_customers.length) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND", 
+            message: `Customer with ID ${customerId} not found for affiliate ${affiliate_id}`
+          }
+        });
+      }
       
       // Update the customer status
       const updatedCustomer = await storage.updateCustomerStatus(
