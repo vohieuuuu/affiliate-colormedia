@@ -256,13 +256,38 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
   return storage.getAffiliateByUserId(req.user.id)
     .then(affiliate => {
       if (!affiliate) {
-        return res.status(404).json({
-          status: "error",
-          error: {
-            code: "AFFILIATE_NOT_FOUND",
-            message: "Không tìm thấy thông tin affiliate"
-          }
-        });
+        // Nếu không tìm thấy affiliate qua user_id, thử tìm qua username (email)
+        if (req.user && req.user.username) {
+          return storage.getAffiliateByEmail(req.user.username)
+            .then(affiliateByEmail => {
+              if (affiliateByEmail) {
+                console.log(`Found affiliate by email ${req.user.username} instead of user_id ${req.user.id}`);
+                // Cập nhật user_id của affiliate để khớp với user hiện tại
+                affiliateByEmail.user_id = req.user.id;
+                
+                // Lưu thông tin affiliate vào request để tái sử dụng
+                req.affiliate = affiliateByEmail;
+                return next();
+              }
+              
+              // Nếu vẫn không tìm thấy, trả về lỗi
+              return res.status(404).json({
+                status: "error",
+                error: {
+                  code: "AFFILIATE_NOT_FOUND",
+                  message: "Không tìm thấy thông tin affiliate"
+                }
+              });
+            });
+        } else {
+          return res.status(404).json({
+            status: "error",
+            error: {
+              code: "AFFILIATE_NOT_FOUND",
+              message: "Không tìm thấy thông tin affiliate"
+            }
+          });
+        }
       }
       
       // Lưu thông tin affiliate vào request để tái sử dụng
@@ -352,7 +377,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Tìm affiliate liên kết với user
-      const affiliate = await storage.getAffiliateByUserId(userId);
+      let affiliate = await storage.getAffiliateByUserId(userId);
+      
+      // Nếu không tìm thấy affiliate qua user_id, thử tìm qua username (email)
+      if (!affiliate && req.user && req.user.username) {
+        const affiliateByEmail = await storage.getAffiliateByEmail(req.user.username);
+        if (affiliateByEmail) {
+          console.log(`Found affiliate by email ${req.user.username} instead of user_id ${userId}`);
+          // Cập nhật user_id của affiliate để khớp với user hiện tại
+          affiliateByEmail.user_id = userId;
+          affiliate = affiliateByEmail;
+        }
+      }
       
       if (!affiliate) {
         return res.status(404).json({ 
