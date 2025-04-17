@@ -1932,7 +1932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const additionalCustomers1 = [
         {
           customer_name: "Công ty Điện tử Sao Việt",
-          status: "Contract signed",
+          status: CustomerStatus.enum["Contract signed"],
           created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
           contract_value: 120000000,
@@ -1944,7 +1944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         {
           customer_name: "Công ty Du lịch Phương Nam",
-          status: "Contract signed",
+          status: CustomerStatus.enum["Contract signed"],
           created_at: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000).toISOString(),
           contract_value: 85000000,
@@ -1956,7 +1956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         {
           customer_name: "Công ty Thực phẩm Tươi Sạch",
-          status: "Pending reconciliation",
+          status: CustomerStatus.enum["Pending reconciliation"],
           created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
           note: "Đang thảo luận các điều khoản hợp đồng",
@@ -1969,7 +1969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const additionalCustomers2 = [
         {
           customer_name: "Công ty Bất động sản Phú Thịnh",
-          status: "Contract signed",
+          status: CustomerStatus.enum["Contract signed"],
           created_at: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
           contract_value: 300000000,
@@ -1981,7 +1981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         {
           customer_name: "Công ty Giáo dục Tương Lai",
-          status: "Contract signed",
+          status: CustomerStatus.enum["Contract signed"],
           created_at: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
           contract_value: 250000000,
@@ -1993,7 +1993,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         {
           customer_name: "Công ty Dược phẩm Tâm An",
-          status: "Contract signed",
+          status: CustomerStatus.enum["Contract signed"],
           created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(),
           contract_value: 180000000,
@@ -2005,7 +2005,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         {
           customer_name: "Công ty Thời trang FSTYLE",
-          status: "Presenting idea",
+          status: CustomerStatus.enum["Presenting idea"],
           created_at: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
           note: "Đã trình bày ý tưởng, đang chờ phản hồi",
