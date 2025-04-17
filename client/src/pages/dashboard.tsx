@@ -9,6 +9,7 @@ import LeaderboardSection from "@/components/affiliate-dashboard/LeaderboardSect
 import ReferredCustomersSection from "@/components/affiliate-dashboard/ReferredCustomersSection";
 import FilterableCustomersSection from "@/components/affiliate-dashboard/FilterableCustomersSection";
 import WithdrawalHistorySection from "@/components/affiliate-dashboard/WithdrawalHistorySection";
+import VideosSection from "@/components/affiliate-dashboard/VideosSection";
 import TimelineModal from "@/components/affiliate-dashboard/TimelineModal";
 import WithdrawalModal from "@/components/affiliate-dashboard/WithdrawalModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

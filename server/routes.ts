@@ -15,6 +15,7 @@ import {
   VideoData
 } from "@shared/schema";
 import { setupDevAuthRoutes } from "./devAuth";
+import { setupVideoRoutes } from "./videoRoutes";
 
 // Extend Express.Request to include user property
 declare global {
@@ -2528,6 +2529,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Thiết lập routes quản lý video ColorMedia
+  setupVideoRoutes(app);
 
   const httpServer = createServer(app);
 
