@@ -406,6 +406,73 @@ export class DatabaseStorage implements IStorage {
     return customers[customerId];
   }
 
+  async updateCustomerWithContract(
+    customerId: number, 
+    customerData: ReferredCustomer, 
+    balanceUpdates: { 
+      contract_value: number; 
+      received_balance: number; 
+      remaining_balance: number 
+    }
+  ): Promise<ReferredCustomer | undefined> {
+    try {
+      // 1. Lấy affiliate đầu tiên (giả sử chúng ta chỉ làm việc với affiliate hiện tại)
+      const [affiliate] = await db.select().from(affiliates).limit(1);
+      
+      if (!affiliate || !affiliate.referred_customers || customerId >= affiliate.referred_customers.length) {
+        console.error(`Customer with ID ${customerId} not found for updateCustomerWithContract`);
+        return undefined;
+      }
+      
+      // 2. Tạo bản sao danh sách khách hàng
+      const customers = [...affiliate.referred_customers];
+      
+      // 3. Kiểm tra xem khách hàng có tồn tại không
+      if (customerId < 0 || customerId >= customers.length) {
+        console.error(`Invalid customer index: ${customerId}`);
+        return undefined;
+      }
+      
+      // 4. Cập nhật thông tin khách hàng
+      customers[customerId] = {
+        ...customerData,
+        updated_at: new Date().toISOString() // Đảm bảo cập nhật thời gian mới nhất
+      };
+      
+      // 5. Tính toán cập nhật tổng số hợp đồng nếu cần
+      let total_contracts = affiliate.total_contracts;
+      
+      // Nếu trước đây khách hàng chưa có contract_value nhưng bây giờ có,
+      // tăng tổng số hợp đồng
+      const oldCustomer = affiliate.referred_customers[customerId];
+      if (!oldCustomer.contract_value && customerData.contract_value) {
+        total_contracts += 1;
+      }
+      
+      // 6. Thực hiện cập nhật vào cơ sở dữ liệu
+      await db.update(affiliates)
+        .set({
+          referred_customers: customers,
+          total_contracts,
+          contract_value: balanceUpdates.contract_value,
+          received_balance: balanceUpdates.received_balance,
+          remaining_balance: balanceUpdates.remaining_balance
+        })
+        .where(eq(affiliates.id, affiliate.id));
+      
+      // 7. Ghi log thành công
+      console.log(`DatabaseStorage: Successfully updated customer #${customerId} with contract value ${customerData.contract_value}`);
+      console.log(`DatabaseStorage: Updated affiliate balance: contract_value=${balanceUpdates.contract_value}, received_balance=${balanceUpdates.received_balance}, remaining_balance=${balanceUpdates.remaining_balance}`);
+      
+      // 8. Trả về khách hàng đã được cập nhật
+      return customers[customerId];
+      
+    } catch (error) {
+      console.error("DatabaseStorage: Error updating customer with contract:", error);
+      return undefined;
+    }
+  }
+
   async seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }> {
     // Giới hạn số lượng để tránh quá tải
     const numAffiliates = Math.min(affiliatesCount, 20);
