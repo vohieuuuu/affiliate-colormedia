@@ -180,6 +180,7 @@ export class MemStorage implements IStorage {
   }
   private affiliate: Affiliate;
   private topAffiliates: TopAffiliate[];
+  private allAffiliates: Affiliate[] = []; // Mảng lưu trữ tất cả các affiliates trong hệ thống
   private users: User[] = []; // Mảng lưu trữ người dùng mẫu
   private otpVerifications: OtpVerification[] = []; // Mảng lưu trữ các mã OTP
 
@@ -388,6 +389,13 @@ export class MemStorage implements IStorage {
     // In memory storage, check if the affiliateId matches our current affiliate
     if (this.affiliate.affiliate_id === affiliateId) {
       return this.affiliate;
+    }
+    
+    // Kiểm tra trong mảng allAffiliates trước tiên
+    const foundInAll = this.allAffiliates.find(aff => aff.affiliate_id === affiliateId);
+    if (foundInAll) {
+      console.log(`Found affiliate with ID ${affiliateId} in allAffiliates list`);
+      return foundInAll;
     }
     
     // Special case for admin user
@@ -690,6 +698,10 @@ export class MemStorage implements IStorage {
       referred_customers: [],
       withdrawal_history: []
     };
+    
+    // Lưu affiliate vào danh sách allAffiliates
+    this.allAffiliates.push(newAffiliate);
+    console.log(`Added new affiliate ${affiliateData.affiliate_id} to allAffiliates. Total: ${this.allAffiliates.length}`);
     
     // Add to our top affiliates list
     this.topAffiliates.push({
