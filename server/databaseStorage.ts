@@ -294,7 +294,7 @@ export class DatabaseStorage implements IStorage {
     return newAffiliate;
   }
 
-  async addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<void> {
+  async addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<ReferredCustomer> {
     // 1. Tìm affiliate theo affiliateId (mã AFF)
     const [affiliate] = await db.select()
       .from(affiliates)
@@ -306,9 +306,22 @@ export class DatabaseStorage implements IStorage {
     
     const now = new Date().toISOString();
     
+    // Lấy tất cả referred_customers của tất cả affiliates để tìm ID lớn nhất
+    const allAffiliates = await db.select().from(affiliates);
+    const allCustomers: ReferredCustomer[] = allAffiliates.flatMap(
+      aff => aff.referred_customers || []
+    );
+    
+    // Tìm ID lớn nhất hiện có (nếu có) và tăng lên 1
+    const maxCustomerId = allCustomers.length > 0 
+      ? Math.max(...allCustomers.filter(c => c.id !== undefined).map(c => c.id || 0)) 
+      : -1;
+    const newCustomerId = maxCustomerId + 1;
+    
     // 2. Đảm bảo có đầy đủ dữ liệu cho khách hàng
     const newCustomer: ReferredCustomer = {
       ...customerData,
+      id: newCustomerId, // Thêm ID duy nhất
       created_at: customerData.created_at || now,
       updated_at: customerData.updated_at || now
     };
@@ -356,6 +369,9 @@ export class DatabaseStorage implements IStorage {
         received_balance
       })
       .where(eq(affiliates.id, affiliate.id));
+      
+    // 8. Trả về đối tượng khách hàng mới với ID
+    return newCustomer;
   }
 
   async updateCustomerStatus(
