@@ -32,21 +32,8 @@ const transporter = nodemailer.createTransport({
 
 // Kiểm tra môi trường và thiết lập cấu hình
 const isDevelopment = process.env.NODE_ENV !== "production";
-// SEND_REAL_EMAILS=true sẽ cho phép gửi email thật kể cả trong môi trường dev
-const sendRealEmails =
-  process.env.SEND_REAL_EMAILS === "true" || !isDevelopment;
-
-// Thông báo cấu hình email
-if (isDevelopment && !sendRealEmails) {
-  console.log("Running in development mode, emails will be logged to console");
-} else if (isDevelopment && sendRealEmails) {
-  console.log(
-    "Running in development mode BUT emails WILL BE SENT to real recipients",
-  );
-  console.log(`Email config: ${SMTP_HOST}:${SMTP_PORT} (User: ${EMAIL})`);
-} else {
-  console.log("Email service initialized for production");
-}
+// Luôn gửi email thật theo yêu cầu người dùng
+const sendRealEmails = true;
 
 /**
  * Gửi email kích hoạt tài khoản cho affiliate mới
@@ -122,24 +109,14 @@ Trân trọng,
     html: htmlContent,
   };
 
-  // Luôn log email trong môi trường development
-  if (isDevelopment) {
-    console.log("=========== ACCOUNT ACTIVATION EMAIL ===========");
-    console.log(`TO: ${email}`);
-    console.log(`SUBJECT: ${subject}`);
-    console.log(`CONTENT: ${textContent}`);
-    console.log("=================================================");
-
-    // Nếu không gửi email thật thì trả về thành công
-    if (!sendRealEmails) {
-      return true;
-    }
+  // Không hiển thị log nữa theo yêu cầu người dùng
+  if (!sendRealEmails) {
+    return true;
   }
 
   // Gửi email trong môi trường production hoặc khi cấu hình gửi email thật
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Account activation email sent to ${email}: ${info.messageId}`);
+    await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
     console.error("Error sending activation email:", error);
@@ -161,9 +138,6 @@ export async function sendOtpVerificationEmail(
   const testEmail = "voxuanhieu.designer@gmail.com";
 
   if (isDevelopment) {
-    console.log(
-      `OVERRIDE: Redirecting OTP email from ${email} to test email ${testEmail}`,
-    );
     email = testEmail;
   }
   // Chuẩn bị nội dung email
@@ -225,25 +199,14 @@ Trân trọng,
     html: htmlContent,
   };
 
-  // Luôn log email trong môi trường development
-  if (isDevelopment) {
-    console.log("=========== OTP VERIFICATION EMAIL ===========");
-    console.log(`TO: ${email}`);
-    console.log(`SUBJECT: ${subject}`);
-    console.log(`OTP CODE: ${otpCode}`);
-    console.log(`CONTENT: ${textContent}`);
-    console.log("==============================================");
-
-    // Nếu không gửi email thật thì trả về thành công
-    if (!sendRealEmails) {
-      return true;
-    }
+  // Không hiển thị log nữa theo yêu cầu người dùng
+  if (!sendRealEmails) {
+    return true;
   }
 
   // Gửi email trong môi trường production hoặc khi cấu hình gửi email thật
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`OTP verification email sent to ${email}: ${info.messageId}`);
+    await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
     console.error("Error sending OTP verification email:", error);
@@ -267,9 +230,6 @@ export async function sendWithdrawalRequestEmail(
   const testEmail = "voxuanhieu.designer@gmail.com";
 
   if (isDevelopment) {
-    console.log(
-      `OVERRIDE: Redirecting withdrawal confirmation email from ${email} to test email ${testEmail}`,
-    );
     email = testEmail;
   }
   // Chuẩn bị nội dung email
@@ -341,18 +301,9 @@ Trân trọng,
     html: htmlContent,
   };
 
-  // Luôn log email trong môi trường development
-  if (isDevelopment) {
-    console.log("=========== WITHDRAWAL REQUEST EMAIL ===========");
-    console.log(`TO: ${email}`);
-    console.log(`SUBJECT: ${subject}`);
-    console.log(`CONTENT: ${textContent}`);
-    console.log("===============================================");
-
-    // Nếu không gửi email thật thì trả về thành công
-    if (!sendRealEmails) {
-      return true;
-    }
+  // Không hiển thị log nữa theo yêu cầu người dùng
+  if (!sendRealEmails) {
+    return true;
   }
 
   // Gửi email trong môi trường production hoặc khi cấu hình gửi email thật
