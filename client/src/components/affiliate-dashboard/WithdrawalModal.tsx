@@ -63,16 +63,7 @@ export default function WithdrawalModal({
   // Số tiền tối đa có thể rút (số dư khả dụng, không bị giới hạn bởi giới hạn rút tiền trong ngày)
   const maxAmount = affiliate?.remaining_balance || 0;
   
-  // Kiểm tra xem số tiền nhập vào có vượt quá giới hạn rút tiền hàng ngày không
-  const [exceedsDailyLimit, setExceedsDailyLimit] = useState(false);
-  useEffect(() => {
-    const amountValue = parseFloat(amount);
-    if (!isNaN(amountValue) && amountValue > 0) {
-      setExceedsDailyLimit(amountValue > remainingDailyLimit);
-    } else {
-      setExceedsDailyLimit(false);
-    }
-  }, [amount, remainingDailyLimit]);
+  // Không cần sử dụng state này vì chúng ta đã kiểm tra trực tiếp khi hiển thị cảnh báo
   
   // Gửi yêu cầu OTP
   const { mutate: requestOtp, isPending: isRequestingOtp } = useMutation({
@@ -351,7 +342,7 @@ export default function WithdrawalModal({
               </Button>
               <Button 
                 type="submit" 
-                disabled={isLoading || parseFloat(amount) > maxAmount || remainingDailyLimit <= 0 || hasPendingWithdrawal}
+                disabled={isLoading || !amount || Number(amount) <= 0 || parseFloat(amount) > maxAmount || hasPendingWithdrawal}
               >
                 {isLoading ? "Đang xử lý..." : "Tiếp tục"}
               </Button>
