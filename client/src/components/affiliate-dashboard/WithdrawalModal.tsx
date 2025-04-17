@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Affiliate } from "@shared/schema";
-import { DollarSign, Key, LockKeyhole, RotateCcw, Mail } from "lucide-react";
+import { DollarSign, Key, LockKeyhole, RotateCcw, Mail, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/formatters";
 import { OtpInput } from "@/components/OtpInput";
@@ -60,8 +60,19 @@ export default function WithdrawalModal({
   // Số tiền còn có thể rút trong ngày
   const remainingDailyLimit = Math.max(0, DAILY_WITHDRAWAL_LIMIT - withdrawnToday);
   
-  // Số tiền tối đa có thể rút (min của: số dư khả dụng và giới hạn rút tiền còn lại trong ngày)
-  const maxAmount = Math.min(affiliate?.remaining_balance || 0, remainingDailyLimit);
+  // Số tiền tối đa có thể rút (số dư khả dụng, không bị giới hạn bởi giới hạn rút tiền trong ngày)
+  const maxAmount = affiliate?.remaining_balance || 0;
+  
+  // Kiểm tra xem số tiền nhập vào có vượt quá giới hạn rút tiền hàng ngày không
+  const [exceedsDailyLimit, setExceedsDailyLimit] = useState(false);
+  useEffect(() => {
+    const amountValue = parseFloat(amount);
+    if (!isNaN(amountValue) && amountValue > 0) {
+      setExceedsDailyLimit(amountValue > remainingDailyLimit);
+    } else {
+      setExceedsDailyLimit(false);
+    }
+  }, [amount, remainingDailyLimit]);
   
   // Gửi yêu cầu OTP
   const { mutate: requestOtp, isPending: isRequestingOtp } = useMutation({
@@ -69,6 +80,10 @@ export default function WithdrawalModal({
       const amountValue = parseFloat(amount);
       if (isNaN(amountValue) || amountValue <= 0 || amountValue > maxAmount) {
         throw new Error(`Vui lòng nhập số tiền hợp lệ (từ 1 đến ${formatCurrency(maxAmount)} VND)`);
+      }
+      
+      if (amountValue > remainingDailyLimit) {
+        throw new Error(`Vượt quá giới hạn rút tiền trong ngày. Bạn chỉ có thể rút tối đa ${formatCurrency(remainingDailyLimit)} VND cho đến 9:00 sáng ngày mai.`);
       }
       
       if (!confirmBankInfo) {
@@ -262,6 +277,14 @@ export default function WithdrawalModal({
                     Còn có thể rút hôm nay: {formatCurrency(remainingDailyLimit)} VND
                     {remainingDailyLimit <= 0 && " (đã đạt giới hạn)"}
                   </p>
+                  {parseFloat(amount) > remainingDailyLimit && amount !== "" && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <AlertTriangle className="h-3 w-3 text-red-500" />
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                        Vượt quá giới hạn rút tiền hàng ngày. Bạn chỉ có thể rút tối đa {formatCurrency(remainingDailyLimit)} VND.
+                      </p>
+                    </div>
+                  )}
                   {hasPendingWithdrawal && (
                     <p className="text-xs text-red-600 dark:text-red-400 font-medium">
                       ⚠️ Bạn hiện có một yêu cầu rút tiền đang được xử lý. Vui lòng đợi hoàn tất trước khi tạo yêu cầu mới.
