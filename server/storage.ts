@@ -197,8 +197,8 @@ export class MemStorage implements IStorage {
   private otpVerifications: OtpVerification[] = []; // Mảng lưu trữ các mã OTP
 
   constructor() {
-    // Khởi tạo dữ liệu mẫu
-    this.affiliate.referred_customers = this.generateReferredCustomers();
+    // Khởi tạo dữ liệu trống
+    this.affiliate.referred_customers = []; // Không tạo khách hàng mẫu
     this.affiliate.withdrawal_history = this.generateWithdrawalHistory();
     
     // Tính toán các dữ liệu tổng hợp
@@ -266,31 +266,8 @@ export class MemStorage implements IStorage {
   }
 
   private generateReferredCustomers(): ReferredCustomer[] {
-    const customers: ReferredCustomer[] = [];
-    const statuses: CustomerStatusType[] = ["Contact received", "Presenting idea", "Ready to disburse", "Pending reconciliation", "Contract signed"];
-    
-    // Tạo mẫu 10 khách hàng
-    for (let i = 0; i < 10; i++) {
-      const now = new Date().toISOString();
-      const statusIndex = Math.floor(Math.random() * statuses.length);
-      const status = statuses[statusIndex];
-      
-      const contractValue = status === "Contract signed" ? 20000000 + Math.floor(Math.random() * 30000000) : undefined;
-      const commission = contractValue ? contractValue * 0.03 : undefined; // 3% hoa hồng (đã cập nhật từ 10%)
-      
-      customers.push({
-        customer_name: `Công ty TNHH ${i+1}`,
-        status,
-        created_at: now,
-        updated_at: now,
-        contract_value: contractValue,
-        commission,
-        contract_date: status === "Contract signed" ? now : undefined,
-        note: `Khách hàng tiềm năng ${i+1}`
-      });
-    }
-    
-    return customers;
+    // Trả về một mảng trống - không tạo khách hàng mẫu nữa
+    return [];
   }
 
   private generateWithdrawalHistory(): WithdrawalHistory[] {
