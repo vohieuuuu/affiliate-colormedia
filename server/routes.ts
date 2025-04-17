@@ -818,7 +818,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.affiliate) {
         validatedPayload.user_id = req.affiliate.affiliate_id;
       } else if (req.user?.role === "ADMIN") {
-        // Đối với admin, lấy affiliate_id từ payload
+        // Đối với admin, lấy affiliate_id từ payload và đảm bảo nó đã được đặt
+        if (!validatedPayload.user_id) {
+          validatedPayload.user_id = "ADMIN-AFF"; // Gán ID mặc định cho admin
+        }
+        console.log(`Admin đang xử lý rút tiền với affiliate_id: ${validatedPayload.user_id}`);
       } else {
         throw new Error("Không tìm thấy thông tin Affiliate");
       }

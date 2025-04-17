@@ -40,7 +40,9 @@ export default function WithdrawalModal({
   const [otpInput, setOtpInput] = useState<string>("");
   const [attemptsLeft, setAttemptsLeft] = useState<number>(5);
   
-  const maxAmount = affiliate?.remaining_balance || 0;
+  // Giới hạn số tiền có thể rút: Min(20M VND hoặc số dư khả dụng)
+  const DAILY_WITHDRAWAL_LIMIT = 20000000; // 20 triệu VND
+  const maxAmount = Math.min(affiliate?.remaining_balance || 0, DAILY_WITHDRAWAL_LIMIT);
   
   // Gửi yêu cầu OTP
   const { mutate: requestOtp, isPending: isRequestingOtp } = useMutation({
@@ -227,9 +229,14 @@ export default function WithdrawalModal({
                     <span className="text-gray-500 dark:text-gray-400 text-sm">VND</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Số dư khả dụng: {formatCurrency(maxAmount)} VND
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Số dư khả dụng: {formatCurrency(affiliate?.remaining_balance || 0)} VND
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Giới hạn rút tiền mỗi ngày: {formatCurrency(DAILY_WITHDRAWAL_LIMIT)} VND
+                  </p>
+                </div>
               </div>
               
               <div className="grid gap-2">
