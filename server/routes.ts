@@ -1816,9 +1816,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         remaining_balance: affiliate.remaining_balance + additionalCommission
       };
       
+      // Debug log
+      console.log(`Submitting contract update for customer at index ${customerIndex} with data:`, JSON.stringify(updatedCustomer));
+      
       // Cập nhật khách hàng và số dư của affiliate
       const result = await storage.updateCustomerWithContract(
-        customerId,
+        customerIndex,
         updatedCustomer,
         balanceUpdates
       );
