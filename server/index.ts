@@ -61,6 +61,20 @@ app.use((req, res, next) => {
   }
 
   const server = await registerRoutes(app);
+  
+  // Thêm middleware để xử lý các API không xác định
+  app.use('/api/*', (req: Request, res: Response) => {
+    // Nếu response chưa được gửi, trả về 404 JSON thay vì HTML
+    if (!res.headersSent) {
+      return res.status(404).json({
+        status: 'error',
+        error: {
+          code: 'NOT_FOUND',
+          message: `API endpoint not found: ${req.originalUrl}`
+        }
+      });
+    }
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
