@@ -1322,6 +1322,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         note: description
       });
       
+      // Kiểm tra xem affiliate có tồn tại không
+      const affiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
+      
+      if (!affiliate) {
+        // Nếu không tìm thấy affiliate, tạo mới một affiliate với ID đó
+        console.log(`Creating new affiliate with ID ${affiliate_id}`);
+        
+        // Tạo một tài khoản người dùng mới cho affiliate này
+        const username = `${affiliate_id.toLowerCase()}@colormedia.vn`;
+        const defaultPassword = "color1234@";
+        const hashedPassword = await hashPassword(defaultPassword);
+        
+        const newUser = await storage.createUser({
+          username,
+          password: hashedPassword,
+          role: "AFFILIATE",
+          is_first_login: true
+        });
+        
+        // Tạo affiliate mới với affiliate_id đã cung cấp
+        const newAffiliate = await storage.createAffiliate({
+          affiliate_id,
+          full_name: `Affiliate ${affiliate_id}`,
+          email: username,
+          phone: phone || "",
+          bank_account: "",
+          bank_name: "",
+          user_id: newUser.id
+        });
+        
+        console.log(`Created new affiliate with ID ${affiliate_id} and user ID ${newUser.id}`);
+      }
+      
       // Add the customer to the affiliate
       await storage.addReferredCustomer(affiliate_id, customerData);
       
@@ -1337,6 +1370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           created_at: customerData.updated_at,
           updated_at: customerData.updated_at,
           contract_value: null,
+          affiliate_id, // Trả về affiliate_id mà khách hàng được gán cho
           events: [
             {
               id: 0,
@@ -1852,7 +1886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Thêm khách hàng và cập nhật lại thông tin affiliate
       for (const customer of customers2) {
-        await storage.addReferredCustomer(aff2.id, customer);
+        await storage.addReferredCustomer(aff2.affiliate_id, customer);
       }
       
       // Cập nhật số dư và thống kê cho affiliate 2
@@ -2114,11 +2148,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Thêm khách hàng cho cả hai affiliate
       for (const customer of additionalCustomers1) {
-        await storage.addReferredCustomer(affiliate1.id, customer);
+        await storage.addReferredCustomer(affiliate1.affiliate_id, customer);
       }
       
       for (const customer of additionalCustomers2) {
-        await storage.addReferredCustomer(affiliate2.id, customer);
+        await storage.addReferredCustomer(affiliate2.affiliate_id, customer);
       }
       
       // Cập nhật số liệu cho Affiliate 1
