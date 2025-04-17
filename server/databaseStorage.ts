@@ -363,7 +363,11 @@ export class DatabaseStorage implements IStorage {
     // 1. Lấy affiliate đầu tiên (giả sử chúng ta chỉ làm việc với affiliate hiện tại)
     const [affiliate] = await db.select().from(affiliates).limit(1);
     
-    if (!affiliate || !affiliate.referred_customers || customerId >= affiliate.referred_customers.length) {
+    // Kiểm tra cẩn thận với customerId, quan trọng là phải xử lý cả trường hợp ID = 0
+    if (!affiliate || !affiliate.referred_customers || 
+        customerId === undefined || customerId === null || 
+        customerId < 0 || customerId >= affiliate.referred_customers.length) {
+      console.error(`Customer with ID ${customerId} not found, valid range is 0-${affiliate?.referred_customers?.length - 1 || 0}`);
       return undefined;
     }
     
@@ -430,22 +434,21 @@ export class DatabaseStorage implements IStorage {
     }
   ): Promise<ReferredCustomer | undefined> {
     try {
+      console.log(`DatabaseStorage: Updating customer contract for ID ${customerId}`);
+      
       // 1. Lấy affiliate đầu tiên (giả sử chúng ta chỉ làm việc với affiliate hiện tại)
       const [affiliate] = await db.select().from(affiliates).limit(1);
       
-      if (!affiliate || !affiliate.referred_customers || customerId >= affiliate.referred_customers.length) {
-        console.error(`Customer with ID ${customerId} not found for updateCustomerWithContract`);
+      // Kiểm tra cẩn thận với customerId, quan trọng là phải xử lý cả trường hợp ID = 0
+      if (!affiliate || !affiliate.referred_customers || 
+          customerId === undefined || customerId === null || 
+          customerId < 0 || customerId >= affiliate.referred_customers.length) {
+        console.error(`Customer with ID ${customerId} not found for updateCustomerWithContract, valid range is 0-${affiliate?.referred_customers?.length - 1 || 0}`);
         return undefined;
       }
       
       // 2. Tạo bản sao danh sách khách hàng
       const customers = [...affiliate.referred_customers];
-      
-      // 3. Kiểm tra xem khách hàng có tồn tại không
-      if (customerId < 0 || customerId >= customers.length) {
-        console.error(`Invalid customer index: ${customerId}`);
-        return undefined;
-      }
       
       // 4. Cập nhật thông tin khách hàng
       customers[customerId] = {
