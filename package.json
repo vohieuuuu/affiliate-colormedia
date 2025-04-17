@@ -45,6 +45,7 @@
     "@sendgrid/mail": "^8.1.5",
     "@tanstack/react-query": "^5.60.5",
     "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
     "@types/nodemailer": "^6.4.17",
     "axios": "^1.8.4",
     "bcrypt": "^5.1.1",

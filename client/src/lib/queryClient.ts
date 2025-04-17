@@ -53,7 +53,9 @@ export const getQueryFn: <T>(options: {
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
       headers: {
-        "Authorization": `Bearer ${authToken}`
+        "Authorization": `Bearer ${authToken}`,
+        "Accept": "application/json",
+        "Content-Type": "application/json"
       }
     });
 
