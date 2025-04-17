@@ -451,10 +451,11 @@ export class MemStorage implements IStorage {
     
     const now = new Date().toISOString();
     
-    // Tạo thông tin khách hàng mới với ID duy nhất
+    // Tạo thông tin khách hàng mới với ID duy nhất và affiliate_id
     const newCustomer: ReferredCustomer = {
       ...customerData,
       id: newCustomerId,
+      affiliate_id: affiliateId,
       created_at: now,
       updated_at: now
     };

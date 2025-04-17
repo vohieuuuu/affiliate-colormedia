@@ -37,6 +37,7 @@ export type UserRoleType = z.infer<typeof UserRole>;
 // Referred customer details type
 export const ReferredCustomerSchema = z.object({
   id: z.number().optional(), // Thêm ID cho khách hàng
+  affiliate_id: z.string().optional(), // ID của affiliate sở hữu khách hàng
   customer_name: z.string(),
   status: CustomerStatus,
   created_at: z.string().default(() => new Date().toISOString()), // Thời điểm tạo khách hàng

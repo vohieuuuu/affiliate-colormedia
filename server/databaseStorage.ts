@@ -442,7 +442,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Cập nhật khách hàng trong danh sách
-    customers[customerId] = updatedCustomer;
+    customers[customerIndex] = updatedCustomer;
     
     // 4. Cập nhật affiliate
     await db.update(affiliates)
@@ -455,7 +455,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(affiliates.id, affiliate.id));
     
-    return customers[customerId];
+    return customers[customerIndex];
   }
 
   async updateCustomerWithContract(
@@ -470,22 +470,43 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`DatabaseStorage: Updating customer contract for ID ${customerId}`);
       
-      // 1. Lấy affiliate đầu tiên (giả sử chúng ta chỉ làm việc với affiliate hiện tại)
-      const [affiliate] = await db.select().from(affiliates).limit(1);
+      // 1. Lấy affiliate cụ thể theo customerData.affiliate_id hoặc lấy affiliate đầu tiên nếu không có
+      let affiliate;
       
-      // Kiểm tra cẩn thận với customerId, quan trọng là phải xử lý cả trường hợp ID = 0
-      if (!affiliate || !affiliate.referred_customers || 
-          customerId === undefined || customerId === null || 
-          customerId < 0 || customerId >= affiliate.referred_customers.length) {
-        console.error(`Customer with ID ${customerId} not found for updateCustomerWithContract, valid range is 0-${affiliate?.referred_customers?.length - 1 || 0}`);
+      if (customerData.affiliate_id) {
+        [affiliate] = await db.select()
+          .from(affiliates)
+          .where(eq(affiliates.affiliate_id, customerData.affiliate_id));
+      }
+      
+      // Nếu không tìm thấy, lấy affiliate đầu tiên
+      if (!affiliate) {
+        [affiliate] = await db.select().from(affiliates).limit(1);
+      }
+      
+      if (!affiliate || !affiliate.referred_customers) {
+        console.error(`No affiliate found for customer with ID ${customerId}`);
         return undefined;
       }
       
       // 2. Tạo bản sao danh sách khách hàng
       const customers = [...affiliate.referred_customers];
       
+      // 3. Tìm khách hàng theo ID duy nhất
+      const customerIndex = customers.findIndex(
+        customer => customer.id === customerId
+      );
+      
+      console.log(`DatabaseStorage: Finding customer with ID ${customerId}, found at index ${customerIndex}`);
+      
+      // Nếu không tìm thấy khách hàng
+      if (customerIndex === -1) {
+        console.error(`Customer with ID ${customerId} not found for affiliate ${affiliate.affiliate_id}`);
+        return undefined;
+      }
+      
       // 4. Cập nhật thông tin khách hàng
-      customers[customerId] = {
+      customers[customerIndex] = {
         ...customerData,
         updated_at: new Date().toISOString() // Đảm bảo cập nhật thời gian mới nhất
       };
@@ -495,7 +516,7 @@ export class DatabaseStorage implements IStorage {
       
       // Nếu trước đây khách hàng chưa có contract_value nhưng bây giờ có,
       // tăng tổng số hợp đồng
-      const oldCustomer = affiliate.referred_customers[customerId];
+      const oldCustomer = affiliate.referred_customers[customerIndex];
       if (!oldCustomer.contract_value && customerData.contract_value) {
         total_contracts += 1;
       }
@@ -516,7 +537,7 @@ export class DatabaseStorage implements IStorage {
       console.log(`DatabaseStorage: Updated affiliate balance: contract_value=${balanceUpdates.contract_value}, received_balance=${balanceUpdates.received_balance}, remaining_balance=${balanceUpdates.remaining_balance}`);
       
       // 8. Trả về khách hàng đã được cập nhật
-      return customers[customerId];
+      return customers[customerIndex];
       
     } catch (error) {
       console.error("DatabaseStorage: Error updating customer with contract:", error);
