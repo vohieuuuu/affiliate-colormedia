@@ -1612,6 +1612,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API lấy thông tin chi tiết của một affiliate theo ID
+  app.get("/api/admin/affiliates/:affiliate_id", async (req, res) => {
+    try {
+      const { affiliate_id } = req.params;
+      
+      if (!affiliate_id) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Affiliate ID is required"
+          }
+        });
+      }
+      
+      const affiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
+      if (!affiliate) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: `Affiliate with ID ${affiliate_id} not found`
+          }
+        });
+      }
+      
+      // Trả về thông tin chi tiết của affiliate
+      res.json({
+        status: "success",
+        data: {
+          id: affiliate.id,
+          user_id: affiliate.user_id,
+          affiliate_id: affiliate.affiliate_id,
+          full_name: affiliate.full_name,
+          email: affiliate.email,
+          phone: affiliate.phone,
+          bank_account: affiliate.bank_account,
+          bank_name: affiliate.bank_name,
+          total_contacts: affiliate.total_contacts || affiliate.referred_customers.length,
+          total_contracts: affiliate.total_contracts,
+          contract_value: affiliate.contract_value,
+          received_balance: affiliate.received_balance,
+          paid_balance: affiliate.paid_balance,
+          remaining_balance: affiliate.remaining_balance,
+          customers_count: affiliate.referred_customers.length
+        }
+      });
+    } catch (error) {
+      console.error("Error getting affiliate details:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to retrieve affiliate details"
+        }
+      });
+    }
+  });
+  
   // Lấy danh sách khách hàng của một affiliate
   app.get("/api/admin/affiliates/:affiliate_id/customers", async (req, res) => {
     try {
