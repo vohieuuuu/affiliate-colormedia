@@ -358,7 +358,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(affiliates.id, affiliate.id));
   }
 
-  async updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined> {
+  async updateCustomerStatus(
+    affiliateId: string,
+    customerId: number, 
+    status: CustomerStatusType, 
+    description: string
+  ): Promise<ReferredCustomer | undefined> {
     // Lưu ý: customerId là index trong mảng referred_customers
     // 1. Lấy affiliate đầu tiên (giả sử chúng ta chỉ làm việc với affiliate hiện tại)
     const [affiliate] = await db.select().from(affiliates).limit(1);

@@ -1725,6 +1725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the customer status
       const updatedCustomer = await storage.updateCustomerStatus(
+        affiliate_id,
         customerId, 
         validatedStatus, 
         description || ""

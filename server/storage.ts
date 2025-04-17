@@ -30,7 +30,12 @@ export interface IStorage {
   getAffiliateByUserId(userId: number): Promise<Affiliate | undefined>; // Phương thức để lấy affiliate từ user_id
   getAffiliateByEmail(email: string): Promise<Affiliate | undefined>; // Phương thức mới để lấy affiliate từ email
   addReferredCustomer(affiliateId: string, customerData: ReferredCustomer): Promise<void>;
-  updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined>;
+  updateCustomerStatus(
+    affiliateId: string,
+    customerId: number, 
+    status: CustomerStatusType, 
+    description: string
+  ): Promise<ReferredCustomer | undefined>;
   updateCustomerWithContract(
     customerId: number, 
     customerData: ReferredCustomer, 
@@ -483,21 +488,35 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async updateCustomerStatus(customerId: number, status: CustomerStatusType, description: string): Promise<ReferredCustomer | undefined> {
+  async updateCustomerStatus(
+    affiliateId: string,
+    customerId: number, 
+    status: CustomerStatusType, 
+    description: string
+  ): Promise<ReferredCustomer | undefined> {
+    // Tìm affiliate trong danh sách
+    console.log(`Looking for affiliate with affiliate_id: ${affiliateId}`);
+    const targetAffiliate = this.allAffiliates.find(aff => aff.affiliate_id === affiliateId);
+    
+    if (!targetAffiliate) {
+      console.error(`Affiliate with ID ${affiliateId} not found`);
+      return undefined;
+    }
+    
     // Since we're using an in-memory store with array,
     // we'll use the index in the array as a proxy for ID
     // In a real DB implementation, we would query by actual ID
-    console.log(`MemStorage: Updating customer status for ID ${customerId}, valid range is 0-${this.affiliate.referred_customers.length - 1}`);
+    console.log(`MemStorage: Updating customer status for affiliate ${affiliateId}, customer ID ${customerId}, valid range is 0-${targetAffiliate.referred_customers.length - 1}`);
     
     // Kiểm tra cẩn thận với customerId, quan trọng là phải xử lý cả trường hợp ID = 0
     if (customerId === undefined || customerId === null || 
-        customerId < 0 || customerId >= this.affiliate.referred_customers.length) {
-      console.error(`Customer with ID ${customerId} not found in MemStorage, valid range is 0-${this.affiliate.referred_customers.length - 1}`);
+        customerId < 0 || customerId >= targetAffiliate.referred_customers.length) {
+      console.error(`Customer with ID ${customerId} not found for affiliate ${affiliateId}, valid range is 0-${targetAffiliate.referred_customers.length - 1}`);
       return undefined;
     }
     
     // Lấy thông tin khách hàng hiện tại
-    const customer = this.affiliate.referred_customers[customerId];
+    const customer = targetAffiliate.referred_customers[customerId];
     const oldStatus = customer.status;
     const now = new Date().toISOString();
     
@@ -505,7 +524,7 @@ export class MemStorage implements IStorage {
     
     // Chỉ cập nhật các trường cần thiết, giữ nguyên thông tin khách hàng
     // Cập nhật trạng thái mới và ghi chú mới
-    this.affiliate.referred_customers[customerId] = {
+    targetAffiliate.referred_customers[customerId] = {
       ...customer, // Giữ nguyên các thông tin khác của khách hàng
       status, // Cập nhật trạng thái mới
       note: description, // Cập nhật ghi chú mới
@@ -515,12 +534,12 @@ export class MemStorage implements IStorage {
     // Đảm bảo tên khách hàng được giữ nguyên (không thay đổi về giá trị mặc định)
     // Đây là bước sửa lỗi chính - giữ nguyên tên customer_name
     if (customer.customer_name && customer.customer_name !== `Công ty TNHH ${customerId+1}`) {
-      this.affiliate.referred_customers[customerId].customer_name = customer.customer_name;
+      targetAffiliate.referred_customers[customerId].customer_name = customer.customer_name;
       console.log(`Preserved customer name: ${customer.customer_name}`);
     }
     
     // Lấy lại đối tượng đã cập nhật
-    const updatedCustomer = this.affiliate.referred_customers[customerId];
+    const updatedCustomer = targetAffiliate.referred_customers[customerId];
     
     // If the status is changed to "Contract signed", update contracts count and value
     if (status === "Contract signed" && oldStatus !== "Contract signed") {
