@@ -599,64 +599,110 @@ export class MemStorage implements IStorage {
       remaining_balance: number 
     }
   ): Promise<ReferredCustomer | undefined> {
-    // Tìm khách hàng theo ID thực (không phải vị trí trong mảng)
-    const customerIndex = this.affiliate.referred_customers.findIndex(
+    console.log(`MemStorage: Updating customer contract for ID ${customerId}`);
+    
+    // 1. Tìm affiliate cụ thể theo customerData.affiliate_id hoặc lấy affiliate đầu tiên nếu không có
+    let targetAffiliate;
+    
+    if (customerData.affiliate_id) {
+      console.log(`Looking for affiliate with affiliate_id: ${customerData.affiliate_id}`);
+      targetAffiliate = this.allAffiliates.find(aff => aff.affiliate_id === customerData.affiliate_id);
+    }
+    
+    // Nếu không tìm thấy theo affiliate_id, thử lấy affiliate theo ID khách hàng
+    if (!targetAffiliate) {
+      // Tìm trong tất cả các affiliate
+      for (const aff of this.allAffiliates) {
+        const foundCustomerIndex = aff.referred_customers.findIndex(
+          customer => customer.id === customerId
+        );
+        
+        if (foundCustomerIndex !== -1) {
+          targetAffiliate = aff;
+          console.log(`Found customer ${customerId} in affiliate ${aff.affiliate_id}`);
+          break;
+        }
+      }
+    }
+    
+    // Nếu vẫn không tìm thấy, sử dụng affiliate hiện tại
+    if (!targetAffiliate) {
+      targetAffiliate = this.affiliate;
+      console.log(`Using current affiliate as fallback: ${this.affiliate.affiliate_id}`);
+    }
+    
+    if (!targetAffiliate || !targetAffiliate.referred_customers) {
+      console.error(`No affiliate found for customer with ID ${customerId}`);
+      return undefined;
+    }
+    
+    // 2. Tìm khách hàng theo ID thực trong affiliate đã xác định
+    const customerIndex = targetAffiliate.referred_customers.findIndex(
       customer => customer.id === customerId
     );
     
-    console.log(`MemStorage: Finding customer with ID ${customerId} for contract update, found at index ${customerIndex}`);
+    console.log(`MemStorage: Finding customer with ID ${customerId}, found at index ${customerIndex}`);
     
     // Nếu không tìm thấy khách hàng
     if (customerIndex === -1) {
-      console.error(`Customer with ID ${customerId} not found in MemStorage`);
+      console.error(`Customer with ID ${customerId} not found for affiliate ${targetAffiliate.affiliate_id}`);
       return undefined;
     }
     
     try {
-      // Lưu lại tên khách hàng hiện tại (trước khi cập nhật) để đảm bảo không bị mất
-      const currentCustomerName = this.affiliate.referred_customers[customerIndex].customer_name;
+      // 3. Lưu lại tên khách hàng hiện tại để đảm bảo không bị mất
+      const currentCustomerName = targetAffiliate.referred_customers[customerIndex].customer_name;
       console.log(`Current customer name before contract update: ${currentCustomerName}`);
       
-      // Cập nhật thông tin khách hàng
-      this.affiliate.referred_customers[customerIndex] = {
+      // 4. Cập nhật thông tin khách hàng
+      targetAffiliate.referred_customers[customerIndex] = {
         ...customerData,
+        affiliate_id: targetAffiliate.affiliate_id, // Đảm bảo affiliate_id được cập nhật
         updated_at: new Date().toISOString() // Đảm bảo cập nhật thời gian mới nhất
       };
       
       // Đảm bảo giữ nguyên tên khách hàng nếu không có tên mới được cung cấp
       if (!customerData.customer_name && currentCustomerName) {
-        this.affiliate.referred_customers[customerIndex].customer_name = currentCustomerName;
+        targetAffiliate.referred_customers[customerIndex].customer_name = currentCustomerName;
         console.log(`Preserved customer name in contract update: ${currentCustomerName}`);
       }
       
-      // Cập nhật thông tin tổng hợp của affiliate
-      this.affiliate.contract_value = balanceUpdates.contract_value;
-      this.affiliate.received_balance = balanceUpdates.received_balance;
-      this.affiliate.remaining_balance = balanceUpdates.remaining_balance;
+      // 5. Cập nhật thông tin tổng hợp của affiliate
+      targetAffiliate.contract_value = balanceUpdates.contract_value;
+      targetAffiliate.received_balance = balanceUpdates.received_balance;
+      targetAffiliate.remaining_balance = balanceUpdates.remaining_balance;
       
-      // Nếu khách hàng có contract_value, tăng total_contracts của affiliate nếu cần
-      if (customerData.contract_value && customerData.contract_value > 0) {
+      // 6. Nếu khách hàng có contract_value, tăng total_contracts của affiliate nếu cần
+      const oldCustomer = targetAffiliate.referred_customers[customerIndex];
+      if (customerData.contract_value && 
+          (oldCustomer.contract_value === undefined || customerData.contract_value > oldCustomer.contract_value)) {
+        
         // Nếu trạng thái là "Contract signed" và không có contract_date, thêm contract_date
         if (customerData.status === "Contract signed" && !customerData.contract_date) {
-          this.affiliate.referred_customers[customerIndex].contract_date = new Date().toISOString();
+          targetAffiliate.referred_customers[customerIndex].contract_date = new Date().toISOString();
+        }
+        
+        // Nếu khách hàng chưa có contract_value trước đó, tăng total_contracts
+        if (!oldCustomer.contract_value) {
+          targetAffiliate.total_contracts += 1;
         }
         
         // Cập nhật thông tin trong danh sách top affiliates
-        const affiliateInTop = this.topAffiliates.find(a => a.id === this.affiliate.id);
+        const affiliateInTop = this.topAffiliates.find(a => a.id === targetAffiliate.id);
         if (affiliateInTop) {
-          affiliateInTop.contract_value = balanceUpdates.contract_value;
-          affiliateInTop.total_contracts = this.affiliate.total_contracts;
+          affiliateInTop.contract_value = targetAffiliate.contract_value;
+          affiliateInTop.total_contracts = targetAffiliate.total_contracts;
           // Re-sort the list
           this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
         }
       }
       
-      // Ghi log thành công
+      // 7. Ghi log thành công
       console.log(`Successfully updated customer #${customerId} with contract value ${customerData.contract_value}`);
-      console.log(`Updated affiliate balance: contract_value=${this.affiliate.contract_value}, received_balance=${this.affiliate.received_balance}, remaining_balance=${this.affiliate.remaining_balance}`);
+      console.log(`Updated affiliate balance: contract_value=${targetAffiliate.contract_value}, received_balance=${targetAffiliate.received_balance}, remaining_balance=${targetAffiliate.remaining_balance}`);
       
-      // Trả về khách hàng đã được cập nhật
-      return this.affiliate.referred_customers[customerIndex];
+      // 8. Trả về khách hàng đã được cập nhật
+      return targetAffiliate.referred_customers[customerIndex];
       
     } catch (error) {
       console.error("Error updating customer with contract:", error);
