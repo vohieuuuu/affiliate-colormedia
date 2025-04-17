@@ -185,25 +185,7 @@ export class MemStorage implements IStorage {
   private otpVerifications: OtpVerification[] = []; // Mảng lưu trữ các mã OTP
 
   constructor() {
-    // Mock data for a sample affiliate
-    this.affiliate = {
-      id: 1,
-      user_id: 1, // Thêm liên kết đến user_id
-      affiliate_id: "AFF123",
-      full_name: "Nguyen Van A",
-      email: "a.nguyen@example.com",
-      phone: "0987654321",
-      bank_account: "0123456789",
-      bank_name: "TPBank",
-      total_contacts: 36,
-      total_contracts: 12,
-      contract_value: 240000000,
-      received_balance: 48000000,
-      paid_balance: 24000000,
-      remaining_balance: 24000000,
-      referred_customers: this.generateReferredCustomers(),
-      withdrawal_history: this.generateWithdrawalHistory()
-    };
+    // Không khởi tạo affiliate mặc định để tránh hiển thị dữ liệu giả
 
     // Mock data for top affiliates
     this.topAffiliates = [
