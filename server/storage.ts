@@ -589,7 +589,7 @@ export class MemStorage implements IStorage {
   }
   
   async updateCustomerWithContract(
-    customerId: number, 
+    customerIndexOrId: number, 
     customerData: ReferredCustomer, 
     balanceUpdates: { 
       contract_value: number; 
@@ -597,7 +597,7 @@ export class MemStorage implements IStorage {
       remaining_balance: number 
     }
   ): Promise<ReferredCustomer | undefined> {
-    console.log(`MemStorage: Updating customer contract for ID ${customerId}`);
+    console.log(`MemStorage: Updating customer contract for index/ID ${customerIndexOrId}`);
     
     // 1. Tìm affiliate cụ thể theo customerData.affiliate_id hoặc lấy affiliate đầu tiên nếu không có
     let targetAffiliate;
@@ -607,45 +607,29 @@ export class MemStorage implements IStorage {
       targetAffiliate = this.allAffiliates.find(aff => aff.affiliate_id === customerData.affiliate_id);
     }
     
-    // Nếu không tìm thấy theo affiliate_id, thử lấy affiliate theo ID khách hàng
-    if (!targetAffiliate) {
-      // Tìm trong tất cả các affiliate
-      for (const aff of this.allAffiliates) {
-        const foundCustomerIndex = aff.referred_customers.findIndex(
-          customer => customer.id === customerId
-        );
-        
-        if (foundCustomerIndex !== -1) {
-          targetAffiliate = aff;
-          console.log(`Found customer ${customerId} in affiliate ${aff.affiliate_id}`);
-          break;
-        }
-      }
-    }
-    
-    // Nếu vẫn không tìm thấy, sử dụng affiliate hiện tại
+    // Không tìm kiếm dựa trên ID của khách hàng nữa, vì customerIndexOrId giờ là chỉ số trong mảng
     if (!targetAffiliate) {
       targetAffiliate = this.affiliate;
       console.log(`Using current affiliate as fallback: ${this.affiliate.affiliate_id}`);
     }
     
     if (!targetAffiliate || !targetAffiliate.referred_customers) {
-      console.error(`No affiliate found for customer with ID ${customerId}`);
+      console.error(`No affiliate found for customer with index ${customerIndexOrId}`);
       return undefined;
     }
     
-    // 2. Tìm khách hàng theo ID thực trong affiliate đã xác định
-    const customerIndex = targetAffiliate.referred_customers.findIndex(
-      customer => customer.id === customerId
-    );
+    // 2. Sử dụng customerIndexOrId trực tiếp như index trong mảng
+    const customerIndex = customerIndexOrId;
     
-    console.log(`MemStorage: Finding customer with ID ${customerId}, found at index ${customerIndex}`);
-    
-    // Nếu không tìm thấy khách hàng
-    if (customerIndex === -1) {
-      console.error(`Customer with ID ${customerId} not found for affiliate ${targetAffiliate.affiliate_id}`);
+    // Kiểm tra xem index có hợp lệ không
+    if (customerIndex < 0 || customerIndex >= targetAffiliate.referred_customers.length) {
+      console.error(`Invalid customer index ${customerIndex} for affiliate ${targetAffiliate.affiliate_id}`);
       return undefined;
     }
+    
+    console.log(`MemStorage: Using customer at index ${customerIndex} for affiliate ${targetAffiliate.affiliate_id}`);
+    
+    // Đã kiểm tra index hợp lệ ở trên, nên không cần kiểm tra customerIndex === -1 nữa
     
     try {
       // 3. Lưu lại tên khách hàng hiện tại để đảm bảo không bị mất
@@ -696,7 +680,7 @@ export class MemStorage implements IStorage {
       }
       
       // 7. Ghi log thành công
-      console.log(`Successfully updated customer #${customerId} with contract value ${customerData.contract_value}`);
+      console.log(`Successfully updated customer at index ${customerIndex} with contract value ${customerData.contract_value}`);
       console.log(`Updated affiliate balance: contract_value=${targetAffiliate.contract_value}, received_balance=${targetAffiliate.received_balance}, remaining_balance=${targetAffiliate.remaining_balance}`);
       
       // 8. Trả về khách hàng đã được cập nhật
