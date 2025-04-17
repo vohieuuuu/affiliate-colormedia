@@ -383,6 +383,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API để lấy danh sách khách hàng 
+  app.get("/api/customers", async (req, res) => {
+    try {
+      // Trong môi trường development, sử dụng dữ liệu mẫu
+      if (process.env.NODE_ENV === "development") {
+        const userId = 1; // Admin user
+        
+        // Tìm affiliate liên kết với user
+        const affiliate = await storage.getAffiliateByUserId(userId);
+        
+        if (!affiliate || !affiliate.referred_customers) {
+          return res.status(200).json({
+            status: "success",
+            data: []
+          });
+        }
+        
+        // Trả về danh sách khách hàng với ID (index)
+        const customers = affiliate.referred_customers.map((customer, index) => ({
+          id: index,
+          customer_name: customer.customer_name,
+          status: customer.status,
+          created_at: customer.created_at,
+          updated_at: customer.updated_at,
+          contract_value: customer.contract_value,
+          commission: customer.commission,
+          contract_date: customer.contract_date,
+          note: customer.note,
+          phone: customer.phone,
+          email: customer.email
+        }));
+        
+        return res.status(200).json({
+          status: "success",
+          data: customers
+        });
+      }
+      
+      // Với môi trường production, lấy khách hàng của affiliate hiện tại
+      if (!req.user) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Unauthorized access"
+          }
+        });
+      }
+      
+      const affiliate = await storage.getAffiliateByUserId(req.user.id);
+      
+      if (!affiliate || !affiliate.referred_customers) {
+        return res.status(200).json({
+          status: "success",
+          data: []
+        });
+      }
+      
+      const customers = affiliate.referred_customers.map((customer, index) => ({
+        id: index,
+        customer_name: customer.customer_name,
+        status: customer.status,
+        created_at: customer.created_at,
+        updated_at: customer.updated_at,
+        contract_value: customer.contract_value,
+        commission: customer.commission,
+        contract_date: customer.contract_date,
+        note: customer.note,
+        phone: customer.phone,
+        email: customer.email
+      }));
+      
+      res.status(200).json({
+        status: "success",
+        data: customers
+      });
+    } catch (error) {
+      console.error("Error retrieving customers:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Failed to retrieve customers"
+        }
+      });
+    }
+  });
+
   // API lấy thống kê khách hàng theo khoảng thời gian
   app.get("/api/affiliate/customer-statistics", authenticateUser, async (req, res) => {
     try {
