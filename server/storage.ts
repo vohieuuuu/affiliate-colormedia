@@ -543,7 +543,7 @@ export class MemStorage implements IStorage {
     
     // If the status is changed to "Contract signed", update contracts count and value
     if (status === "Contract signed" && oldStatus !== "Contract signed") {
-      this.affiliate.total_contracts += 1;
+      targetAffiliate.total_contracts += 1;
       // Mặc định giá trị hợp đồng và hoa hồng
       const contractValue = 20000000; // Default 20M VND
       const commission = contractValue * 0.03; // 3% commission - Cập nhật thành 3% thay vì 10%
@@ -554,12 +554,14 @@ export class MemStorage implements IStorage {
       updatedCustomer.contract_date = now;
       
       // Cập nhật số liệu cho affiliate
-      this.affiliate.contract_value += contractValue;
-      this.affiliate.remaining_balance += commission;
-      this.affiliate.received_balance += commission;
+      targetAffiliate.contract_value += contractValue;
+      targetAffiliate.remaining_balance += commission;
+      targetAffiliate.received_balance += commission;
+      
+      console.log(`Updated affiliate ${targetAffiliate.affiliate_id} stats: total_contracts=${targetAffiliate.total_contracts}, contract_value=${targetAffiliate.contract_value}, remaining_balance=${targetAffiliate.remaining_balance}, received_balance=${targetAffiliate.received_balance}`);
       
       // Update in top affiliates list
-      const affiliateInTop = this.topAffiliates.find(a => a.id === this.affiliate.id);
+      const affiliateInTop = this.topAffiliates.find(a => a.id === targetAffiliate.id);
       if (affiliateInTop) {
         affiliateInTop.total_contracts += 1;
         affiliateInTop.contract_value += contractValue;
