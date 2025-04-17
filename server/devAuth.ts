@@ -197,6 +197,18 @@ export function setupDevAuthRoutes(app: any, storage: IStorage) {
       await storage.updateUserPassword(user.id, hashedPassword);
       await storage.markFirstLoginComplete(user.id);
       
+      // Tìm affiliate liên kết với user này
+      const affiliate = await storage.getAffiliateByUserId(user.id);
+      if (!affiliate && user.username) {
+        // Nếu không tìm thấy affiliate qua user_id, thử tìm qua email
+        const affiliateByEmail = await storage.getAffiliateByEmail(user.username);
+        if (affiliateByEmail) {
+          console.log(`Found affiliate by email ${user.username} instead of user_id ${user.id}`);
+          // Cập nhật user_id của affiliate để khớp với user hiện tại
+          affiliateByEmail.user_id = user.id;
+        }
+      }
+      
       // Tạo token mới cho người dùng
       const newToken = generateToken();
       (user as any).token = newToken;

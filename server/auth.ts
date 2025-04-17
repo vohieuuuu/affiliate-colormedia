@@ -308,19 +308,41 @@ export function setupAuthRoutes(app: any, db: any) {
       // Mã hóa mật khẩu mới
       const hashedPassword = await hashPassword(new_password);
       
-      // Cập nhật mật khẩu và đánh dấu đã đổi mật khẩu
+      // Tạo token mới cho người dùng
+      const newToken = generateToken();
+      
+      // Cập nhật mật khẩu, token và đánh dấu đã đổi mật khẩu
       await db
         .update(users)
         .set({
           password: hashedPassword,
-          is_first_login: 0 // Đã đổi mật khẩu
+          is_first_login: 0, // Đã đổi mật khẩu
+          token: newToken
         })
         .where(eq(users.id, user.id));
+      
+      // Kiểm tra và cập nhật liên kết với affiliate nếu cần
+      const { affiliates } = await import("@shared/schema");
+      const [affiliate] = await db.select().from(affiliates).where(eq(affiliates.user_id, user.id));
+      
+      if (!affiliate && user.username) {
+        // Nếu không tìm thấy affiliate qua user_id, thử tìm qua email
+        const [affiliateByEmail] = await db.select().from(affiliates).where(eq(affiliates.email, user.username));
+        if (affiliateByEmail) {
+          console.log(`Found affiliate by email ${user.username} instead of user_id ${user.id}`);
+          // Cập nhật user_id của affiliate để khớp với user hiện tại
+          await db
+            .update(affiliates)
+            .set({ user_id: user.id })
+            .where(eq(affiliates.id, affiliateByEmail.id));
+        }
+      }
       
       res.json({
         status: "success",
         data: {
-          message: "Đổi mật khẩu thành công"
+          message: "Đổi mật khẩu thành công",
+          token: newToken
         }
       });
     } catch (error) {
