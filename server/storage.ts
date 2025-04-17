@@ -503,7 +503,7 @@ export class MemStorage implements IStorage {
 
   async updateCustomerStatus(
     affiliateId: string,
-    customerId: number, 
+    customerIndex: number, 
     status: CustomerStatusType, 
     description: string
   ): Promise<ReferredCustomer | undefined> {
@@ -516,18 +516,18 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
-    // Tìm khách hàng theo ID thực (không phải vị trí trong mảng)
-    const customerIndex = targetAffiliate.referred_customers.findIndex(
-      customer => customer.id === customerId
-    );
-    
-    console.log(`MemStorage: Finding customer with ID ${customerId} for affiliate ${affiliateId}, found at index ${customerIndex}`);
-    
-    // Nếu không tìm thấy khách hàng
-    if (customerIndex === -1) {
-      console.error(`Customer with ID ${customerId} not found for affiliate ${affiliateId}`);
+    // Kiểm tra xem index có hợp lệ không
+    if (customerIndex < 0 || customerIndex >= targetAffiliate.referred_customers.length) {
+      console.error(`Invalid customer index ${customerIndex} for affiliate ${affiliateId}. Available range: 0-${targetAffiliate.referred_customers.length-1}`);
       return undefined;
     }
+    
+    console.log(`MemStorage: Using customer at index ${customerIndex} for affiliate ${affiliateId}`);
+    
+    // Lấy ID của khách hàng tại vị trí index để tiện theo dõi
+    const customerId = targetAffiliate.referred_customers[customerIndex].id;
+    console.log(`Found customer with ID ${customerId} at index ${customerIndex}`);
+    
     
     // Lấy thông tin khách hàng hiện tại
     const customer = targetAffiliate.referred_customers[customerIndex];
@@ -547,7 +547,7 @@ export class MemStorage implements IStorage {
     
     // Đảm bảo tên khách hàng được giữ nguyên (không thay đổi về giá trị mặc định)
     // Đây là bước sửa lỗi chính - giữ nguyên tên customer_name
-    if (customer.customer_name && customer.customer_name !== `Công ty TNHH ${customerId+1}`) {
+    if (customer.customer_name) {
       targetAffiliate.referred_customers[customerIndex].customer_name = customer.customer_name;
       console.log(`Preserved customer name: ${customer.customer_name}`);
     }
@@ -589,7 +589,7 @@ export class MemStorage implements IStorage {
   }
   
   async updateCustomerWithContract(
-    customerIndexOrId: number, 
+    customerIndex: number, 
     customerData: ReferredCustomer, 
     balanceUpdates: { 
       contract_value: number; 
@@ -597,7 +597,7 @@ export class MemStorage implements IStorage {
       remaining_balance: number 
     }
   ): Promise<ReferredCustomer | undefined> {
-    console.log(`MemStorage: Updating customer contract for index/ID ${customerIndexOrId}`);
+    console.log(`MemStorage: Updating customer contract for index ${customerIndex}`);
     
     // 1. Tìm affiliate cụ thể theo customerData.affiliate_id hoặc lấy affiliate đầu tiên nếu không có
     let targetAffiliate;
@@ -607,23 +607,19 @@ export class MemStorage implements IStorage {
       targetAffiliate = this.allAffiliates.find(aff => aff.affiliate_id === customerData.affiliate_id);
     }
     
-    // Không tìm kiếm dựa trên ID của khách hàng nữa, vì customerIndexOrId giờ là chỉ số trong mảng
     if (!targetAffiliate) {
       targetAffiliate = this.affiliate;
       console.log(`Using current affiliate as fallback: ${this.affiliate.affiliate_id}`);
     }
     
     if (!targetAffiliate || !targetAffiliate.referred_customers) {
-      console.error(`No affiliate found for customer with index ${customerIndexOrId}`);
+      console.error(`No affiliate found for customer with index ${customerIndex}`);
       return undefined;
     }
     
-    // 2. Sử dụng customerIndexOrId trực tiếp như index trong mảng
-    const customerIndex = customerIndexOrId;
-    
-    // Kiểm tra xem index có hợp lệ không
+    // 2. Kiểm tra xem index có hợp lệ không
     if (customerIndex < 0 || customerIndex >= targetAffiliate.referred_customers.length) {
-      console.error(`Invalid customer index ${customerIndex} for affiliate ${targetAffiliate.affiliate_id}`);
+      console.error(`Invalid customer index ${customerIndex} for affiliate ${targetAffiliate.affiliate_id}. Available range: 0-${targetAffiliate.referred_customers.length-1}`);
       return undefined;
     }
     
