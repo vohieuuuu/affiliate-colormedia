@@ -1910,6 +1910,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // API endpoint để thêm dữ liệu khách hàng và hợp đồng bổ sung
+  app.post("/api/seed-more-data", async (req, res) => {
+    try {
+      // Lấy danh sách affiliate hiện có
+      const affiliate1 = await storage.getAffiliateByAffiliateId("AFF101");
+      const affiliate2 = await storage.getAffiliateByAffiliateId("AFF102");
+      
+      if (!affiliate1 || !affiliate2) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: "Không tìm thấy affiliate, vui lòng chạy /api/reset-data trước"
+          }
+        });
+      }
+      
+      // Thêm khách hàng cho Affiliate 1
+      const additionalCustomers1 = [
+        {
+          customer_name: "Công ty Điện tử Sao Việt",
+          status: "Contract signed",
+          created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+          contract_value: 120000000,
+          commission: 3600000,
+          contract_date: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Hợp đồng thiết kế website, marketing 12 tháng",
+          phone: "0983456789",
+          email: "info@saoviet.com"
+        },
+        {
+          customer_name: "Công ty Du lịch Phương Nam",
+          status: "Contract signed",
+          created_at: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000).toISOString(),
+          contract_value: 85000000,
+          commission: 2550000,
+          contract_date: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Hợp đồng thiết kế app du lịch 6 tháng",
+          phone: "0912345678",
+          email: "contact@phuongnamtravel.com"
+        },
+        {
+          customer_name: "Công ty Thực phẩm Tươi Sạch",
+          status: "Pending reconciliation",
+          created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Đang thảo luận các điều khoản hợp đồng",
+          phone: "0987123456",
+          email: "info@tuoisach.com"
+        }
+      ];
+      
+      // Thêm khách hàng cho Affiliate 2
+      const additionalCustomers2 = [
+        {
+          customer_name: "Công ty Bất động sản Phú Thịnh",
+          status: "Contract signed",
+          created_at: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+          contract_value: 300000000,
+          commission: 9000000,
+          contract_date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Hợp đồng website, app và marketing online 12 tháng",
+          phone: "0909888777",
+          email: "info@phuthinh.com"
+        },
+        {
+          customer_name: "Công ty Giáo dục Tương Lai",
+          status: "Contract signed",
+          created_at: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
+          contract_value: 250000000,
+          commission: 7500000,
+          contract_date: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Hợp đồng platform học trực tuyến 12 tháng",
+          phone: "0918765432",
+          email: "contact@tuonglai.edu.vn"
+        },
+        {
+          customer_name: "Công ty Dược phẩm Tâm An",
+          status: "Contract signed",
+          created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(),
+          contract_value: 180000000,
+          commission: 5400000,
+          contract_date: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Hợp đồng website bán hàng và marketing 6 tháng",
+          phone: "0965432198",
+          email: "info@taman.com"
+        },
+        {
+          customer_name: "Công ty Thời trang FSTYLE",
+          status: "Presenting idea",
+          created_at: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          note: "Đã trình bày ý tưởng, đang chờ phản hồi",
+          phone: "0976543210",
+          email: "sales@fstyle.vn"
+        }
+      ];
+      
+      // Thêm khách hàng cho cả hai affiliate
+      for (const customer of additionalCustomers1) {
+        await storage.addReferredCustomer(affiliate1.id, customer);
+      }
+      
+      for (const customer of additionalCustomers2) {
+        await storage.addReferredCustomer(affiliate2.id, customer);
+      }
+      
+      // Cập nhật số liệu cho Affiliate 1
+      const aff1ExistingCustomers = affiliate1.referred_customers || [];
+      const aff1ExistingContracts = aff1ExistingCustomers.filter(c => c.status === "Contract signed").length;
+      const aff1NewContractCustomers = additionalCustomers1.filter(c => c.status === "Contract signed");
+      const aff1TotalContractValue = [...aff1ExistingCustomers, ...additionalCustomers1]
+        .filter(c => c.status === "Contract signed")
+        .reduce((sum, c) => sum + (c.contract_value || 0), 0);
+      const aff1TotalCommission = aff1TotalContractValue * 0.03;
+      
+      // Cập nhật Affiliate 1
+      await storage.createAffiliate({
+        ...affiliate1,
+        total_contacts: aff1ExistingCustomers.length + additionalCustomers1.length,
+        total_contracts: aff1ExistingContracts + aff1NewContractCustomers.length,
+        contract_value: aff1TotalContractValue,
+        received_balance: aff1TotalCommission,
+        remaining_balance: aff1TotalCommission - (affiliate1.paid_balance || 0)
+      });
+      
+      // Cập nhật số liệu cho Affiliate 2
+      const aff2ExistingCustomers = affiliate2.referred_customers || [];
+      const aff2ExistingContracts = aff2ExistingCustomers.filter(c => c.status === "Contract signed").length;
+      const aff2NewContractCustomers = additionalCustomers2.filter(c => c.status === "Contract signed");
+      const aff2TotalContractValue = [...aff2ExistingCustomers, ...additionalCustomers2]
+        .filter(c => c.status === "Contract signed")
+        .reduce((sum, c) => sum + (c.contract_value || 0), 0);
+      const aff2TotalCommission = aff2TotalContractValue * 0.03;
+      
+      // Cập nhật Affiliate 2
+      await storage.createAffiliate({
+        ...affiliate2,
+        total_contacts: aff2ExistingCustomers.length + additionalCustomers2.length,
+        total_contracts: aff2ExistingContracts + aff2NewContractCustomers.length,
+        contract_value: aff2TotalContractValue,
+        received_balance: aff2TotalCommission,
+        remaining_balance: aff2TotalCommission - (affiliate2.paid_balance || 0)
+      });
+      
+      // Trả về kết quả
+      res.status(200).json({
+        status: "success",
+        data: {
+          message: "Đã thêm dữ liệu khách hàng và hợp đồng thành công",
+          summary: {
+            affiliate1_customers_added: additionalCustomers1.length,
+            affiliate1_contracts_added: aff1NewContractCustomers.length,
+            affiliate1_total_contract_value: aff1TotalContractValue,
+            affiliate1_total_commission: aff1TotalCommission,
+            affiliate2_customers_added: additionalCustomers2.length,
+            affiliate2_contracts_added: aff2NewContractCustomers.length,
+            affiliate2_total_contract_value: aff2TotalContractValue,
+            affiliate2_total_commission: aff2TotalCommission
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Lỗi khi thêm dữ liệu bổ sung:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi thêm dữ liệu bổ sung",
+          details: error instanceof Error ? error.message : "Unknown error"
+        }
+      });
+    }
+  });
 
   const httpServer = createServer(app);
 

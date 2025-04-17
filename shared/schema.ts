@@ -44,6 +44,8 @@ export const ReferredCustomerSchema = z.object({
   commission: z.number().optional(), // Hoa hồng tính được
   contract_date: z.string().optional(), // Ngày ký hợp đồng
   note: z.string().optional(),
+  phone: z.string().optional(), // Số điện thoại khách hàng
+  email: z.string().optional(), // Email khách hàng
 });
 
 export type ReferredCustomer = z.infer<typeof ReferredCustomerSchema>;
