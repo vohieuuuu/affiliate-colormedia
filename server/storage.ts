@@ -313,11 +313,12 @@ export class MemStorage implements IStorage {
   }
 
   async addWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void> {
-    // Tìm affiliate dựa vào user_id (ở đây là affiliate_id vì yêu cầu API truyền affiliate_id vào user_id)
+    // Tìm affiliate dựa vào affiliate_id trong trường user_id
     const affiliate = await this.getAffiliateByAffiliateId(request.user_id);
     
     if (!affiliate) {
-      throw new Error("Affiliate not found");
+      console.warn("Affiliate not found with ID:", request.user_id);
+      throw new Error(`Affiliate not found with ID: ${request.user_id}`);
     }
     
     // Kiểm tra giới hạn rút tiền theo ngày
