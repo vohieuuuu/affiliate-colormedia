@@ -1,267 +1,171 @@
-# API Documentation - ColorMedia Affiliate System
+# Tài liệu API - Hệ thống ColorMedia Affiliate
 
-## Thông tin chung
+## Giới thiệu
+Tài liệu này mô tả chi tiết API của hệ thống ColorMedia Affiliate, cho phép quản lý thông tin affiliate, theo dõi khách hàng được giới thiệu, và xử lý các yêu cầu rút tiền hoa hồng.
 
-- Base URL: `http://localhost:5000/api`
-- Test URL: `https://{your-replit-domain}.replit.app/api`
+## Định dạng phản hồi
+Tất cả API trả về phản hồi ở định dạng JSON với header `Content-Type: application/json`. Các phản hồi tuân theo định dạng chuẩn:
 
-Lưu ý: Các API được bảo vệ bằng token `Bearer` yêu cầu xác thực. Chỉ có một số API công khai không yêu cầu token.
+- **Thành công**: `{ "status": "success", "data": {...} }`
+- **Lỗi**: `{ "status": "error", "error": { "code": "ERROR_CODE", "message": "Thông báo lỗi" } }`
 
-## Authentication
+## Xác thực
+Xác thực người dùng sử dụng token Bearer JWT. Trừ các endpoint dành riêng cho việc đăng nhập và đăng ký, tất cả các API khác đều yêu cầu xác thực.
+
+### Đăng nhập lần đầu
+Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu mặc định `color1234@`. API sẽ trả về mã lỗi `CHANGE_PASSWORD_REQUIRED` nếu người dùng cần đổi mật khẩu.
+
+## API Xác thực
 
 ### Đăng nhập
+**Endpoint**: `POST /api/auth/login`
 
-```
-POST /api/auth/login
-```
+**Mô tả**: Xác thực người dùng và cung cấp token truy cập.
 
-**Request Body:**
+**Request Body**:
 ```json
 {
-  "username": "admin@colormedia.vn",
-  "password": "admin@123"
+  "username": "affiliate1@colormedia.vn",
+  "password": "password123"
 }
 ```
 
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "id": 1,
-    "username": "admin@colormedia.vn",
-    "role": "ADMIN",
-    "token": "jwt-token-here",
-    "is_first_login": 0
-  }
-}
-```
-
-**Curl Example:**
-```bash
-curl -X POST "http://localhost:5000/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin@colormedia.vn", "password": "admin@123"}'
-```
-
-### Đăng ký
-
-```
-POST /api/auth/register
-```
-
-**Request Body:**
-```json
-{
-  "username": "newaffiliate@example.com",
-  "password": "password123",
-  "role": "AFFILIATE"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "id": 3,
-    "username": "newaffiliate@example.com",
+    "id": 2,
+    "username": "affiliate1@colormedia.vn",
     "role": "AFFILIATE",
-    "token": "jwt-token-here",
-    "is_first_login": 1
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
 }
 ```
 
-### Đổi mật khẩu (Cho lần đăng nhập đầu tiên)
-
-```
-POST /api/auth/change-password
-```
-
-**Request Body:**
+**Phản hồi lỗi (cần đổi mật khẩu)**:
 ```json
 {
-  "old_password": "password123",
-  "new_password": "newpassword456"
+  "status": "error",
+  "error": {
+    "code": "CHANGE_PASSWORD_REQUIRED",
+    "message": "Bạn cần đổi mật khẩu trước khi đăng nhập lần đầu",
+    "user_id": 2
+  }
 }
 ```
 
-**Response:**
+### Đổi mật khẩu
+**Endpoint**: `POST /api/auth/change-password`
+
+**Mô tả**: Đổi mật khẩu người dùng.
+
+**Request Body**:
+```json
+{
+  "user_id": 2,
+  "old_password": "color1234@",
+  "new_password": "newStrongPassword123!"
+}
+```
+
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
-  "message": "Password changed successfully"
+  "data": {
+    "message": "Đổi mật khẩu thành công. Vui lòng đăng nhập lại với mật khẩu mới."
+  }
 }
 ```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
 
 ### Đăng xuất
+**Endpoint**: `POST /api/auth/logout`
 
+**Mô tả**: Đăng xuất người dùng hiện tại và hủy token.
+
+**Headers**:
 ```
-POST /api/auth/logout
+Authorization: Bearer <token>
 ```
 
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
-  "message": "Logged out successfully"
+  "data": {
+    "message": "Đăng xuất thành công"
+  }
 }
 ```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
 
 ### Lấy thông tin người dùng hiện tại
+**Endpoint**: `GET /api/auth/me`
 
+**Mô tả**: Lấy thông tin người dùng hiện tại dựa trên token.
+
+**Headers**:
 ```
-GET /api/auth/me
+Authorization: Bearer <token>
 ```
 
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "id": 1,
-    "username": "admin@colormedia.vn",
-    "role": "ADMIN",
-    "is_first_login": 0
+    "id": 2,
+    "username": "affiliate1@colormedia.vn",
+    "role": "AFFILIATE"
   }
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
+## API Affiliate
 
-**Curl Example:**
-```bash
-curl -X GET "http://localhost:5000/api/auth/me" \
-  -H "Authorization: Bearer {your-token}"
+### Lấy thông tin affiliate hiện tại
+**Endpoint**: `GET /api/affiliate/profile`
+
+**Mô tả**: Lấy thông tin chi tiết của affiliate dựa trên token người dùng.
+
+**Headers**:
+```
+Authorization: Bearer <token>
 ```
 
-## Affiliate Management
-
-### Lấy thông tin Affiliate hiện tại
-
-```
-GET /api/affiliates/me
-```
-
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "id": 1,
-    "affiliate_id": "AFF123",
-    "full_name": "Nguyen Van A",
-    "email": "a.nguyen@example.com",
-    "phone": "0987654321",
+    "id": 2,
+    "affiliate_id": "AFF101",
+    "full_name": "Nguyễn Văn A",
+    "email": "affiliate1@colormedia.vn",
+    "phone": "0901234567",
     "bank_account": "0123456789",
     "bank_name": "TPBank",
-    "total_contacts": 36,
-    "total_contracts": 12,
-    "contract_value": 240000000,
-    "received_balance": 48000000,
-    "paid_balance": 24000000,
-    "remaining_balance": 24000000
+    "total_contacts": 25,
+    "total_contracts": 8,
+    "contract_value": 180000000,
+    "received_balance": 36000000,
+    "paid_balance": 18000000,
+    "remaining_balance": 80000000
   }
 }
 ```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-**Curl Example:**
-```bash
-curl -X GET "http://localhost:5000/api/affiliates/me" \
-  -H "Authorization: Bearer {your-token}"
-```
-
-### Lấy danh sách Top Affiliates
-
-```
-GET /api/affiliates/top
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": [
-    {
-      "id": 2,
-      "full_name": "Jane Cooper",
-      "contract_value": 320000000,
-      "total_contracts": 15
-    },
-    {
-      "id": 1,
-      "full_name": "Nguyen Van A",
-      "contract_value": 240000000,
-      "total_contracts": 12
-    },
-    // ... more affiliates
-  ]
-}
-```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-### Tạo Affiliate mới
-
-```
-POST /api/affiliates
-```
-
-**Request Body:**
-```json
-{
-  "affiliate_id": "AFF104",
-  "full_name": "Le Van C",
-  "email": "c.le@example.com",
-  "phone": "0987123456",
-  "bank_account": "9876123456",
-  "bank_name": "VPBank"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "id": 3,
-    "affiliate_id": "AFF104",
-    "full_name": "Le Van C",
-    "email": "c.le@example.com",
-    "phone": "0987123456",
-    "bank_account": "9876123456",
-    "bank_name": "VPBank",
-    "user_id": 3,
-    "total_contacts": 0,
-    "total_contracts": 0,
-    "contract_value": 0,
-    "received_balance": 0,
-    "paid_balance": 0,
-    "remaining_balance": 0,
-    "referred_customers": [],
-    "withdrawal_history": []
-  }
-}
-```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-## Referred Customers
 
 ### Lấy danh sách khách hàng giới thiệu
+**Endpoint**: `GET /api/affiliate/customers`
 
+**Mô tả**: Lấy danh sách khách hàng được affiliate giới thiệu.
+
+**Headers**:
 ```
-GET /api/customers
+Authorization: Bearer <token>
 ```
 
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
@@ -272,165 +176,32 @@ GET /api/customers
       "created_at": "2023-12-10T00:00:00Z",
       "updated_at": "2023-12-15T00:00:00Z",
       "contract_value": 50000000,
-      "commission": 1500000,
+      "commission": 5000000,
       "contract_date": "2023-12-15T00:00:00Z",
       "note": "Customer agreed to a 12-month contract worth 50,000,000 VND."
     },
-    // ... more customers
+    {
+      "customer_name": "XYZ Corporation",
+      "status": "Presenting idea",
+      "created_at": "2024-03-25T00:00:00Z",
+      "updated_at": "2024-03-28T00:00:00Z",
+      "note": "Khách hàng đang xem xét đề xuất"
+    }
   ]
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-**Curl Example:**
-```bash
-curl -X GET "http://localhost:5000/api/customers" \
-  -H "Authorization: Bearer {your-token}"
-```
-
-### Thêm khách hàng giới thiệu mới
-
-```
-POST /api/customers
-```
-
-**Request Body:**
-```json
-{
-  "customer_name": "New Company Ltd",
-  "status": "Contact received",
-  "note": "Initial contact made through email"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "customer_name": "New Company Ltd",
-    "status": "Contact received",
-    "created_at": "2024-04-17T03:45:00.000Z",
-    "updated_at": "2024-04-17T03:45:00.000Z",
-    "note": "Initial contact made through email"
-  }
-}
-```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-### Cập nhật trạng thái khách hàng
-
-```
-PUT /api/admin/customers/:id/status
-```
-
-**Request Body:**
-```json
-{
-  "status": "Presenting idea",
-  "description": "Đã trình bày ý tưởng, khách hàng đang xem xét"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "id": 0,
-    "name": "New Company Ltd",
-    "status": "Presenting idea",
-    "updated_at": "2024-04-17T03:50:00.000Z",
-    "events": [
-      {
-        "id": 0,
-        "timestamp": "2024-04-17T03:50:00.000Z",
-        "status": "Presenting idea",
-        "description": "Đã trình bày ý tưởng, khách hàng đang xem xét"
-      }
-    ]
-  }
-}
-```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-**Curl Example:**
-```bash
-curl -X PUT "http://localhost:5000/api/admin/customers/0/status" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer {your-token}" \
-  -d '{"status": "Presenting idea", "description": "Đã trình bày ý tưởng, khách hàng đang xem xét"}'
-```
-
-### Cập nhật giá trị hợp đồng
-
-```
-PUT /api/admin/customers/:id/contract
-```
-
-**Request Body:**
-```json
-{
-  "contract_value": 500000000,
-  "name": "Phạm Văn D",
-  "phone": "0923456789",
-  "email": "phamvand@example.com",
-  "status": "khách hàng ký hợp đồng"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "id": 0,
-    "name": "Phạm Văn D",
-    "status": "khách hàng ký hợp đồng",
-    "contract_value": 500000000,
-    "additional_contract_value": 500000000,
-    "commission": 22000000,
-    "additional_commission": 15000000,
-    "updated_at": "2024-04-17T03:45:00.000Z",
-    "affiliate_balance": {
-      "total_contract_value": 740000000,
-      "total_received_balance": 63000000,
-      "paid_balance": 24000000,
-      "remaining_balance": 39000000,
-      "actual_balance": 39000000
-    }
-  }
-}
-```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-**Curl Example:**
-```bash
-curl -X PUT "http://localhost:5000/api/admin/customers/0/contract" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer {your-token}" \
-  -d '{
-    "contract_value": 500000000,
-    "name": "Phạm Văn D",
-    "phone": "0923456789",
-    "email": "phamvand@example.com",
-    "status": "khách hàng ký hợp đồng"
-  }'
-```
-
-## Withdrawal Management
-
 ### Lấy lịch sử rút tiền
+**Endpoint**: `GET /api/affiliate/withdrawals`
 
+**Mô tả**: Lấy lịch sử rút tiền của affiliate.
+
+**Headers**:
 ```
-GET /api/withdrawals
+Authorization: Bearer <token>
 ```
 
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
@@ -441,234 +212,357 @@ GET /api/withdrawals
       "note": "Commission for March",
       "status": "Processing"
     },
-    // ... more withdrawal history
+    {
+      "request_date": "2024-04-10T00:00:00Z",
+      "amount": 3000000,
+      "note": "Advance payment",
+      "status": "Rejected",
+      "message": "Số tiền yêu cầu vượt quá số dư khả dụng"
+    },
+    {
+      "request_date": "2024-03-14T00:00:00Z",
+      "amount": 8000000,
+      "note": "Commission for February",
+      "status": "Completed",
+      "transaction_id": "TXN-202403-001",
+      "completed_date": "2024-03-16T00:00:00Z"
+    }
   ]
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
+### Tạo yêu cầu rút tiền
+**Endpoint**: `POST /api/affiliate/withdrawals`
 
-**Curl Example:**
-```bash
-curl -X GET "http://localhost:5000/api/withdrawals" \
-  -H "Authorization: Bearer {your-token}"
+**Mô tả**: Tạo yêu cầu rút tiền mới.
+
+**Headers**:
+```
+Authorization: Bearer <token>
 ```
 
-### Tạo yêu cầu rút tiền mới
-
-```
-POST /api/withdrawals
-```
-
-**Request Body:**
+**Request Body**:
 ```json
 {
   "amount": 5000000,
-  "note": "Rút tiền hoa hồng tháng 4"
+  "note": "April commission"
 }
 ```
 
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "request_date": "2024-04-17T04:00:00.000Z",
+    "request_date": "2024-04-20T00:00:00Z",
     "amount": 5000000,
-    "note": "Rút tiền hoa hồng tháng 4",
-    "status": "Pending"
+    "note": "April commission",
+    "status": "Pending",
+    "message": "Yêu cầu rút tiền đang chờ xử lý"
   }
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-**Curl Example:**
-```bash
-curl -X POST "http://localhost:5000/api/withdrawals" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer {your-token}" \
-  -d '{"amount": 5000000, "note": "Rút tiền hoa hồng tháng 4"}'
-```
-
-### Cập nhật trạng thái yêu cầu rút tiền (Admin)
-
-```
-PUT /api/admin/withdrawals/:affiliate_id/:request_time
-```
-
-**URL Parameters:**
-- `:affiliate_id` - ID của affiliate (ví dụ: "AFF123")
-- `:request_time` - Thời gian yêu cầu rút tiền (ISO format, URL encoded)
-
-**Request Body:**
+**Phản hồi lỗi (vượt quá hạn mức)**:
 ```json
 {
-  "status": "Completed",
-  "transaction_id": "TXN-202404-001",
-  "message": "Đã chuyển khoản thành công"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "affiliate_id": "AFF123",
-    "request_date": "2024-04-17T04:00:00.000Z",
-    "amount": 5000000,
-    "note": "Rút tiền hoa hồng tháng 4",
-    "status": "Completed",
-    "transaction_id": "TXN-202404-001",
-    "message": "Đã chuyển khoản thành công",
-    "completed_date": "2024-04-17T04:10:00.000Z"
+  "status": "error",
+  "error": {
+    "code": "DAILY_LIMIT_EXCEEDED",
+    "message": "Vượt quá giới hạn rút tiền trong ngày. Hạn mức còn lại: 15,000,000 VND"
   }
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
+## API Admin
 
-### Kiểm tra giới hạn rút tiền theo ngày
+### Lấy danh sách tất cả affiliate
+**Endpoint**: `GET /api/admin/affiliates`
 
+**Mô tả**: Lấy danh sách tất cả các affiliate trong hệ thống.
+
+**Headers**:
 ```
-GET /api/withdrawals/daily-limit-check?amount=5000000
+Authorization: Bearer <token>
 ```
 
-**Query Parameters:**
-- `amount` - Số tiền muốn rút (VND)
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "affiliate_id": "AFF100",
+      "full_name": "ColorMedia Admin",
+      "email": "admin@colormedia.vn",
+      "phone": "0909123456",
+      "total_contracts": 12,
+      "contract_value": 240000000,
+      "remaining_balance": 95000000
+    },
+    {
+      "id": 2,
+      "affiliate_id": "AFF101",
+      "full_name": "Nguyễn Văn A",
+      "email": "affiliate1@colormedia.vn",
+      "phone": "0901234567",
+      "total_contracts": 8,
+      "contract_value": 180000000,
+      "remaining_balance": 80000000
+    }
+  ]
+}
+```
 
-**Response:**
+### Tạo affiliate mới
+**Endpoint**: `POST /api/admin/affiliates`
+
+**Mô tả**: Tạo một affiliate mới và tài khoản người dùng liên kết.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+
+**Request Body**:
+```json
+{
+  "affiliate_id": "AFF103",
+  "full_name": "Lê Thị C",
+  "email": "affiliate_c@example.com",
+  "phone": "0903456789",
+  "bank_account": "9876543210",
+  "bank_name": "VietcomBank"
+}
+```
+
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "exceeds": false,
-    "totalWithdrawn": 8000000,
-    "remainingLimit": 12000000,
-    "dailyLimit": 20000000
+    "id": 4,
+    "user_id": 4,
+    "affiliate_id": "AFF103",
+    "full_name": "Lê Thị C",
+    "email": "affiliate_c@example.com",
+    "phone": "0903456789",
+    "bank_account": "9876543210",
+    "bank_name": "VietcomBank",
+    "total_contacts": 0,
+    "total_contracts": 0,
+    "contract_value": 0,
+    "received_balance": 0,
+    "paid_balance": 0,
+    "remaining_balance": 0,
+    "message": "Affiliate mới đã được tạo thành công. Email kích hoạt đã được gửi."
   }
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-**Curl Example:**
-```bash
-curl -X GET "http://localhost:5000/api/withdrawals/daily-limit-check?amount=5000000" \
-  -H "Authorization: Bearer {your-token}"
-```
-
-## OTP Verification
-
-### Gửi OTP cho yêu cầu rút tiền
-
-```
-POST /api/otp/send
-```
-
-**Request Body:**
+**Phản hồi lỗi (email đã tồn tại)**:
 ```json
 {
-  "verification_type": "WITHDRAWAL",
-  "related_id": 1
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "message": "OTP đã được gửi đến email của bạn"
-}
-```
-
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-### Xác thực OTP
-
-```
-POST /api/otp/verify
-```
-
-**Request Body:**
-```json
-{
-  "otp_code": "123456",
-  "verification_type": "WITHDRAWAL"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "verified": true
+  "status": "error",
+  "error": {
+    "code": "EMAIL_ALREADY_IN_USE",
+    "message": "Email affiliate_c@example.com đã được sử dụng bởi affiliate khác. Vui lòng sử dụng email khác."
   }
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
-
-## Stats and Metrics
-
-### Lấy thống kê theo thời gian (Time Series)
-
-```
-GET /api/stats/time-series?period=MONTH
-```
-
-**Query Parameters:**
-- `period` - Khoảng thời gian: DAY, WEEK, MONTH, YEAR
-
-**Response:**
+**Phản hồi lỗi (affiliate_id không đúng định dạng)**:
 ```json
 {
-  "status": "success",
-  "data": {
-    "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-    "contracts": [2, 3, 4, 2, 1, 3],
-    "values": [45000000, 60000000, 80000000, 40000000, 20000000, 60000000]
+  "status": "error",
+  "error": {
+    "code": "INVALID_AFFILIATE_ID",
+    "message": "Affiliate ID phải bắt đầu bằng 'AFF' (ví dụ: AFF101)"
   }
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
+### Thêm khách hàng giới thiệu mới
+**Endpoint**: `POST /api/admin/customers`
 
-### Lấy thống kê khách hàng
+**Mô tả**: Thêm một khách hàng mới được giới thiệu bởi affiliate.
 
+**Headers**:
 ```
-GET /api/stats/customers
+Authorization: Bearer <token>
 ```
 
-**Response:**
+**Request Body**:
+```json
+{
+  "affiliate_id": 2,
+  "name": "DEF Industries",
+  "phone": "0942345678",
+  "email": "contact@def-industries.com",
+  "status": "Contact received",
+  "description": "Khách hàng được giới thiệu qua hội thảo"
+}
+```
+
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "total": 36,
-    "by_status": {
-      "Contact received": 10,
-      "Presenting idea": 8,
-      "Pending reconciliation": 6,
-      "Contract signed": 12
+    "id": 0,
+    "name": "DEF Industries",
+    "phone": "0942345678",
+    "email": "contact@def-industries.com",
+    "status": "Contact received",
+    "created_at": "2024-04-20T00:00:00Z",
+    "updated_at": "2024-04-20T00:00:00Z",
+    "contract_value": null,
+    "events": [
+      {
+        "id": 0,
+        "timestamp": "2024-04-20T00:00:00Z",
+        "status": "Contact received",
+        "description": "Khách hàng được giới thiệu qua hội thảo"
+      }
+    ]
+  }
+}
+```
+
+### Cập nhật trạng thái khách hàng
+**Endpoint**: `PUT /api/admin/customers/:id/status`
+
+**Mô tả**: Cập nhật trạng thái của khách hàng giới thiệu.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+
+**Params**:
+- `id`: ID của khách hàng (index trong mảng)
+
+**Request Body**:
+```json
+{
+  "status": "Presenting idea",
+  "description": "Đã trình bày ý tưởng, đang chờ phản hồi"
+}
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 0,
+    "name": "DEF Industries",
+    "status": "Presenting idea",
+    "updated_at": "2024-04-22T00:00:00Z",
+    "events": [
+      {
+        "id": 0,
+        "timestamp": "2024-04-22T00:00:00Z",
+        "status": "Presenting idea",
+        "description": "Đã trình bày ý tưởng, đang chờ phản hồi"
+      }
+    ]
+  }
+}
+```
+
+### Cập nhật giá trị hợp đồng
+**Endpoint**: `PUT /api/admin/customers/:id/contract`
+
+**Mô tả**: Cập nhật giá trị hợp đồng cho khách hàng và tính hoa hồng.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+
+**Params**:
+- `id`: ID của khách hàng (index trong mảng)
+
+**Request Body**:
+```json
+{
+  "contract_value": 50000000
+}
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 0,
+    "name": "DEF Industries",
+    "status": "Contract signed",
+    "contract_value": 50000000,
+    "additional_contract_value": 50000000,
+    "commission": 1500000,
+    "additional_commission": 1500000,
+    "updated_at": "2024-04-25T00:00:00Z",
+    "affiliate_balance": {
+      "total_contract_value": 230000000,
+      "total_received_balance": 37500000,
+      "paid_balance": 18000000,
+      "remaining_balance": 19500000,
+      "actual_balance": 19500000
     }
   }
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
+### Cập nhật trạng thái yêu cầu rút tiền
+**Endpoint**: `PUT /api/admin/withdrawals/:affiliate_id/:request_time`
 
-## Admin Functions
+**Mô tả**: Cập nhật trạng thái của yêu cầu rút tiền.
 
-### Seed dữ liệu mẫu
-
+**Headers**:
 ```
-POST /api/admin/seed-data
+Authorization: Bearer <token>
 ```
 
-**Request Body:**
+**Params**:
+- `affiliate_id`: ID của affiliate (ví dụ: "AFF101")
+- `request_time`: Thời gian yêu cầu (định dạng ISO)
+
+**Request Body**:
+```json
+{
+  "status": "Processing",
+  "message": "Đang xử lý yêu cầu rút tiền"
+}
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "request_date": "2024-04-15T00:00:00Z",
+    "amount": 5000000,
+    "note": "Commission for March",
+    "status": "Processing",
+    "message": "Đang xử lý yêu cầu rút tiền"
+  }
+}
+```
+
+### Thêm dữ liệu mẫu
+**Endpoint**: `POST /api/admin/seed-data`
+
+**Mô tả**: Thêm dữ liệu mẫu vào hệ thống.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+
+**Request Body**:
 ```json
 {
   "affiliates_count": 5,
@@ -677,7 +571,7 @@ POST /api/admin/seed-data
 }
 ```
 
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
@@ -692,87 +586,114 @@ POST /api/admin/seed-data
 }
 ```
 
-**Yêu cầu Header:** `Authorization: Bearer {token}`
+## Kiểm tra OTP
 
-### API reset dữ liệu và tạo tài khoản test
+### Tạo OTP cho rút tiền
+**Endpoint**: `POST /api/affiliate/withdrawals/otp`
 
+**Mô tả**: Tạo mã OTP để xác thực yêu cầu rút tiền.
+
+**Headers**:
 ```
-POST /api/reset-data
+Authorization: Bearer <token>
 ```
 
-**Response:**
+**Request Body**:
+```json
+{
+  "amount": 5000000
+}
+```
+
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "message": "Đã tạo mới dữ liệu thành công",
-    "accounts": [
-      {
-        "role": "Admin",
-        "username": "admin@colormedia.vn",
-        "password": "admin@123"
-      },
-      {
-        "role": "Affiliate 1",
-        "username": "affiliate1@colormedia.vn",
-        "password": "affiliate1@123",
-        "affiliate_id": "AFF101"
-      },
-      {
-        "role": "Affiliate 2",
-        "username": "affiliate2@colormedia.vn",
-        "password": "affiliate2@123",
-        "affiliate_id": "AFF102"
-      }
-    ]
+    "message": "Mã OTP đã được gửi đến email của bạn",
+    "expires_in": 300
   }
 }
 ```
 
-**Curl Example:**
-```bash
-curl -X POST "http://localhost:5000/api/reset-data"
+### Xác thực OTP
+**Endpoint**: `POST /api/affiliate/withdrawals/verify-otp`
+
+**Mô tả**: Xác thực mã OTP để hoàn tất yêu cầu rút tiền.
+
+**Headers**:
+```
+Authorization: Bearer <token>
 ```
 
-### Kiểm tra trạng thái cơ sở dữ liệu
-
+**Request Body**:
+```json
+{
+  "amount": 5000000,
+  "note": "April commission",
+  "otp_code": "123456"
+}
 ```
-GET /api/db-status
-```
 
-**Response:**
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "storage_type": "In-memory",
-    "database_status": "Not connected",
-    "environment": "development",
-    "use_database": false
+    "request_date": "2024-04-20T00:00:00Z",
+    "amount": 5000000,
+    "note": "April commission",
+    "status": "Pending",
+    "message": "Yêu cầu rút tiền đã được xác thực và đang chờ xử lý"
   }
 }
 ```
 
-**Curl Example:**
-```bash
-curl -X GET "http://localhost:5000/api/db-status"
+**Phản hồi lỗi (OTP không hợp lệ)**:
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "INVALID_OTP",
+    "message": "Mã OTP không hợp lệ hoặc đã hết hạn"
+  }
+}
 ```
 
-## URL Test
+## Tài khoản kiểm thử
 
-Dưới đây là các URL có thể sử dụng để test API:
+```
+Admin:
+- Username: admin@colormedia.vn
+- Password: admin@123
 
-1. **URL test local:**
-   - Địa chỉ: `http://localhost:5000/api/...`
+Affiliate 1:
+- Username: affiliate1@colormedia.vn
+- Password: affiliate1@123
+- Affiliate ID: AFF101
 
-2. **URL test trên Replit:**
-   - Địa chỉ: `https://{your-replit-domain}.replit.app/api/...`
+Affiliate 2:
+- Username: affiliate2@colormedia.vn
+- Password: affiliate2@123
+- Affiliate ID: AFF102
+```
 
-3. **Reset Data và lấy tài khoản test:**
-   - `http://localhost:5000/api/reset-data` (POST)
+## Cập nhật mới nhất - Kiểm tra email trùng lặp
 
-4. **Đăng nhập (không yêu cầu token):**
-   - `http://localhost:5000/api/auth/login` (POST)
+Hệ thống đã được cập nhật để ngăn chặn việc tạo nhiều affiliate với cùng một địa chỉ email. Khi tạo affiliate mới, hệ thống sẽ kiểm tra:
 
-5. **Cập nhật giá trị hợp đồng (yêu cầu token):**
-   - `http://localhost:5000/api/admin/customers/0/contract` (PUT)
+1. Nếu email đã được sử dụng bởi một affiliate khác, hệ thống sẽ từ chối tạo affiliate mới và trả về lỗi `EMAIL_ALREADY_IN_USE`.
+2. Nếu email là mới, hệ thống sẽ tạo tài khoản người dùng và affiliate mới, đồng thời gửi email kích hoạt với mật khẩu mặc định "color1234@".
+
+**Ví dụ phản hồi lỗi (email đã tồn tại)**:
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "EMAIL_ALREADY_IN_USE",
+    "message": "Email affiliate1@colormedia.vn đã được sử dụng bởi affiliate khác. Vui lòng sử dụng email khác."
+  }
+}
+```
+
+**Lưu ý**: Trong môi trường phát triển với MemStorage, việc kiểm tra email trùng lặp có thể có giới hạn do cấu trúc dữ liệu, nhưng trong môi trường sản xuất với PostgreSQL, kiểm tra sẽ hoạt động chính xác.

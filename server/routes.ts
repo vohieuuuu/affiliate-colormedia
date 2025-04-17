@@ -1184,28 +1184,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Mật khẩu mặc định
                 const temporaryPassword = "color1234@";
                 
-                // Kiểm tra xem email đã tồn tại trong hệ thống chưa
-                const existingUser = await storage.getUserByUsername(affiliateData.email);
+                // Kiểm tra xem email đã được sử dụng cho affiliate nào chưa
+                const existingAffiliateByEmail = await storage.getAffiliateByEmail(affiliateData.email);
                 
-                // Kiểm tra xem email này đã được sử dụng cho affiliate nào chưa
-                if (existingUser) {
-                  console.log(`User with email ${affiliateData.email} already exists (ID: ${existingUser.id})`);
-                  
-                  // Kiểm tra xem email này đã kết hợp với affiliate nào chưa
-                  const existingAffiliate = await storage.getAffiliateByUserId(existingUser.id);
-                  
-                  if (existingAffiliate) {
-                    // Email đã được sử dụng cho một affiliate khác
-                    console.log(`Email ${affiliateData.email} is already used by affiliate ${existingAffiliate.affiliate_id}`);
-                    return res.status(400).json({
-                      status: "error",
-                      error: {
-                        code: "EMAIL_ALREADY_IN_USE",
-                        message: `Email ${affiliateData.email} đã được sử dụng bởi affiliate khác. Vui lòng sử dụng email khác.`
-                      }
-                    });
-                  }
+                if (existingAffiliateByEmail) {
+                  // Email đã được sử dụng cho một affiliate khác
+                  console.log(`Email ${affiliateData.email} is already used by affiliate ${existingAffiliateByEmail.affiliate_id}`);
+                  return res.status(400).json({
+                    status: "error",
+                    error: {
+                      code: "EMAIL_ALREADY_IN_USE",
+                      message: `Email ${affiliateData.email} đã được sử dụng bởi affiliate khác. Vui lòng sử dụng email khác.`
+                    }
+                  });
                 }
+                
+                // Kiểm tra xem email đã tồn tại trong hệ thống người dùng chưa
+                const existingUser = await storage.getUserByUsername(affiliateData.email);
                 
                 let userId;
                 
