@@ -253,8 +253,9 @@ export default function WithdrawalModal({
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className={`text-xs ${maxAmount > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400 font-medium'}`}>
                     Số dư khả dụng: {formatCurrency(affiliate?.remaining_balance || 0)} VND
+                    {maxAmount <= 0 && " (không thể rút tiền)"}
                   </p>
                   <p className="text-xs text-amber-600 dark:text-amber-400">
                     Giới hạn rút tiền mỗi ngày: {formatCurrency(DAILY_WITHDRAWAL_LIMIT)} VND
@@ -266,6 +267,14 @@ export default function WithdrawalModal({
                     Còn có thể rút hôm nay: {formatCurrency(remainingDailyLimit)} VND
                     {remainingDailyLimit <= 0 && " (đã đạt giới hạn)"}
                   </p>
+                  {maxAmount <= 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <AlertTriangle className="h-3 w-3 text-red-500" />
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                        Bạn không thể rút tiền khi số dư hoa hồng tích lũy bằng 0.
+                      </p>
+                    </div>
+                  )}
                   {parseFloat(amount) > remainingDailyLimit && amount !== "" && (
                     <div className="flex items-center gap-1 mt-1">
                       <AlertTriangle className="h-3 w-3 text-red-500" />
@@ -336,7 +345,7 @@ export default function WithdrawalModal({
               </Button>
               <Button 
                 type="submit" 
-                disabled={isLoading || !amount || Number(amount) <= 0 || parseFloat(amount) > maxAmount}
+                disabled={isLoading || !amount || Number(amount) <= 0 || parseFloat(amount) > maxAmount || maxAmount <= 0}
               >
                 {isLoading ? "Đang xử lý..." : "Tiếp tục"}
               </Button>

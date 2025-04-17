@@ -286,6 +286,11 @@ export class MemStorage implements IStorage {
       throw new Error(`Affiliate not found with ID: ${request.user_id}`);
     }
     
+    // Kiểm tra số dư tích lũy có bằng 0 không
+    if (affiliate.remaining_balance <= 0) {
+      throw new Error("Không thể tạo yêu cầu rút tiền khi số dư hoa hồng tích lũy bằng 0");
+    }
+    
     // Kiểm tra giới hạn rút tiền theo ngày
     const dailyLimitCheck = await this.checkDailyWithdrawalLimit(request.user_id, request.amount_requested);
     if (dailyLimitCheck.exceeds) {
