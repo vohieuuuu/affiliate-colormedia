@@ -647,8 +647,7 @@ POST /api/admin/affiliates
   "email": "c.le@example.com",
   "phone": "0987123456",
   "bank_account": "9876123456",
-  "bank_name": "VPBank",
-  "user_id": 3
+  "bank_name": "VPBank"
 }
 ```
 
@@ -688,8 +687,7 @@ curl -X POST "http://localhost:5000/api/admin/affiliates" \
     "email": "c.le@example.com",
     "phone": "0987123456",
     "bank_account": "9876123456",
-    "bank_name": "VPBank",
-    "user_id": 3
+    "bank_name": "VPBank"
   }'
 ```
 

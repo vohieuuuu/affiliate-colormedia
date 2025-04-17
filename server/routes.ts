@@ -1117,8 +1117,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add a new affiliate
   app.post("/api/admin/affiliates", async (req, res) => {
     try {
-      // Xác thực dữ liệu affiliate từ request body
-      const affiliateData = insertAffiliateSchema.parse(req.body);
+      // Xác thực dữ liệu affiliate từ request body, loại bỏ user_id nếu có
+      const { user_id, ...affiliateDataFromRequest } = req.body;
+      
+      // Sử dụng Zod để xác thực các trường khác, bỏ qua user_id
+      const affiliateData = insertAffiliateSchema.omit({ user_id: true }).parse(affiliateDataFromRequest);
       
       // Kiểm tra xem affiliate_id có định dạng AFF.xxx hay không
       if (affiliateData.affiliate_id.startsWith("AFF")) {
@@ -1200,8 +1203,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 );
                 
                 // Tạo affiliate mới và liên kết với user
-                affiliateData.user_id = newUser.id;
-                const newAffiliate = await storage.createAffiliate(affiliateData);
+                const newAffiliate = await storage.createAffiliate({
+                  ...affiliateData,
+                  user_id: newUser.id
+                });
                 
                 return res.status(201).json({
                   status: "success",
@@ -1214,7 +1219,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.error("Error sending activation email:", emailError);
                 
                 // Vẫn tạo affiliate nếu gửi email thất bại
-                const newAffiliate = await storage.createAffiliate(affiliateData);
+                const newAffiliate = await storage.createAffiliate({
+                  ...affiliateData,
+                  user_id: newUser.id
+                });
                 
                 return res.status(201).json({
                   status: "success",
@@ -1237,12 +1245,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       } else {
-        // Nếu không có định dạng AFF, tạo affiliate bình thường
-        const newAffiliate = await storage.createAffiliate(affiliateData);
-        
-        return res.status(201).json({
-          status: "success",
-          data: newAffiliate
+        // Nếu không có định dạng AFF, tạo tài khoản người dùng và thông báo lỗi
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_AFFILIATE_ID",
+            message: "Affiliate ID phải bắt đầu bằng 'AFF' (ví dụ: AFF101)"
+          }
         });
       }
     } catch (error) {
