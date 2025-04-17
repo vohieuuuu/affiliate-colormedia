@@ -101,13 +101,18 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Affiliate not found");
     }
     
-    // 2. Kiểm tra giới hạn rút tiền theo ngày
+    // 2. Kiểm tra số dư tích lũy có bằng 0 không
+    if (affiliate.remaining_balance <= 0) {
+      throw new Error("Không thể tạo yêu cầu rút tiền khi số dư hoa hồng tích lũy bằng 0");
+    }
+    
+    // 3. Kiểm tra giới hạn rút tiền theo ngày
     const dailyLimitCheck = await this.checkDailyWithdrawalLimit(request.user_id, request.amount_requested);
     if (dailyLimitCheck.exceeds) {
       throw new Error(`Vượt quá giới hạn rút tiền trong ngày. Hạn mức còn lại: ${dailyLimitCheck.remainingLimit.toLocaleString()} VND`);
     }
     
-    // 3. Kiểm tra số dư
+    // 4. Kiểm tra số dư
     if (affiliate.remaining_balance < request.amount_requested) {
       throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
     }
