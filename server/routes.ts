@@ -261,13 +261,15 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
           return storage.getAffiliateByEmail(req.user.username)
             .then(affiliateByEmail => {
               if (affiliateByEmail) {
-                console.log(`Found affiliate by email ${req.user.username} instead of user_id ${req.user.id}`);
+                console.log(`Found affiliate by email ${req.user?.username} instead of user_id ${req.user?.id}`);
                 // Cập nhật user_id của affiliate để khớp với user hiện tại
-                affiliateByEmail.user_id = req.user.id;
-                
-                // Lưu thông tin affiliate vào request để tái sử dụng
-                req.affiliate = affiliateByEmail;
-                return next();
+                if (req.user) {
+                  affiliateByEmail.user_id = req.user.id;
+                  
+                  // Lưu thông tin affiliate vào request để tái sử dụng
+                  req.affiliate = affiliateByEmail;
+                  return next();
+                }
               }
               
               // Nếu vẫn không tìm thấy, trả về lỗi
