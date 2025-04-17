@@ -1738,7 +1738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint để cập nhật thông tin hợp đồng cho khách hàng
   app.put("/api/admin/customers/:id/contract", async (req, res) => {
     try {
-      const customerId = parseInt(req.params.id);
+      const customerIndex = parseInt(req.params.id);
       const { 
         contract_value, 
         contract_date, 
@@ -1746,12 +1746,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         affiliate_id 
       } = req.body;
       
-      if (isNaN(customerId) || !contract_value) {
+      if (isNaN(customerIndex) || !contract_value) {
         return res.status(400).json({
           status: "error",
           error: {
             code: "VALIDATION_ERROR",
-            message: "Valid customer ID and contract value are required"
+            message: "Valid customer index and contract value are required"
           }
         });
       }
@@ -1779,45 +1779,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Sử dụng customerId như là index trong mảng khách hàng (tương tự API status)
-      if (customerId < 0 || customerId >= affiliate.referred_customers.length) {
+      console.log(`Looking for customer at index ${customerIndex} in ${affiliate.referred_customers.length} customers for affiliate ${affiliate_id}`);
+      
+      // Sử dụng customerIndex như là index trong mảng khách hàng (tương tự API status)
+      if (customerIndex < 0 || customerIndex >= affiliate.referred_customers.length) {
         return res.status(404).json({
           status: "error",
           error: {
             code: "NOT_FOUND", 
-            message: `Customer at index ${customerId} not found for affiliate ${affiliate_id}`
+            message: `Customer at index ${customerIndex} not found for affiliate ${affiliate_id}`
           }
         });
       }
       
       // Lấy thông tin khách hàng hiện tại trực tiếp từ index
-      const customerIndex = customerId;
       const customer = affiliate.referred_customers[customerIndex];
       
+      console.log(`Found customer at index ${customerIndex}:`, JSON.stringify({
+        id: customer.id,
+        name: customer.customer_name,
+        current_value: customer.contract_value || 0
+      }));
+      
       // Tính toán hoa hồng và giá trị bổ sung
-      const additionalContractValue = contract_value;
-      const additionalCommission = additionalContractValue * 0.03;
+      const oldContractValue = customer.contract_value || 0;
+      const additionalContractValue = contract_value - oldContractValue;
+      const additionalCommission = Math.round(additionalContractValue * 0.03); // 3% hoa hồng
+      
+      console.log(`Calculating commission: old value ${oldContractValue}, new value ${contract_value}, additional: ${additionalContractValue}, commission: ${additionalCommission}`);
       
       // Tạo bản cập nhật cho khách hàng
       const updatedCustomer = {
         ...customer,
         status: CustomerStatus.enum["Contract signed"],  // Cập nhật trạng thái thành đã ký hợp đồng
-        contract_value: additionalContractValue,
-        contract_date: contract_date || new Date().toISOString(),
+        contract_value: contract_value, // Cập nhật giá trị hợp đồng mới (không phải chỉ phần bổ sung)
+        commission: (customer.commission || 0) + additionalCommission, // Cộng dồn hoa hồng
+        contract_date: contract_date || customer.contract_date || new Date().toISOString(),
         updated_at: new Date().toISOString(),
         note: note || customer.note || "",
-        commission: additionalCommission // Tính hoa hồng 3% từ giá trị hợp đồng
       };
       
       // Tính toán các thay đổi về số dư
       const balanceUpdates = {
-        contract_value: additionalContractValue,
+        contract_value: affiliate.contract_value + additionalContractValue,
         received_balance: affiliate.received_balance + additionalCommission,
         remaining_balance: affiliate.remaining_balance + additionalCommission
       };
       
       // Debug log
-      console.log(`Submitting contract update for customer at index ${customerIndex} with data:`, JSON.stringify(updatedCustomer));
+      console.log(`Submitting contract update for customer at index ${customerIndex} with data:`, JSON.stringify({
+        name: updatedCustomer.customer_name,
+        old_value: oldContractValue,
+        new_value: updatedCustomer.contract_value,
+        old_commission: customer.commission || 0,
+        new_commission: updatedCustomer.commission
+      }));
       
       // Cập nhật khách hàng và số dư của affiliate
       const result = await storage.updateCustomerWithContract(
@@ -1836,11 +1852,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      console.log(`Contract update successful, result:`, JSON.stringify({
+        id: result.id,
+        name: result.customer_name,
+        value: result.contract_value,
+        commission: result.commission
+      }));
+      
       // Trả về thông tin theo định dạng yêu cầu trong tài liệu API
       return res.status(200).json({
         status: "success",
         data: {
-          id: result.id || customerId,
+          id: result.id,
           name: result.customer_name,
           status: result.status,
           contract_value: result.contract_value,
@@ -1971,6 +1994,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: {
           code: "VALIDATION_ERROR",
           message: error instanceof Error ? error.message : "Invalid status update"
+        }
+      });
+    }
+  });
+
+  // Debug endpoint để kiểm tra thông tin affiliate
+  app.get("/api/debug/affiliates/:id", async (req, res) => {
+    try {
+      const affiliateId = req.params.id;
+      const affiliate = await storage.getAffiliateByAffiliateId(affiliateId);
+      
+      if (!affiliate) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: `Affiliate with ID ${affiliateId} not found`
+          }
+        });
+      }
+      
+      // Log thông tin khách hàng để phân tích
+      console.log("Affiliate customers:", affiliate.referred_customers.map((c, index) => ({
+        index,
+        id: c.id,
+        name: c.customer_name
+      })));
+      
+      return res.json({
+        status: "success",
+        data: affiliate
+      });
+    } catch (error) {
+      console.error("Error in debug API:", error);
+      return res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An error occurred while retrieving affiliate information"
         }
       });
     }
