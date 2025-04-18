@@ -1188,6 +1188,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           bankName: validatedPayload.bank_name,
           accountNumber: validatedPayload.bank_account
+        },
+        {
+          taxAmount: validatedPayload.tax_amount,
+          amountAfterTax: validatedPayload.amount_after_tax,
+          hasTax: validatedPayload.has_tax,
+          taxRate: validatedPayload.tax_rate
         }
       );
       

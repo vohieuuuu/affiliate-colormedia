@@ -33,6 +33,7 @@ export default function WithdrawalModal({
   const [amount, setAmount] = useState<string>("");
   const [formattedAmount, setFormattedAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
+  const [taxId, setTaxId] = useState<string>(""); // Mã số thuế cá nhân (nếu có)
   const [confirmBankInfo, setConfirmBankInfo] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<WithdrawalStep>("initial");
@@ -306,6 +307,19 @@ export default function WithdrawalModal({
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="taxId">Mã số thuế cá nhân (nếu có)</Label>
+                <Input
+                  id="taxId"
+                  placeholder="Nhập MST cá nhân của bạn"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="italic">Lưu ý: MST cá nhân sẽ được sử dụng cho mục đích kê khai thuế thu nhập cá nhân khi số tiền rút vượt quá 2 triệu VND.</span>
+                </p>
               </div>
               
               <div className="flex items-start space-x-2 pt-2">

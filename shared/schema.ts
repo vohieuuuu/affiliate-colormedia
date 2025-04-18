@@ -61,6 +61,7 @@ export const WithdrawalHistorySchema = z.object({
   amount_after_tax: z.number().optional(), // Số tiền sau thuế
   has_tax: z.boolean().optional(),      // Có áp dụng thuế hay không
   tax_rate: z.number().optional(),      // Tỷ lệ thuế (VD: 0.1 = 10%)
+  tax_id: z.string().optional(),        // Mã số thuế cá nhân (nếu có)
   note: z.string().optional(),
   status: WithdrawalStatus,
   message: z.string().optional(),
@@ -113,6 +114,7 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   phone: text("phone").notNull(),
   bank_account: text("bank_account").notNull(),
   bank_name: text("bank_name").notNull(),
+  tax_id: text("tax_id"), // Mã số thuế cá nhân (nếu có)
   amount_requested: integer("amount_requested").notNull(),
   note: text("note"),
   request_time: timestamp("request_time").notNull().defaultNow(),
@@ -226,6 +228,7 @@ export const withdrawalRequestPayloadSchema = z.object({
   phone: z.string(),
   bank_account: z.string(),
   bank_name: z.string(),
+  tax_id: z.string().optional(), // Mã số thuế cá nhân (nếu có)
   amount_requested: z.number().positive(),
   amount_after_tax: z.number().positive().optional(),
   tax_amount: z.number().min(0).optional(),

@@ -225,6 +225,12 @@ export async function sendWithdrawalRequestEmail(
     bankName: string;
     accountNumber: string;
   },
+  taxInfo?: {
+    taxAmount?: number;
+    amountAfterTax?: number;
+    hasTax?: boolean;
+    taxRate?: number;
+  }
 ): Promise<boolean> {
   // Override email for testing purposes
   const testEmail = "voxuanhieu.designer@gmail.com";
@@ -238,6 +244,42 @@ export async function sendWithdrawalRequestEmail(
     style: "currency",
     currency: "VND",
   }).format(amount);
+  
+  // Xử lý thông tin thuế nếu có
+  let taxSection = '';
+  let taxTextSection = '';
+  
+  if (taxInfo && taxInfo.hasTax) {
+    const formattedTaxAmount = new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(taxInfo.taxAmount || 0);
+    
+    const formattedNetAmount = new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(taxInfo.amountAfterTax || amount);
+    
+    const taxRateFormatted = `${(taxInfo.taxRate || 0.1) * 100}%`;
+    
+    taxSection = `
+      <div style="background-color: #fff8e1; border-left: 4px solid #ffc919; padding: 15px; margin: 15px 0;">
+        <p><strong>Thông tin thuế thu nhập cá nhân:</strong></p>
+        <p>💰 Số tiền yêu cầu: <strong>${formattedAmount}</strong></p>
+        <p>🔢 Thuế TNCN (${taxRateFormatted}): <strong>${formattedTaxAmount}</strong></p>
+        <p>💸 Số tiền thực nhận: <strong>${formattedNetAmount}</strong></p>
+        <p style="font-size: 0.9em; color: #555;">Theo quy định của pháp luật, khoản rút tiền trên 2 triệu VND sẽ bị khấu trừ 10% thuế TNCN.</p>
+      </div>
+    `;
+    
+    taxTextSection = `
+Thông tin thuế thu nhập cá nhân:
+💰 Số tiền yêu cầu: ${formattedAmount}
+🔢 Thuế TNCN (${taxRateFormatted}): ${formattedTaxAmount}
+💸 Số tiền thực nhận: ${formattedNetAmount}
+Theo quy định của pháp luật, khoản rút tiền trên 2 triệu VND sẽ bị khấu trừ 10% thuế TNCN.
+    `;
+  }
 
   const htmlContent = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
@@ -256,6 +298,8 @@ export async function sendWithdrawalRequestEmail(
         <p>🔢 Số tài khoản: <strong>${bankInfo.accountNumber}</strong></p>
         <p>⏱️ Thời gian yêu cầu: <strong>${new Date().toLocaleString("vi-VN")}</strong></p>
       </div>
+      
+      ${taxSection}
       
       <p>Đội ngũ của chúng tôi sẽ xử lý yêu cầu của bạn trong vòng 1-3 ngày làm việc. Bạn sẽ nhận được email xác nhận khi yêu cầu rút tiền đã được xử lý.</p>
       
@@ -281,6 +325,7 @@ Chi tiết yêu cầu rút tiền:
 🏦 Ngân hàng: ${bankInfo.bankName}
 🔢 Số tài khoản: ${bankInfo.accountNumber}
 ⏱️ Thời gian yêu cầu: ${new Date().toLocaleString("vi-VN")}
+${taxTextSection}
 
 Đội ngũ của chúng tôi sẽ xử lý yêu cầu của bạn trong vòng 1-3 ngày làm việc. Bạn sẽ nhận được email xác nhận khi yêu cầu rút tiền đã được xử lý.
 
