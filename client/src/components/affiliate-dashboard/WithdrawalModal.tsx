@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Affiliate } from "@shared/schema";
 import { DollarSign, Key, LockKeyhole, RotateCcw, Mail, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatNumberWithCommas, parseFormattedNumber } from "@/lib/formatters";
 import { OtpInput } from "@/components/OtpInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
@@ -180,6 +180,7 @@ export default function WithdrawalModal({
   
   const resetForm = () => {
     setAmount("");
+    setFormattedAmount("");
     setNote("");
     setConfirmBankInfo(false);
     setError(null);
