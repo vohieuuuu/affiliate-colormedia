@@ -19,7 +19,8 @@ import {
   WithdrawalStatusType
 } from '../shared/schema.js';
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm/pg-core";
+import { eq } from "drizzle-orm/pg-core";
+import { desc } from "drizzle-orm";
 import { IStorage } from "./storage";
 
 export class DatabaseStorage implements IStorage {
