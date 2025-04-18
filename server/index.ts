@@ -87,8 +87,8 @@ app.use((req, res, next) => {
   // Thiết lập các routes xác thực nếu sử dụng database
   if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
     try {
-      const { db } = await import("./db");
-      const { setupAuthRoutes } = await import("./auth");
+      import { db } from "./db";
+      import { setupAuthRoutes } from "./auth";
       
       // Thiết lập route xác thực
       setupAuthRoutes(app, db);
