@@ -743,10 +743,31 @@ export class MemStorage implements IStorage {
         console.log(`Preserved customer name in contract update: ${currentCustomerName}`);
       }
       
-      // 5. Cập nhật thông tin tổng hợp của affiliate
-      targetAffiliate.contract_value = balanceUpdates.contract_value;
-      targetAffiliate.received_balance = balanceUpdates.received_balance;
-      targetAffiliate.remaining_balance = balanceUpdates.remaining_balance;
+      // 5. Tính toán sự chênh lệch giữa giá trị hiện tại và giá trị mới
+      // Chỉ tính chênh lệch và cộng dồn, không ghi đè toàn bộ giá trị
+      // Đảm bảo không trừ đi giá trị hợp đồng cũ mà chỉ thêm giá trị mới
+      
+      // Tính toán giá trị chênh lệch của hợp đồng
+      const currentContractValue = targetAffiliate.contract_value || 0;
+      const newContractValue = (balanceUpdates.contract_value || 0);
+      const contractValueDifference = Math.max(0, newContractValue - currentContractValue);
+      
+      // Tính toán giá trị chênh lệch của hoa hồng (3% của giá trị hợp đồng mới)
+      const commissionDifference = contractValueDifference * 0.03;
+      
+      console.log(`Contract value calculation: Current=${currentContractValue}, New=${newContractValue}, Difference=${contractValueDifference}`);
+      console.log(`Commission calculation: Difference=${commissionDifference}`);
+      
+      // Cập nhật bằng cách cộng dồn, không ghi đè
+      if (contractValueDifference > 0) {
+        targetAffiliate.contract_value += contractValueDifference;
+        targetAffiliate.received_balance += commissionDifference;
+        targetAffiliate.remaining_balance += commissionDifference;
+        
+        console.log(`Updated affiliate values: contract_value=${targetAffiliate.contract_value}, received_balance=${targetAffiliate.received_balance}, remaining_balance=${targetAffiliate.remaining_balance}`);
+      } else {
+        console.log(`No change in contract value detected. Keeping current values.`);
+      }
       
       // 6. Nếu khách hàng có contract_value, tăng total_contracts của affiliate nếu cần
       const oldCustomer = targetAffiliate.referred_customers[customerIndex];
