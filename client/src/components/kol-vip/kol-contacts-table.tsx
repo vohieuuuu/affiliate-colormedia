@@ -1,16 +1,30 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
-  TableCell 
+import { useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  ChevronDown,
+  ChevronUp,
+  Search,
+  PlusCircle,
+  FileSignature,
+  Filter,
+  X,
+  Phone,
+  Mail,
+  Building,
+  Calendar,
+  Edit,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,402 +32,432 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ChevronRight,
-  Search,
-  SlidersHorizontal,
-  FileCheck,
-  Ban,
-  Clock,
-  Users,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  RefreshCw,
-  Phone,
-  Mail,
-  Building
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatDate, formatCurrency } from "@/lib/utils";
 import { KolContact, CustomerStatusType } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 import UpdateContactModal from "./update-contact-modal";
 import ContractModal from "./contract-modal";
 
 interface KolContactsTableProps {
-  onRefresh?: () => void;
+  contacts: KolContact[];
+  isLoading: boolean;
+  onAddContact: () => void;
+  onUpdateContact: (contactId: number, data: Partial<KolContact>) => void;
+  onAddContract: (contactId: number, data: { contractValue: number, note: string }) => void;
+  kolId?: string;
 }
 
-const KolContactsTable = ({ onRefresh }: KolContactsTableProps) => {
-  const { toast } = useToast();
+const KolContactsTable = ({
+  contacts,
+  isLoading,
+  onAddContact,
+  onUpdateContact,
+  onAddContract,
+  kolId,
+}: KolContactsTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<CustomerStatusType | "all">("all");
+  const [sortField, setSortField] = useState<keyof KolContact>("created_at");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [selectedContact, setSelectedContact] = useState<KolContact | null>(null);
-  
-  // Lấy thông tin affiliate từ API
-  const { data: kolData, isLoading: isKolLoading } = useQuery<{
-    status: string;
-    data: {
-      id: number;
-      affiliate_id: string;
-      full_name: string;
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showContractModal, setShowContractModal] = useState(false);
+
+  // Xử lý sắp xếp
+  const handleSort = (field: keyof KolContact) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
     }
-  }>({
-    queryKey: ['/api/kol/me'],
-    retry: 1,
-  });
-
-  // Lấy danh sách contacts từ API
-  const { data: contactsData, isLoading, isError, refetch } = useQuery<{
-    status: string;
-    data: KolContact[];
-  }>({
-    queryKey: ['/api/kol/contacts'],
-    queryFn: async () => {
-      if (!kolData?.data?.affiliate_id) {
-        throw new Error("KOL ID not available");
-      }
-      
-      const res = await fetch(`/api/kol/${kolData.data.affiliate_id}/contacts`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch contacts");
-      }
-      
-      return res.json();
-    },
-    enabled: !!kolData?.data?.affiliate_id,
-    retry: 1,
-  });
-
-  // Cập nhật trạng thái contact
-  const updateContactMutation = useMutation({
-    mutationFn: async ({ contactId, status, note }: { contactId: number, status: CustomerStatusType, note: string }) => {
-      if (!kolData?.data?.affiliate_id) {
-        throw new Error("KOL ID not available");
-      }
-      
-      const res = await fetch(`/api/kol/${kolData.data.affiliate_id}/contacts/${contactId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ status, note })
-      });
-      
-      if (!res.ok) {
-        throw new Error("Failed to update contact");
-      }
-      
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Thành công",
-        description: "Cập nhật trạng thái liên hệ thành công",
-      });
-      
-      refetch();
-      if (onRefresh) onRefresh();
-    },
-    onError: (error) => {
-      toast({
-        title: "Lỗi",
-        description: error.message || "Có lỗi xảy ra khi cập nhật trạng thái liên hệ",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Cập nhật thông tin hợp đồng
-  const updateContractMutation = useMutation({
-    mutationFn: async ({ contactId, contractValue, note }: { contactId: number, contractValue: number, note: string }) => {
-      if (!kolData?.data?.affiliate_id) {
-        throw new Error("KOL ID not available");
-      }
-      
-      const res = await fetch(`/api/kol/${kolData.data.affiliate_id}/contacts/${contactId}/contract`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ contract_value: contractValue, note })
-      });
-      
-      if (!res.ok) {
-        throw new Error("Failed to update contract");
-      }
-      
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Thành công",
-        description: "Cập nhật thông tin hợp đồng thành công",
-      });
-      
-      refetch();
-      if (onRefresh) onRefresh();
-    },
-    onError: (error) => {
-      toast({
-        title: "Lỗi",
-        description: error.message || "Có lỗi xảy ra khi cập nhật thông tin hợp đồng",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handleUpdateContact = (contact: KolContact) => {
-    setSelectedContact(contact);
-    setIsUpdateModalOpen(true);
   };
 
-  const handleOpenContractModal = (contact: KolContact) => {
-    setSelectedContact(contact);
-    setIsContractModalOpen(true);
-  };
+  // Lọc và sắp xếp contacts
+  const filteredContacts = contacts
+    .filter((contact) => {
+      // Lọc theo từ khóa tìm kiếm
+      const searchMatch =
+        contact.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contact.company && contact.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (contact.phone && contact.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const handleUpdateStatus = (data: { status: CustomerStatusType, note: string }) => {
-    if (!selectedContact) return;
-    
-    updateContactMutation.mutate({
-      contactId: selectedContact.id,
-      status: data.status,
-      note: data.note
+      // Lọc theo trạng thái
+      const statusMatch = statusFilter === "all" || contact.status === statusFilter;
+
+      return searchMatch && statusMatch;
+    })
+    .sort((a, b) => {
+      // Sắp xếp theo trường đã chọn
+      if (sortField === "created_at") {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        return sortDirection === "asc" ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
+      }
+
+      if (sortField === "contact_name") {
+        return sortDirection === "asc"
+          ? a.contact_name.localeCompare(b.contact_name)
+          : b.contact_name.localeCompare(a.contact_name);
+      }
+
+      if (sortField === "company") {
+        const companyA = a.company || "";
+        const companyB = b.company || "";
+        return sortDirection === "asc"
+          ? companyA.localeCompare(companyB)
+          : companyB.localeCompare(companyA);
+      }
+
+      if (sortField === "status") {
+        return sortDirection === "asc"
+          ? a.status.localeCompare(b.status)
+          : b.status.localeCompare(a.status);
+      }
+
+      return 0;
     });
-    
-    setIsUpdateModalOpen(false);
+
+  // Xử lý cập nhật trạng thái
+  const handleUpdateStatus = (contact: KolContact) => {
+    setSelectedContact(contact);
+    setShowUpdateModal(true);
   };
 
-  const handleUpdateContract = (data: { contractValue: number, note: string }) => {
-    if (!selectedContact) return;
-    
-    updateContractMutation.mutate({
-      contactId: selectedContact.id,
-      contractValue: data.contractValue,
-      note: data.note
-    });
-    
-    setIsContractModalOpen(false);
+  // Xử lý thêm hợp đồng
+  const handleAddContract = (contact: KolContact) => {
+    setSelectedContact(contact);
+    setShowContractModal(true);
   };
 
-  // Lọc danh sách contacts
-  const filteredContacts = contactsData?.data ? contactsData.data.filter(contact => {
-    const matchesSearch = 
-      contact.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (contact.company && contact.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (contact.phone && contact.phone.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = statusFilter === "all" || contact.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  }) : [];
-
-  // Status badge component
-  const StatusBadge = ({ status }: { status: CustomerStatusType }) => {
-    const statusMap: Record<CustomerStatusType, { color: string, icon: React.ReactNode }> = {
-      "Mới nhập": { color: "bg-blue-100 text-blue-800", icon: <Clock className="w-3 h-3 mr-1" /> },
-      "Đang tư vấn": { color: "bg-orange-100 text-orange-800", icon: <Users className="w-3 h-3 mr-1" /> },
-      "Chờ phản hồi": { color: "bg-purple-100 text-purple-800", icon: <Clock className="w-3 h-3 mr-1" /> },
-      "Đã chốt hợp đồng": { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-3 h-3 mr-1" /> },
-      "Không tiềm năng": { color: "bg-red-100 text-red-800", icon: <XCircle className="w-3 h-3 mr-1" /> },
-    };
-
-    const { color, icon } = statusMap[status] || { color: "bg-gray-100 text-gray-800", icon: null };
-
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
-        {icon}
-        {status}
-      </span>
-    );
+  // Xử lý khi submit cập nhật trạng thái
+  const handleUpdateSubmit = (data: { status: CustomerStatusType; note: string }) => {
+    if (selectedContact) {
+      onUpdateContact(selectedContact.id, {
+        status: data.status,
+        note: data.note,
+      });
+      setShowUpdateModal(false);
+    }
   };
 
-  if (isLoading || isKolLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="w-10 h-10 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-      </div>
-    );
-  }
+  // Xử lý khi submit thêm hợp đồng
+  const handleContractSubmit = (data: { contractValue: number; note: string }) => {
+    if (selectedContact) {
+      onAddContract(selectedContact.id, data);
+      setShowContractModal(false);
+    }
+  };
 
-  if (isError || !contactsData) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8">
-        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <h2 className="text-xl font-bold mb-2">Lỗi khi tải dữ liệu</h2>
-        <p className="text-gray-500 mb-4">Không thể tải danh sách liên hệ. Vui lòng thử lại sau.</p>
-        <Button onClick={() => refetch()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Tải lại
-        </Button>
-      </div>
-    );
-  }
+  // Hiển thị badge tương ứng với trạng thái
+  const renderStatusBadge = (status: CustomerStatusType) => {
+    switch (status) {
+      case "Đã chốt hợp đồng":
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+            {status}
+          </Badge>
+        );
+      case "Đang tư vấn":
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+            {status}
+          </Badge>
+        );
+      case "Chờ phản hồi":
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
+            {status}
+          </Badge>
+        );
+      case "Không tiềm năng":
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+            {status}
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+            {status}
+          </Badge>
+        );
+    }
+  };
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Tìm kiếm liên hệ..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
+        <div className="flex items-center w-full md:w-auto">
+          <div className="relative w-full md:w-[280px]">
+            <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm theo tên, công ty, SĐT..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+            {searchTerm && (
+              <X
+                className="absolute right-2 top-3 h-4 w-4 text-muted-foreground cursor-pointer"
+                onClick={() => setSearchTerm("")}
+              />
+            )}
+          </div>
         </div>
-        
-        <div className="flex gap-2">
-          <Select
-            value={statusFilter}
-            onValueChange={setStatusFilter}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SlidersHorizontal className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Lọc theo trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="Mới nhập">Mới nhập</SelectItem>
-              <SelectItem value="Đang tư vấn">Đang tư vấn</SelectItem>
-              <SelectItem value="Chờ phản hồi">Chờ phản hồi</SelectItem>
-              <SelectItem value="Đã chốt hợp đồng">Đã chốt hợp đồng</SelectItem>
-              <SelectItem value="Không tiềm năng">Không tiềm năng</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
+
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as CustomerStatusType | "all")}
+            >
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Lọc theo trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="Mới nhập">Mới nhập</SelectItem>
+                <SelectItem value="Đang tư vấn">Đang tư vấn</SelectItem>
+                <SelectItem value="Chờ phản hồi">Chờ phản hồi</SelectItem>
+                <SelectItem value="Đã chốt hợp đồng">Đã chốt hợp đồng</SelectItem>
+                <SelectItem value="Không tiềm năng">Không tiềm năng</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button variant="default" onClick={onAddContact} className="w-full md:w-auto">
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Thêm liên hệ
           </Button>
         </div>
       </div>
-      
-      {/* Results count */}
-      <div className="text-sm text-muted-foreground">
-        Hiển thị {filteredContacts.length} liên hệ
-      </div>
-      
-      {/* Table */}
-      {filteredContacts.length > 0 ? (
-        <div className="rounded-md border">
+
+      <div className="rounded-md border">
+        <ScrollArea className="h-[500px] rounded-md">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 bg-white">
               <TableRow>
-                <TableHead>Tên liên hệ</TableHead>
-                <TableHead>Thông tin liên hệ</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Ngày thêm</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
+                <TableHead
+                  className="cursor-pointer w-[200px]"
+                  onClick={() => handleSort("contact_name")}
+                >
+                  <div className="flex items-center gap-1">
+                    Tên liên hệ
+                    {sortField === "contact_name" && (
+                      <span>
+                        {sortDirection === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hidden md:table-cell"
+                  onClick={() => handleSort("company")}
+                >
+                  <div className="flex items-center gap-1">
+                    Công ty
+                    {sortField === "company" && (
+                      <span>
+                        {sortDirection === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead className="hidden md:table-cell">Thông tin liên hệ</TableHead>
+                <TableHead
+                  className="cursor-pointer"
+                  onClick={() => handleSort("created_at")}
+                >
+                  <div className="flex items-center gap-1">
+                    Ngày thêm
+                    {sortField === "created_at" && (
+                      <span>
+                        {sortDirection === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer text-center"
+                  onClick={() => handleSort("status")}
+                >
+                  <div className="flex items-center gap-1 justify-center">
+                    Trạng thái
+                    {sortField === "status" && (
+                      <span>
+                        {sortDirection === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center w-[140px]">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredContacts.map((contact) => (
-                <TableRow key={contact.id}>
-                  <TableCell className="font-medium">
-                    <div>{contact.contact_name}</div>
-                    <div className="text-sm text-muted-foreground">{contact.company || "-"}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center text-sm">
-                      <Phone className="mr-1 h-3 w-3 text-muted-foreground" />
-                      {contact.phone || "-"}
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Mail className="mr-1 h-3 w-3 text-muted-foreground" />
-                      {contact.email || "-"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={contact.status} />
-                    {contact.status === "Đã chốt hợp đồng" && contact.contract_value && (
-                      <div className="mt-1 text-xs text-green-600">
-                        {formatCurrency(contact.contract_value)}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(contact.created_at).toLocaleDateString("vi-VN")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="icon"
-                              onClick={() => handleUpdateContact(contact)}
-                            >
-                              <Clock className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Cập nhật trạng thái</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="icon"
-                              onClick={() => handleOpenContractModal(contact)}
-                              disabled={contact.status === "Đã chốt hợp đồng"}
-                            >
-                              <FileCheck className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Chốt hợp đồng</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-9 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : filteredContacts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    Không tìm thấy liên hệ nào
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredContacts.map((contact) => (
+                  <TableRow key={contact.id}>
+                    <TableCell className="font-medium">
+                      <div>
+                        {contact.contact_name}
+                        {contact.position && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {contact.position}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {contact.company || "—"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="space-y-1">
+                        {contact.phone && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            {contact.phone}
+                          </div>
+                        )}
+                        {contact.email && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Mail className="h-3 w-3 text-muted-foreground" />
+                            {contact.email}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(contact.created_at)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {renderStatusBadge(contact.status)}
+                      {contact.contract_value > 0 && (
+                        <div className="text-xs text-green-600 font-medium mt-1">
+                          {formatCurrency(contact.contract_value)}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleUpdateStatus(contact)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Cập nhật trạng thái</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        {contact.status !== "Đã chốt hợp đồng" && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleAddContract(contact)}
+                                >
+                                  <FileSignature className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Chốt hợp đồng</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <AlertCircle className="h-10 w-10 text-muted-foreground mb-3" />
-            <p className="text-center mb-2 font-medium">Không tìm thấy liên hệ nào</p>
-            <p className="text-center text-sm text-muted-foreground">
-              Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc
-            </p>
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Update Status Modal */}
-      {selectedContact && (
+        </ScrollArea>
+      </div>
+
+      {selectedContact && showUpdateModal && (
         <UpdateContactModal
-          isOpen={isUpdateModalOpen}
-          onClose={() => setIsUpdateModalOpen(false)}
+          isOpen={showUpdateModal}
+          onClose={() => setShowUpdateModal(false)}
           contact={selectedContact}
-          onSubmit={handleUpdateStatus}
+          onSubmit={handleUpdateSubmit}
         />
       )}
-      
-      {/* Contract Modal */}
-      {selectedContact && (
+
+      {selectedContact && showContractModal && (
         <ContractModal
-          isOpen={isContractModalOpen}
-          onClose={() => setIsContractModalOpen(false)}
+          isOpen={showContractModal}
+          onClose={() => setShowContractModal(false)}
           contact={selectedContact}
-          onSubmit={handleUpdateContract}
+          onSubmit={handleContractSubmit}
         />
       )}
     </div>
