@@ -22,12 +22,12 @@ export default function Dashboard() {
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<ReferredCustomer | null>(null);
   
-  // Fetch affiliate data với polling mỗi 3 giây để cập nhật số dư ngay lập tức
+  // Fetch affiliate data với polling 15 giây để giảm tải cho backend
   const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, error: affiliateError, refetch: refetchAffiliate } = useQuery({
     queryKey: ['/api/affiliate'],
-    refetchInterval: 3000, // Polling mỗi 3 giây để cập nhật ngay lập tức
-    staleTime: 0, // Không cache dữ liệu để đảm bảo dữ liệu luôn mới nhất
-    refetchOnMount: true, // Refetch khi component được mount
+    refetchInterval: 15000, // Polling mỗi 15 giây để giảm tải cho BE
+    staleTime: 5000, // Đặt staleTime 5 giây để vẫn có thể invalidate nhưng giảm số lượng requests
+    refetchOnMount: "always", // Luôn refetch khi component được mount (quan trọng sau khi rút tiền)
     refetchOnWindowFocus: true, // Refetch khi cửa sổ được focus
   });
   

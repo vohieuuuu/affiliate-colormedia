@@ -79,11 +79,11 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: 3000, // Poll mỗi 3 giây
+      refetchInterval: false, // Tắt auto polling toàn cục và điều chỉnh riêng cho từng query
       refetchOnWindowFocus: true,
-      staleTime: 0, // Không lưu cache dữ liệu
+      staleTime: 10000, // Cache trong 10 giây để giảm số lượng request
       retry: false,
-      gcTime: 0, // Không lưu cache dữ liệu
+      gcTime: 60000, // Giữ dữ liệu cũ trong 1 phút nếu user không hoạt động
       refetchOnMount: true,
       refetchOnReconnect: true,
     },
