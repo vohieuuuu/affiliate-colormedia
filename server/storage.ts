@@ -551,9 +551,9 @@ export class MemStorage implements IStorage {
     };
     
     // Nếu là hợp đồng đã ký, thêm thông tin về giá trị hợp đồng và hoa hồng
-    if (newCustomer.status === "Contract signed") {
+    if (newCustomer.status === "Đã chốt hợp đồng") {
       const contractValue = newCustomer.contract_value || 20000000; // Default 20M VND
-      const commission = contractValue * 0.03; // 3% hoa hồng (đã cập nhật từ 10%)
+      const commission = contractValue * 0.03; // 3% hoa hồng
       
       // Cập nhật thông tin khách hàng
       newCustomer.contract_value = contractValue;
@@ -567,12 +567,12 @@ export class MemStorage implements IStorage {
     // Update the affiliate stats
     affiliate.total_contacts += 1;
     
-    // If status is "Contract signed", update contracts count and value
-    if (newCustomer.status === "Contract signed") {
+    // If status is "Đã chốt hợp đồng", update contracts count and value
+    if (newCustomer.status === "Đã chốt hợp đồng") {
       affiliate.total_contracts += 1;
       
       const contractValue = newCustomer.contract_value || 20000000;
-      const commission = contractValue * 0.03; // 3% hoa hồng (đã cập nhật từ 10%)
+      const commission = contractValue * 0.03; // 3% hoa hồng
       
       affiliate.contract_value += contractValue;
       affiliate.remaining_balance += commission;
@@ -647,12 +647,12 @@ export class MemStorage implements IStorage {
     // Lấy lại đối tượng đã cập nhật
     const updatedCustomer = targetAffiliate.referred_customers[customerIndex];
     
-    // If the status is changed to "Contract signed", update contracts count and value
-    if (status === "Contract signed" && oldStatus !== "Contract signed") {
+    // If the status is changed to "Đã chốt hợp đồng", update contracts count and value
+    if (status === "Đã chốt hợp đồng" && oldStatus !== "Đã chốt hợp đồng") {
       targetAffiliate.total_contracts += 1;
       // Mặc định giá trị hợp đồng và hoa hồng
       const contractValue = 20000000; // Default 20M VND
-      const commission = contractValue * 0.03; // 3% commission - Cập nhật thành 3% thay vì 10%
+      const commission = contractValue * 0.03; // 3% commission
       
       // Cập nhật thông tin về hợp đồng và hoa hồng cho khách hàng
       updatedCustomer.contract_value = contractValue;
@@ -753,8 +753,8 @@ export class MemStorage implements IStorage {
       if (customerData.contract_value && 
           (oldCustomer.contract_value === undefined || customerData.contract_value > oldCustomer.contract_value)) {
         
-        // Nếu trạng thái là "Contract signed" và không có contract_date, thêm contract_date
-        if (customerData.status === "Contract signed" && !customerData.contract_date) {
+        // Nếu trạng thái là "Đã chốt hợp đồng" và không có contract_date, thêm contract_date
+        if (customerData.status === "Đã chốt hợp đồng" && !customerData.contract_date) {
           targetAffiliate.referred_customers[customerIndex].contract_date = new Date().toISOString();
         }
         

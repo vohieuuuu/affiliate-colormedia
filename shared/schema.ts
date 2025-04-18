@@ -4,11 +4,11 @@ import { z } from "zod";
 
 // Define the status type for referred customer stages
 export const CustomerStatus = z.enum([
-  "Contact received",
-  "Presenting idea",
-  "Contract signed",
-  "Pending reconciliation",
-  "Ready to disburse"
+  "Mới nhập",        // 🟡 Contact vừa được tạo, chưa xử lý
+  "Đang tư vấn",     // 🔵 Đã có sale gọi điện hoặc tiếp cận
+  "Chờ phản hồi",    // 🟠 Đã gửi báo giá hoặc thông tin thêm
+  "Đã chốt hợp đồng", // 🟢 Thành công, được tính hoa hồng
+  "Không tiềm năng"   // 🔴 Không còn nhu cầu, loại khỏi KPI
 ]);
 
 export type CustomerStatusType = z.infer<typeof CustomerStatus>;
