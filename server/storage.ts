@@ -347,63 +347,78 @@ export class MemStorage implements IStorage {
       throw new Error(`Affiliate not found with ID: ${request.user_id}`);
     }
     
-    // Kiểm tra số dư tích lũy có bằng 0 không
-    if (affiliate.remaining_balance <= 0) {
-      throw new Error("Không thể tạo yêu cầu rút tiền khi số dư hoa hồng tích lũy bằng 0");
-    }
+    // Kiểm tra xem có yêu cầu rút tiền đang chờ xử lý cho affiliate này không
+    const pendingWithdrawal = affiliate.withdrawal_history.find(w => 
+      w.status === "Pending" && w.request_date === request.request_time);
     
-    // Kiểm tra giới hạn rút tiền theo ngày
-    const dailyLimitCheck = await this.checkDailyWithdrawalLimit(request.user_id, request.amount_requested);
-    if (dailyLimitCheck.exceeds) {
-      throw new Error(`Vượt quá giới hạn rút tiền trong ngày. Hạn mức còn lại: ${dailyLimitCheck.remainingLimit.toLocaleString()} VND`);
-    }
-    
-    // Kiểm tra số dư
-    if (affiliate.remaining_balance < request.amount_requested) {
-      throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
-    }
-    
-    // Thêm vào lịch sử rút tiền với trạng thái ban đầu là "Pending"
-    const withdrawalEntry: WithdrawalHistory = {
-      request_date: request.request_time,
-      amount: request.amount_requested,
-      note: request.note || "",
-      status: "Pending" // Trạng thái ban đầu là Pending
-    };
-    
-    // Thêm vào đầu mảng để hiển thị theo thứ tự từ mới đến cũ
-    affiliate.withdrawal_history.unshift(withdrawalEntry);
-    
-    console.log(`Thêm yêu cầu rút tiền mới: ${JSON.stringify(withdrawalEntry)}`);
-    console.log(`Số lượng yêu cầu rút tiền hiện tại: ${affiliate.withdrawal_history.length}`);
-    
-    // Cập nhật số dư (trừ từ remaining_balance, cộng vào paid_balance)
-    console.log(`Số dư trước khi cập nhật: ${affiliate.remaining_balance}`);
-    
-    // Đổi trạng thái thành Processing và trừ tiền 
-    try {
-      // Trừ số dư affiliate trước khi cập nhật trạng thái
+    // Nếu đã có yêu cầu rút tiền đang chờ xử lý với cùng thời gian yêu cầu,
+    // bỏ qua các kiểm tra số dư và giới hạn rút tiền để tránh lỗi xác thực OTP
+    if (!pendingWithdrawal) {
+      // Các kiểm tra chỉ thực hiện khi tạo yêu cầu mới, không phải khi xác nhận OTP
+      
+      // Kiểm tra số dư tích lũy có bằng 0 không
+      if (affiliate.remaining_balance <= 0) {
+        throw new Error("Không thể tạo yêu cầu rút tiền khi số dư hoa hồng tích lũy bằng 0");
+      }
+      
+      // Kiểm tra giới hạn rút tiền theo ngày
+      const dailyLimitCheck = await this.checkDailyWithdrawalLimit(request.user_id, request.amount_requested);
+      if (dailyLimitCheck.exceeds) {
+        throw new Error(`Vượt quá giới hạn rút tiền trong ngày. Hạn mức còn lại: ${dailyLimitCheck.remainingLimit.toLocaleString()} VND`);
+      }
+      
       // Kiểm tra số dư
       if (affiliate.remaining_balance < request.amount_requested) {
         throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
       }
       
+      // Thêm vào lịch sử rút tiền với trạng thái ban đầu là "Pending"
+      const withdrawalEntry: WithdrawalHistory = {
+        request_date: request.request_time,
+        amount: request.amount_requested,
+        note: request.note || "",
+        status: "Pending" // Trạng thái ban đầu là Pending
+      };
+      
+      // Thêm vào đầu mảng để hiển thị theo thứ tự từ mới đến cũ
+      affiliate.withdrawal_history.unshift(withdrawalEntry);
+      
+      console.log(`Thêm yêu cầu rút tiền mới: ${JSON.stringify(withdrawalEntry)}`);
+      console.log(`Số lượng yêu cầu rút tiền hiện tại: ${affiliate.withdrawal_history.length}`);
+    } else {
+      console.log("Đã tìm thấy yêu cầu rút tiền đang chờ xử lý, tiếp tục xử lý xác thực OTP");
+    }
+    
+    // Cập nhật trạng thái thành Processing và trừ tiền
+    try {
+      // Kiểm tra số dư trước khi trừ tiền
+      if (affiliate.remaining_balance < request.amount_requested) {
+        if (!pendingWithdrawal) {
+          // Nếu là yêu cầu mới và số dư không đủ, xóa yêu cầu vừa tạo
+          affiliate.withdrawal_history.shift();
+        }
+        throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
+      }
+      
       console.log(`Số dư trước khi trừ tiền: ${affiliate.remaining_balance}`);
       
-      // Trừ tiền trực tiếp
-      affiliate.remaining_balance -= request.amount_requested;
-      affiliate.paid_balance = (affiliate.paid_balance || 0) + request.amount_requested;
+      // Nếu đã có tình trạng "Pending", chỉ cập nhật trạng thái, không trừ tiền lần nữa
+      if (!pendingWithdrawal) {
+        // Trừ tiền từ remaining_balance
+        affiliate.remaining_balance -= request.amount_requested;
+        affiliate.paid_balance = (affiliate.paid_balance || 0) + request.amount_requested;
+        console.log(`Đã trừ ${request.amount_requested} từ số dư. Số dư mới: ${affiliate.remaining_balance}`);
+      }
       
-      console.log(`Đã trừ ${request.amount_requested} từ số dư trực tiếp. Số dư mới: ${affiliate.remaining_balance}`);
-      
-      // Cập nhật trạng thái
+      // Cập nhật trạng thái thành Processing
       await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
-      console.log(`Đã cập nhật trạng thái thành công và trừ tiền: ${request.amount_requested}`);
-      console.log(`Số dư sau khi cập nhật: ${affiliate.remaining_balance}`);
+      console.log(`Đã cập nhật trạng thái thành công thành Processing`);
     } catch (error) {
       console.error(`Lỗi khi cập nhật trạng thái và trừ tiền: ${error}`);
-      // Xóa yêu cầu rút tiền khỏi lịch sử nếu có lỗi xảy ra
-      affiliate.withdrawal_history.shift();
+      // Nếu là yêu cầu mới tạo và có lỗi, xóa yêu cầu khỏi lịch sử
+      if (!pendingWithdrawal) {
+        affiliate.withdrawal_history.shift();
+      }
       throw error;
     }
   }
