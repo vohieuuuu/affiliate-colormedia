@@ -492,6 +492,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Cập nhật số lượng hợp đồng từ danh sách khách hàng thực tế
+      const contractSignedCustomers = affiliate.referred_customers.filter(c => c.status === "Đã chốt hợp đồng");
+      const totalContracts = contractSignedCustomers.length;
+      
+      // Cập nhật số lượng hợp đồng trong affiliate
+      affiliate.total_contracts = totalContracts;
+      
       // Ẩn thông tin nhạy cảm trước khi trả về
       const sanitizedData = sanitizeAffiliateData(affiliate);
       
