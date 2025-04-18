@@ -13,10 +13,12 @@ import {
   UserRoleType,
   User,
   Affiliate,
-  VideoData
+  VideoData,
+  KolVipAffiliate
 } from "@shared/schema";
 import { setupDevAuthRoutes } from "./devAuth";
 import { setupVideoRoutes } from "./videoRoutes";
+import { setupKolVipRoutes } from "./kolRoutes";
 import { 
   detectSuspiciousWithdrawal, 
   withdrawalLimiter, 
@@ -32,7 +34,8 @@ declare global {
   namespace Express {
     interface Request {
       user?: User;
-      affiliate?: Affiliate; // Thêm thuộc tính affiliate
+      affiliate?: Affiliate; // Thuộc tính affiliate cho module thường
+      kolVip?: KolVipAffiliate; // Thuộc tính kolVip cho module KOL/VIP
       withdrawalRiskFactors?: {
         isUnusualAmount: boolean;
         isHighRatio: boolean;
