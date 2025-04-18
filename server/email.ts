@@ -134,12 +134,8 @@ export async function sendOtpVerificationEmail(
   expiryMinutes: number = 5,
   verificationType: string = "rút tiền",
 ): Promise<boolean> {
-  // Override email for testing purposes
-  const testEmail = "voxuanhieu.designer@gmail.com";
-
-  if (isDevelopment) {
-    email = testEmail;
-  }
+  // Không ghi đè email trong môi trường phát triển nữa
+  // để đảm bảo email được gửi đến địa chỉ chính xác
   // Chuẩn bị nội dung email
   const subject = `Mã xác thực OTP cho giao dịch ${verificationType} - ColorMedia Affiliate`;
 
@@ -233,12 +229,8 @@ export async function sendWithdrawalRequestEmail(
     taxId?: string;
   }
 ): Promise<boolean> {
-  // Override email for testing purposes
-  const testEmail = "voxuanhieu.designer@gmail.com";
-
-  if (isDevelopment) {
-    email = testEmail;
-  }
+  // Không ghi đè email trong môi trường phát triển nữa
+  // để đảm bảo email được gửi đến địa chỉ chính xác
   // Chuẩn bị nội dung email
   const subject = "Yêu cầu rút tiền đã được tạo - ColorMedia Affiliate";
   const formattedAmount = new Intl.NumberFormat("vi-VN", {
