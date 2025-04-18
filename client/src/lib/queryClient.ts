@@ -81,7 +81,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 5000, // Giảm staleTime xuống còn 5 giây thay vì Infinity
+      staleTime: 30000, // Tăng staleTime lên 30 giây để giảm tải cho backend
       retry: false,
       gcTime: 10 * 60 * 1000, // 10 phút (thay thế cacheTime trong v5)
     },

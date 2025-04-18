@@ -58,6 +58,8 @@ export default function VideosSection() {
   const { data, isLoading, error } = useQuery<{ status: string; data: VideoData[] }>({
     queryKey: ['/api/videos'],
     retry: 1,
+    staleTime: 30 * 60 * 1000, // 30 phút, vì videos thường không thay đổi thường xuyên
+    refetchOnWindowFocus: false, // không cần refetch khi focus lại tab 
   });
 
   const videos = data?.data || [];
