@@ -2749,31 +2749,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // Tạo mockup dữ liệu withdrawal request
-        // Sử dụng cấu trúc phù hợp với interface WithdrawalHistory
-
-        const mockWithdrawal = {
-          request_date: request_time,  // Sử dụng request_date thay vì request_time
-          amount: 15000000,            // Sử dụng amount thay vì amount_requested
-          note: "Yêu cầu rút tiền test",
-          status: status as WithdrawalStatusType,
-          transaction_id: "TX" + Date.now().toString(),
-          
-          // Cấu trúc bổ sung cho giao diện API
-          _extra: {
-            user_id: "AFF001",
-            full_name: "Võ Xuân Hiếu",
-            email: "voxuanhieu.designer@gmail.com",
-            phone: "0375698447",
-            bank_account: "651661212",
-            bank_name: "VPBank",
-            amount_requested: 15000000,
-            request_time: request_time,
-            previous_status: "Pending" as WithdrawalStatusType
-          }
-        };
+        // Cập nhật số dư của affiliate dựa trên trạng thái mới
+        const amount = 15000000; // Giả định số tiền rút
         
-        // Trả về mockup data
+        if (status === "Processing" && mockAffiliate.remaining_balance >= amount) {
+          // Trừ tiền khi chuyển sang trạng thái Processing
+          mockAffiliate.remaining_balance -= amount;
+          mockAffiliate.paid_balance += amount;
+          await storage.createAffiliate(mockAffiliate); // Lưu lại thay đổi
+          console.log(`DEV MODE: Updated affiliate balance for status ${status}. New balance: ${mockAffiliate.remaining_balance}`);
+        } else if ((status === "Rejected" || status === "Cancelled") && mockAffiliate.paid_balance >= amount) {
+          // Hoàn tiền khi trạng thái là Rejected hoặc Cancelled
+          mockAffiliate.remaining_balance += amount;
+          mockAffiliate.paid_balance -= amount;
+          await storage.createAffiliate(mockAffiliate); // Lưu lại thay đổi
+          console.log(`DEV MODE: Restored affiliate balance for status ${status}. New balance: ${mockAffiliate.remaining_balance}`);
+        }
+        
+        // Ghi lại thay đổi vào lịch sử rút tiền
+        const now = new Date();
+        const requestDate = new Date(request_time);
+        
+        // Tìm xem đã có yêu cầu rút tiền này trong lịch sử chưa
+        let withdrawalIndex = mockAffiliate.withdrawal_history.findIndex(
+          wh => wh.request_date === request_time
+        );
+        
+        // Nếu chưa có, thêm mới vào lịch sử
+        if (withdrawalIndex === -1) {
+          mockAffiliate.withdrawal_history.push({
+            request_date: request_time,
+            amount: amount,
+            note: "Yêu cầu rút tiền test",
+            status: status as WithdrawalStatusType,
+            transaction_id: status === "Completed" ? "TX" + Date.now().toString() : undefined,
+            completed_date: status === "Completed" ? now.toISOString() : undefined
+          });
+        } else {
+          // Nếu đã có, cập nhật trạng thái
+          mockAffiliate.withdrawal_history[withdrawalIndex].status = status as WithdrawalStatusType;
+          if (status === "Completed") {
+            mockAffiliate.withdrawal_history[withdrawalIndex].transaction_id = "TX" + Date.now().toString();
+            mockAffiliate.withdrawal_history[withdrawalIndex].completed_date = now.toISOString();
+          }
+        }
+        
+        // Cập nhật lại affiliate
+        await storage.createAffiliate(mockAffiliate);
+        
+        // Vô hiệu hóa cache
+        if (mockAffiliate.user_id) {
+          statsCache.invalidate(`affiliate:${mockAffiliate.user_id}`);
+          console.log(`DEV MODE: Invalidated cache for affiliate:${mockAffiliate.user_id}`);
+        }
+        
+        // Trả về dữ liệu cập nhật với thông tin số dư mới
         console.log("DEV MODE: Returning mock withdrawal data with updated status:", status);
         
         return res.status(200).json({
@@ -2781,13 +2811,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data: {
             message: `Trạng thái yêu cầu rút tiền đã được cập nhật thành ${status}`,
             withdrawal: {
-              affiliate_id: mockWithdrawal._extra.user_id,
-              full_name: mockWithdrawal._extra.full_name,
-              amount: mockWithdrawal._extra.amount_requested,
-              request_time: mockWithdrawal._extra.request_time,
+              affiliate_id: affiliate_id,
+              full_name: mockAffiliate.full_name,
+              amount: amount,
+              request_time: request_time,
               status: status,
               updated_at: new Date().toISOString()
-            }
+            },
+            // Thêm thông tin cập nhật về số dư để frontend biết
+            balance_update: {
+              remaining_balance: mockAffiliate.remaining_balance || 0,
+              received_balance: mockAffiliate.received_balance || 0,
+              paid_balance: mockAffiliate.paid_balance || 0
+            },
+            // Thêm trạng thái mới của affiliate để frontend có thể cập nhật toàn bộ dữ liệu nếu cần
+            affiliate: mockAffiliate
           }
         });
       }
@@ -2847,8 +2885,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Failed to send status update webhook:", webhookError);
       }
       
-      // Tìm affiliate để lấy thông tin đầy đủ - dùng lại kết quả trước đó nếu có
-      const affiliateData = affiliate || await storage.getAffiliateByAffiliateId(affiliate_id);
+      // Tìm affiliate để lấy thông tin đầy đủ - luôn lấy lại dữ liệu mới nhất sau khi cập nhật
+      const affiliateData = await storage.getAffiliateByAffiliateId(affiliate_id);
       
       res.status(200).json({
         status: "success",
@@ -2861,7 +2899,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             request_time: request_time,
             status: updatedWithdrawal.status,
             updated_at: new Date().toISOString()
-          }
+          },
+          // Thêm thông tin cập nhật về số dư để frontend biết
+          balance_update: {
+            remaining_balance: affiliateData?.remaining_balance || 0,
+            received_balance: affiliateData?.received_balance || 0,
+            paid_balance: affiliateData?.paid_balance || 0
+          },
+          // Thêm trạng thái mới của affiliate để frontend có thể cập nhật toàn bộ dữ liệu nếu cần
+          affiliate: affiliateData
         }
       });
     } catch (error) {
