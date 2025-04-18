@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { API_URL, DEFAULT_API_TOKEN } from "./config";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,8 +8,8 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Default API token cho tất cả các yêu cầu API
-const API_TOKEN = "vzzvc36lTcb7Pcean8QwndSX";
+// Get API token, sử dụng token từ config
+const API_TOKEN = DEFAULT_API_TOKEN;
 
 export async function apiRequest(
   method: string,
@@ -28,7 +29,10 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
   
-  const res = await fetch(url, {
+  // Tạo URL đầy đủ khi cần (cho môi trường production)
+  const fullUrl = API_URL ? `${API_URL}${url}` : url;
+  
+  const res = await fetch(fullUrl, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
@@ -50,7 +54,11 @@ export const getQueryFn: <T>(options: {
       ? sessionStorage.getItem("auth_token") || API_TOKEN
       : API_TOKEN;
     
-    const res = await fetch(queryKey[0] as string, {
+    // Cần chuyển đổi URL cho môi trường production
+    const url = queryKey[0] as string;
+    const fullUrl = API_URL ? `${API_URL}${url}` : url;
+    
+    const res = await fetch(fullUrl, {
       credentials: "include",
       headers: {
         "Authorization": `Bearer ${authToken}`,
