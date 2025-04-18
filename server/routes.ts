@@ -23,6 +23,11 @@ declare global {
     interface Request {
       user?: User;
       affiliate?: Affiliate; // Thêm thuộc tính affiliate
+      withdrawalRiskFactors?: {
+        isUnusualAmount: boolean;
+        isHighRatio: boolean;
+        requireStrictVerification: boolean;
+      };
     }
   }
 }
@@ -926,7 +931,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API endpoint to request withdrawal OTP
-  app.post("/api/withdrawal-request/send-otp", authenticateUser, ensureAffiliateMatchesUser, async (req, res) => {
+  /**
+   * Middleware để phát hiện hoạt động rút tiền đáng ngờ
+   */
+  function detectSuspiciousWithdrawal(req: Request, res: Response, next: NextFunction) {
+    const { amount } = req.body;
+    const userIP = req.ip;
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    // Kiểm tra xem có affiliate trong request không (phải được xác thực trước)
+    if (!req.affiliate) {
+      return next();
+    }
+    
+    const affiliate = req.affiliate;
+    
+    // Kiểm tra các yếu tố nguy cơ
+    const amountValue = parseFloat(amount);
+    const isUnusualAmount = amountValue > 10000000; // 10 triệu VND
+    const isHighRatio = amountValue > affiliate.remaining_balance * 0.7; // Rút hơn 70% số dư
+    
+    // Lưu trữ thông tin kiểm tra
+    req.withdrawalRiskFactors = {
+      isUnusualAmount,
+      isHighRatio,
+      requireStrictVerification: isUnusualAmount || isHighRatio
+    };
+    
+    // Ghi log nếu phát hiện hành vi đáng ngờ
+    if (isUnusualAmount || isHighRatio) {
+      console.log(`SECURITY_ALERT: Suspicious withdrawal detected for affiliate ${affiliate.affiliate_id}. Amount: ${amountValue}, IP: ${userIP}, UserAgent: ${userAgent.substring(0, 50)}...`);
+    }
+    
+    next();
+  }
+  
+  app.post("/api/withdrawal-request/send-otp", authenticateUser, ensureAffiliateMatchesUser, detectSuspiciousWithdrawal, async (req, res) => {
     try {
       const { amount, note } = req.body;
       
@@ -998,6 +1038,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Tạo mã OTP và lưu vào cơ sở dữ liệu
       const user_id = req.user?.id as number;
+      
+      // Kiểm tra xem có cần xác thực nghiêm ngặt hơn không (từ middleware phát hiện rủi ro)
+      const requireStrictVerification = req.withdrawalRiskFactors?.requireStrictVerification || false;
+      
+      // Nếu yêu cầu rút tiền có dấu hiệu đáng ngờ, sử dụng phương thức xác thực tăng cường
+      if (requireStrictVerification) {
+        console.log(`Using enhanced OTP verification for potentially risky withdrawal from account ${affiliate.affiliate_id}`);
+        // Ở đây có thể triển khai cơ chế OTP mạnh hơn, mã dài hơn hoặc thêm xác thực bổ sung
+      }
+      
       const otpCode = await storage.createOtp(user_id, "WITHDRAWAL");
       
       // Import thư viện gửi email

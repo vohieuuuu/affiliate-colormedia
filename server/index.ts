@@ -9,6 +9,8 @@ import rateLimit from "express-rate-limit";
 dotenv.config();
 
 const app = express();
+// Cấu hình trust proxy - cần thiết cho rate limit khi chạy phía sau proxy
+app.set('trust proxy', 1);
 // Đảm bảo tất cả API response đều có Content-Type: application/json
 app.use(cors());
 app.use(express.json());
