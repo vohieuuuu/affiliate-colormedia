@@ -19,12 +19,12 @@ export function setupDevAuthRoutes(app: any, storage: IStorage) {
       // Trường hợp đặc biệt cho admin khi phát triển
       if (req.body.username === "admin" && req.body.password === "admin") {
         console.log("DEV MODE: Using special admin login");
-        const token = generateToken();
+        const ADMIN_FIXED_TOKEN = "45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60";
         
         return res.status(200).json({
           status: "success",
           data: {
-            token: token,
+            token: ADMIN_FIXED_TOKEN,
             user: {
               id: 1,
               username: "admin@colormedia.vn",
