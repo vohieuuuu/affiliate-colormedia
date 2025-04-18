@@ -77,7 +77,7 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
 }
 
 // Middleware xác thực người dùng dựa trên token
-async function authenticateUser(req: Request, res: Response, next: NextFunction) {
+export async function authenticateUser(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -2963,6 +2963,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Thiết lập routes quản lý video ColorMedia
   setupVideoRoutes(app);
+  
+  // Thiết lập routes quản lý KOL/VIP
+  setupKolVipRoutes(app, storage);
 
   const httpServer = createServer(app);
 
