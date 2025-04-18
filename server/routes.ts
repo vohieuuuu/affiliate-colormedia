@@ -2663,6 +2663,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API cập nhật trạng thái yêu cầu rút tiền (dành cho admin)
+  app.put("/api/admin/withdrawals/:affiliate_id/:request_time", authenticateUser, requireAdmin, async (req, res) => {
+    try {
+      const { affiliate_id, request_time } = req.params;
+      const { status, note } = req.body;
+      
+      if (!affiliate_id || !request_time || !status) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "MISSING_PARAMS",
+            message: "Thiếu thông tin yêu cầu: affiliate_id, request_time, status"
+          }
+        });
+      }
+      
+      // Kiểm tra và xác thực status
+      const validStatusValues = ["Pending", "Processing", "Completed", "Rejected", "Cancelled"];
+      if (!validStatusValues.includes(status)) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_STATUS",
+            message: `Status không hợp lệ. Status hợp lệ bao gồm: ${validStatusValues.join(", ")}`
+          }
+        });
+      }
+      
+      // Cập nhật trạng thái
+      const updatedWithdrawal = await storage.updateWithdrawalStatus(affiliate_id, request_time, status);
+      
+      if (!updatedWithdrawal) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "NOT_FOUND",
+            message: "Không tìm thấy yêu cầu rút tiền với các thông tin cung cấp"
+          }
+        });
+      }
+      
+      // Vô hiệu hóa cache của affiliate để đảm bảo dữ liệu mới
+      const affiliate = await storage.getAffiliateByAffiliateId(affiliate_id);
+      if (affiliate && affiliate.user_id) {
+        statsCache.invalidate(`affiliate:${affiliate.user_id}`);
+        console.log(`Invalidated cache for affiliate:${affiliate.user_id} after updating withdrawal status`);
+      }
+      
+      // Gửi webhook thông báo cập nhật trạng thái
+      try {
+        const webhookUrl = "https://aicolormedia.app.n8n.cloud/webhook-test/cap-nhat-trang-thai-rut-tien";
+        const webhookPayload = {
+          affiliate_id: updatedWithdrawal.user_id,
+          full_name: updatedWithdrawal.full_name,
+          email: updatedWithdrawal.email,
+          amount_requested: updatedWithdrawal.amount_requested,
+          request_time: updatedWithdrawal.request_time,
+          previous_status: updatedWithdrawal.previous_status || "Pending",
+          new_status: status,
+          updated_by: req.user?.username || "admin",
+          updated_at: new Date().toISOString(),
+          note: note || ""
+        };
+        
+        // Gửi webhook không đồng bộ
+        fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(webhookPayload),
+        }).then(webhookRes => {
+          console.log("Status update webhook sent, status:", webhookRes.status);
+        }).catch(webhookErr => {
+          console.error("Error sending status update webhook:", webhookErr);
+        });
+      } catch (webhookError) {
+        console.error("Failed to send status update webhook:", webhookError);
+      }
+      
+      res.status(200).json({
+        status: "success",
+        data: {
+          message: `Trạng thái yêu cầu rút tiền đã được cập nhật thành ${status}`,
+          withdrawal: {
+            affiliate_id: updatedWithdrawal.user_id,
+            full_name: updatedWithdrawal.full_name,
+            amount: updatedWithdrawal.amount_requested,
+            request_time: updatedWithdrawal.request_time,
+            status: updatedWithdrawal.status,
+            updated_at: new Date().toISOString()
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Error updating withdrawal status:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi cập nhật trạng thái yêu cầu rút tiền",
+          details: error instanceof Error ? error.message : "Unknown error"
+        }
+      });
+    }
+  });
+  
   // Thiết lập routes quản lý video ColorMedia
   setupVideoRoutes(app);
 
