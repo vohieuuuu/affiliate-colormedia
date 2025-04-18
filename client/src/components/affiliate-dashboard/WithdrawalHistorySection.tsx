@@ -22,9 +22,9 @@ export default function WithdrawalHistorySection({
   const getStatusBadge = (status: WithdrawalStatusType) => {
     switch (status) {
       case "Processing":
-        return <Badge variant="warning">{status}</Badge>;
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600">{status}</Badge>;
       case "Completed":
-        return <Badge variant="success">{status}</Badge>;
+        return <Badge className="bg-green-500 hover:bg-green-600">{status}</Badge>;
       case "Rejected":
         return <Badge variant="destructive">{status}</Badge>;
       default:
@@ -69,6 +69,21 @@ export default function WithdrawalHistorySection({
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {formatCurrency(withdrawal.amount)} VND
                   </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {withdrawal.has_tax 
+                      ? (
+                        <div>
+                          <span>{formatCurrency(withdrawal.amount_after_tax || withdrawal.amount)} VND</span>
+                          {withdrawal.has_tax && (
+                            <span className="ml-1 text-xs text-amber-600">
+                              (-{(withdrawal.tax_rate || 0.1) * 100}% thuế)
+                            </span>
+                          )}
+                        </div>
+                      ) 
+                      : formatCurrency(withdrawal.amount) + " VND"
+                    }
+                  </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {withdrawal.note || "-"}
                   </TableCell>
@@ -80,7 +95,7 @@ export default function WithdrawalHistorySection({
               
               {withdrawalHistory.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <TableCell colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                     No withdrawal requests found
                   </TableCell>
                 </TableRow>
