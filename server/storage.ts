@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { affiliates, otpVerifications, users } from "@shared/schema";
+import { affiliates, otpVerifications, users } from '../shared/schema.js';
 import type {
   Affiliate,
   CustomerStatusType,

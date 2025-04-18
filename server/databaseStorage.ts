@@ -17,7 +17,7 @@ import {
   WithdrawalHistory,
   WithdrawalStatus,
   WithdrawalStatusType
-} from "@shared/schema";
+} from '../shared/schema.js';
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { IStorage } from "./storage";
