@@ -402,12 +402,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   } else {
-    // Trong môi trường development, bỏ qua xác thực để test API
-    console.log("TEST MODE: Authentication disabled for testing");
-    // Bỏ comment dòng dưới đây nếu muốn bật lại xác thực
-    // secureApiEndpoints.forEach(endpoint => {
-    //  app.use(endpoint, authenticateToken);
-    // });
+    // Trong môi trường development, áp dụng xác thực cho tất cả admin API
+    console.log("SECURITY: Enforcing authentication for admin APIs");
+    secureApiEndpoints.forEach(endpoint => {
+      if (endpoint.startsWith("/api/admin")) {
+        // API admin cần token và quyền admin chặt chẽ
+        app.use(endpoint, authenticateUser, requireAdmin);
+      } else {
+        // API khác hiện tại bỏ qua xác thực cho dễ kiểm thử
+        // app.use(endpoint, authenticateUser);
+      }
+    });
+    
+    // Bảo vệ riêng tất cả các API admin khác không liệt kê cụ thể
+    app.use("/api/admin/*", authenticateUser, requireAdmin);
   }
   
   // API endpoint to register a new affiliate for a user
