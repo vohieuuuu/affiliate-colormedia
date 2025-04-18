@@ -544,25 +544,33 @@ export class MemStorage implements IStorage {
       throw new Error(`Affiliate not found with ID: ${affiliateId}`);
     }
     
-    // Lấy user_id từ affiliate
-    const userId = affiliate.user_id;
-    
-    // Sử dụng user_id làm ID khách hàng nếu được chỉ định trong customerData
+    // Luôn tạo ID mới cho khách hàng để tránh trùng lặp
     let customerId: number;
+    
+    // Kiểm tra xem có ID được chỉ định hay không
     if (customerData.id !== undefined) {
-      // Sử dụng ID đã được chỉ định
-      customerId = customerData.id;
-      console.log(`Using provided customer ID: ${customerId}`);
-    } else if (userId) {
-      // Sử dụng user_id nếu không có ID được chỉ định
-      customerId = userId;
-      console.log(`Using user_id as customer ID: ${customerId}`);
+      // Kiểm tra xem ID đã tồn tại chưa
+      const existingCustomers: ReferredCustomer[] = this.allAffiliates.flatMap(aff => aff.referred_customers);
+      const customerExists = existingCustomers.some(c => c.id === customerData.id);
+      
+      if (customerExists) {
+        // Nếu ID đã tồn tại, tạo ID mới
+        const maxCustomerId = existingCustomers.length > 0 
+          ? Math.max(...existingCustomers.filter(c => c.id !== undefined).map(c => c.id || 0)) 
+          : 0;
+        customerId = maxCustomerId + 1;
+        console.log(`ID ${customerData.id} already exists, generated new ID: ${customerId}`);
+      } else {
+        // Sử dụng ID đã được chỉ định nếu không trùng lặp
+        customerId = customerData.id;
+        console.log(`Using provided customer ID: ${customerId}`);
+      }
     } else {
-      // Tạo ID tự động nếu không có thông tin nào
+      // Tạo ID tự động
       const allCustomers: ReferredCustomer[] = this.allAffiliates.flatMap(aff => aff.referred_customers);
       const maxCustomerId = allCustomers.length > 0 
         ? Math.max(...allCustomers.filter(c => c.id !== undefined).map(c => c.id || 0)) 
-        : -1;
+        : 0;
       customerId = maxCustomerId + 1;
       console.log(`Generated new customer ID: ${customerId}`);
     }
