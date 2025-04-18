@@ -14,11 +14,11 @@ export default function TimelineModal({ isOpen, onClose, customer }: TimelineMod
 
   // Define all possible statuses in order
   const allStatuses: CustomerStatusType[] = [
-    "Contact received",
-    "Presenting idea",
-    "Contract signed",
-    "Pending reconciliation",
-    "Ready to disburse"
+    "Mới nhập",        // 🟡
+    "Đang tư vấn",     // 🔵
+    "Chờ phản hồi",    // 🟠
+    "Đã chốt hợp đồng", // 🟢
+    "Không tiềm năng"   // 🔴
   ];
   
   // Find the index of the current status
@@ -26,26 +26,26 @@ export default function TimelineModal({ isOpen, onClose, customer }: TimelineMod
   
   // Status descriptions and dates
   const statusDescriptions: Record<CustomerStatusType, string> = {
-    "Contact received": "Initial contact established with the customer.",
-    "Presenting idea": "Product demonstration and preliminary proposal.",
-    "Contract signed": "Customer agreed to terms and signed the contract.",
-    "Pending reconciliation": "Waiting for financial reconciliation.",
-    "Ready to disburse": "Commission is approved and ready for payout."
+    "Mới nhập": "Contact vừa được tạo, chưa xử lý.",
+    "Đang tư vấn": "Đã có sale gọi điện hoặc tiếp cận.",
+    "Chờ phản hồi": "Đã gửi báo giá hoặc thông tin thêm.",
+    "Đã chốt hợp đồng": "Thành công, được tính hoa hồng.",
+    "Không tiềm năng": "Không còn nhu cầu, loại khỏi KPI."
   };
   
   // Function to get color class based on status
   const getStatusColor = (status: CustomerStatusType) => {
     switch (status) {
-      case "Contact received":
-        return "bg-gray-500";
-      case "Presenting idea":
-        return "bg-yellow-500";
-      case "Contract signed":
-        return "bg-green-500";
-      case "Pending reconciliation":
-        return "bg-blue-500";
-      case "Ready to disburse":
-        return "bg-purple-500";
+      case "Mới nhập":
+        return "bg-yellow-500"; // 🟡
+      case "Đang tư vấn":
+        return "bg-blue-500";   // 🔵
+      case "Chờ phản hồi":
+        return "bg-orange-500"; // 🟠
+      case "Đã chốt hợp đồng":
+        return "bg-green-500";  // 🟢
+      case "Không tiềm năng":
+        return "bg-red-500";    // 🔴
       default:
         return "bg-gray-500";
     }
@@ -79,9 +79,9 @@ export default function TimelineModal({ isOpen, onClose, customer }: TimelineMod
                   <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                     {statusDescriptions[status]}
                   </p>
-                  {status === "Contract signed" && isCompleted && customer.note && (
+                  {status === "Đã chốt hợp đồng" && isCompleted && customer.note && (
                     <p className="mt-1 text-sm italic text-gray-600 dark:text-gray-300">
-                      Note: {customer.note}
+                      Ghi chú: {customer.note}
                     </p>
                   )}
                 </div>
