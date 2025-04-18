@@ -143,18 +143,15 @@ export class DatabaseStorage implements IStorage {
       status: "Pending" // Trạng thái ban đầu là Pending
     });
     
-    // 6. Trừ số dư trực tiếp (không đợi updateWithdrawalStatus)
-    const updatedRemainingBalance = affiliate.remaining_balance - request.amount_requested;
-    const updatedPaidBalance = (affiliate.paid_balance || 0) + request.amount_requested;
+    // Cập nhật affiliate với trạng thái Pending (KHÔNG trừ tiền ở trạng thái Pending)
+    // Trước đây: Tiền sẽ bị trừ ngay lập tức ở trạng thái Pending 
+    // Bây giờ: Tiền sẽ chỉ bị trừ khi chuyển sang trạng thái Completed
+    console.log(`Thêm yêu cầu rút tiền vào lịch sử ở trạng thái Pending, KHÔNG trừ số dư`);
     
-    console.log(`Trừ số dư trực tiếp: ${affiliate.remaining_balance} -> ${updatedRemainingBalance}`);
-    
-    // Cập nhật affiliate với trạng thái Pending (và đã trừ tiền)
     await db.update(affiliates)
       .set({ 
-        withdrawal_history: history,
-        remaining_balance: updatedRemainingBalance,
-        paid_balance: updatedPaidBalance
+        withdrawal_history: history
+        // Không trừ số dư ở trạng thái Pending nữa
       })
       .where(eq(affiliates.id, affiliate.id));
       
@@ -162,7 +159,7 @@ export class DatabaseStorage implements IStorage {
     // Điều này ngăn chặn tình trạng bị trừ tiền hai lần khi cập nhật trạng thái
 
     // Trong trường hợp cần thêm xử lý OTP hoặc logic khác, hãy thêm code ở đây
-    console.log(`Yêu cầu rút tiền đã được tạo ở trạng thái Pending và số dư đã được trừ`);
+    console.log(`Yêu cầu rút tiền đã được tạo ở trạng thái Pending, số dư chưa bị trừ (sẽ trừ khi chuyển sang Completed)`);
     
     // Không gọi updateWithdrawalStatus nữa vì đã trừ tiền ở trên
     // try {
@@ -214,9 +211,8 @@ export class DatabaseStorage implements IStorage {
     // Xử lý logic dựa vào trạng thái mới
     let updateFields: any = { withdrawal_history: history };
     
-    // Nếu trạng thái mới là "Processing" và trạng thái hiện tại không phải "Processing"
-    // thì cần trừ số dư
-    if (newStatus === "Processing" && currentStatus !== "Processing") {
+    // Chỉ trừ tiền khi chuyển sang trạng thái Completed
+    if (newStatus === "Completed" && currentStatus !== "Completed") {
       // Lấy affiliate mới nhất để đảm bảo số dư chính xác
       const [latestAffiliate] = await db.select()
         .from(affiliates)
@@ -227,7 +223,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Kiểm tra số dư trước khi cập nhật
-      console.log(`Kiểm tra số dư trước khi cập nhật: ${latestAffiliate.remaining_balance} >= ${withdrawalAmount}`);
+      console.log(`Kiểm tra số dư trước khi cập nhật (Completed): ${latestAffiliate.remaining_balance} >= ${withdrawalAmount}`);
       
       if (latestAffiliate.remaining_balance < withdrawalAmount) {
         throw new Error(`Số dư không đủ: ${latestAffiliate.remaining_balance.toLocaleString()} < ${withdrawalAmount.toLocaleString()}`);
@@ -237,26 +233,13 @@ export class DatabaseStorage implements IStorage {
       updateFields.remaining_balance = latestAffiliate.remaining_balance - withdrawalAmount;
       updateFields.paid_balance = (latestAffiliate.paid_balance || 0) + withdrawalAmount;
       
-      console.log(`Đã trừ ${withdrawalAmount} từ số dư. Số dư mới: ${updateFields.remaining_balance}`);
+      console.log(`Đã trừ ${withdrawalAmount} từ số dư khi chuyển sang Completed. Số dư mới: ${updateFields.remaining_balance}`);
     }
     
-    // Nếu trạng thái mới là "Rejected" hoặc "Cancelled" và trạng thái hiện tại là "Processing"
-    // thì cần hoàn lại tiền vào số dư
-    if ((newStatus === "Rejected" || newStatus === "Cancelled") && currentStatus === "Processing") {
-      // Lấy affiliate mới nhất để đảm bảo số dư chính xác
-      const [latestAffiliate] = await db.select()
-        .from(affiliates)
-        .where(eq(affiliates.affiliate_id, affiliateId));
-      
-      if (!latestAffiliate) {
-        throw new Error("Không thể tìm thấy affiliate");
-      }
-      
-      // Cập nhật số dư trong đối tượng updateFields trực tiếp
-      updateFields.remaining_balance = latestAffiliate.remaining_balance + withdrawalAmount;
-      updateFields.paid_balance = Math.max(0, (latestAffiliate.paid_balance || 0) - withdrawalAmount);
-      
-      console.log(`Đã hoàn lại ${withdrawalAmount} vào số dư. Số dư mới: ${updateFields.remaining_balance}`);
+    // Nếu trạng thái mới là "Rejected" hoặc "Cancelled"
+    // thì không cần làm gì vì chưa trừ tiền từ Pending
+    if ((newStatus === "Rejected" || newStatus === "Cancelled")) {
+      console.log(`Yêu cầu rút tiền bị ${newStatus}, không cần xử lý tiền vì chưa bị trừ từ Pending.`);
     }
     
     // Cập nhật affiliate
