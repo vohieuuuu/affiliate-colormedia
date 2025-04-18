@@ -278,6 +278,26 @@ export default function WithdrawalModal({
                     Còn có thể rút hôm nay: {formatCurrency(remainingDailyLimit)} VND
                     {remainingDailyLimit <= 0 && " (đã đạt giới hạn)"}
                   </p>
+                  
+                  {amount && parseFloat(amount) > 2000000 && (
+                    <>
+                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Chi tiết số tiền thực nhận:</p>
+                        <div className="flex justify-between items-center">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Số tiền yêu cầu:</p>
+                          <p className="text-xs font-medium">{formatCurrency(parseFloat(amount))} VND</p>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Thuế TNCN (10%):</p>
+                          <p className="text-xs font-medium text-amber-600">- {formatCurrency(parseFloat(amount) * 0.1)} VND</p>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Thực nhận:</p>
+                          <p className="text-xs font-medium text-green-600">{formatCurrency(parseFloat(amount) * 0.9)} VND</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   {maxAmount <= 0 && (
                     <div className="flex items-center gap-1 mt-1">
                       <AlertTriangle className="h-3 w-3 text-red-500" />
@@ -320,7 +340,7 @@ export default function WithdrawalModal({
                   onChange={(e) => setTaxId(e.target.value)}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  <span className="italic">Lưu ý: MST cá nhân sẽ được sử dụng cho mục đích kê khai thuế thu nhập cá nhân khi số tiền rút vượt quá 2 triệu VND.</span>
+                  <span className="italic">Lưu ý: MST cá nhân sẽ được sử dụng cho mục đích kê khai thuế thu nhập cá nhân khi số tiền rút vượt quá 2 triệu VND. Thuế thu nhập cá nhân 10% sẽ tự động được áp dụng.</span>
                 </p>
               </div>
               
@@ -436,11 +456,29 @@ export default function WithdrawalModal({
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
                 <h4 className="text-sm font-medium mb-2">Chi tiết yêu cầu rút tiền:</h4>
                 <div className="flex justify-between mb-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Số tiền:</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Số tiền yêu cầu:</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
                     {formatCurrency(parseFloat(amount))} VND
                   </span>
                 </div>
+                
+                {parseFloat(amount) > 2000000 && (
+                  <>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Thuế TNCN (10%):</span>
+                      <span className="text-sm font-medium text-amber-600">
+                        - {formatCurrency(parseFloat(amount) * 0.1)} VND
+                      </span>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Thực nhận:</span>
+                      <span className="text-sm font-medium text-green-600">
+                        {formatCurrency(parseFloat(amount) * 0.9)} VND
+                      </span>
+                    </div>
+                  </>
+                )}
+                
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-gray-500 dark:text-gray-400">Ngân hàng:</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -453,6 +491,13 @@ export default function WithdrawalModal({
                     {affiliate?.bank_account}
                   </span>
                 </div>
+                
+                {taxId && (
+                  <div className="flex justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Mã số thuế:</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{taxId}</span>
+                  </div>
+                )}
               </div>
             </div>
             
