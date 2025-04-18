@@ -116,17 +116,22 @@ export class MemStorage implements IStorage {
           const wDate = new Date(w.request_date);
           return wDate.getFullYear() === requestDate.getFullYear() && 
                  wDate.getMonth() === requestDate.getMonth() && 
-                 wDate.getDate() === requestDate.getDate();
+                 wDate.getDate() === requestDate.getDate() &&
+                 // Thêm kiểm tra giờ nếu có sự khác biệt về múi giờ
+                 Math.abs(wDate.getHours() - requestDate.getHours()) < 2;
         });
         
         if (sameDay !== -1) {
-          console.log(`Tìm thấy yêu cầu cùng ngày nhưng khác giờ: ${affiliate.withdrawal_history[sameDay].request_date}`);
+          console.log(`Tìm thấy yêu cầu cùng ngày với giờ tương đối: ${affiliate.withdrawal_history[sameDay].request_date}`);
+          // Sử dụng yêu cầu này thay thế
+          withdrawalIndex = sameDay;
+        } else {
+          return undefined;
         }
       } catch (e) {
         console.error(`Lỗi khi chuyển đổi thời gian: ${e}`);
+        return undefined;
       }
-      
-      return undefined;
     }
     
     const oldStatus = affiliate.withdrawal_history[withdrawalIndex].status;
@@ -140,14 +145,30 @@ export class MemStorage implements IStorage {
     if (newStatus === "Processing" && oldStatus !== "Processing") {
       const amount = affiliate.withdrawal_history[withdrawalIndex].amount;
       
+      console.log(`Chuẩn bị trừ ${amount} từ số dư khả dụng ${affiliate.remaining_balance}`);
+      
       // Kiểm tra số dư
       if (affiliate.remaining_balance < amount) {
+        console.error(`Số dư không đủ: ${affiliate.remaining_balance} < ${amount}`);
         throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
       }
       
       // Cập nhật số dư
       affiliate.remaining_balance -= amount;
       affiliate.paid_balance += amount;
+      
+      console.log(`Đã trừ tiền thành công: Số dư còn lại: ${affiliate.remaining_balance}, Đã thanh toán: ${affiliate.paid_balance}`);
+    }
+    // Nếu trạng thái mới là "Rejected" hoặc "Cancelled" và trạng thái cũ là "Processing",
+    // hoàn lại tiền vào số dư khả dụng của affiliate
+    else if ((newStatus === "Rejected" || newStatus === "Cancelled") && oldStatus === "Processing") {
+      const amount = affiliate.withdrawal_history[withdrawalIndex].amount;
+      
+      // Hoàn lại tiền
+      affiliate.remaining_balance += amount;
+      affiliate.paid_balance -= amount;
+      
+      console.log(`Đã hoàn lại ${amount} vào số dư khả dụng. Số dư mới: ${affiliate.remaining_balance}`);
     }
     
     return affiliate.withdrawal_history[withdrawalIndex];
@@ -338,16 +359,34 @@ export class MemStorage implements IStorage {
       throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
     }
     
-    // Add to withdrawal history
-    affiliate.withdrawal_history.unshift({
+    // Thêm vào lịch sử rút tiền với trạng thái ban đầu là "Pending"
+    const withdrawalEntry: WithdrawalHistory = {
       request_date: request.request_time,
       amount: request.amount_requested,
       note: request.note || "",
       status: "Pending" // Trạng thái ban đầu là Pending
-    });
+    };
+    
+    // Thêm vào đầu mảng để hiển thị theo thứ tự từ mới đến cũ
+    affiliate.withdrawal_history.unshift(withdrawalEntry);
+    
+    console.log(`Thêm yêu cầu rút tiền mới: ${JSON.stringify(withdrawalEntry)}`);
+    console.log(`Số lượng yêu cầu rút tiền hiện tại: ${affiliate.withdrawal_history.length}`);
+    
+    // Cập nhật số dư (trừ từ remaining_balance, cộng vào paid_balance)
+    console.log(`Số dư trước khi cập nhật: ${affiliate.remaining_balance}`);
     
     // Đổi trạng thái thành Processing và trừ tiền 
-    await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
+    try {
+      await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
+      console.log(`Đã cập nhật trạng thái thành công và trừ tiền: ${request.amount_requested}`);
+      console.log(`Số dư sau khi cập nhật: ${affiliate.remaining_balance}`);
+    } catch (error) {
+      console.error(`Lỗi khi cập nhật trạng thái và trừ tiền: ${error}`);
+      // Xóa yêu cầu rút tiền khỏi lịch sử nếu có lỗi xảy ra
+      affiliate.withdrawal_history.shift();
+      throw error;
+    }
   }
 
   async getAffiliateByAffiliateId(affiliateId: string): Promise<Affiliate | undefined> {
