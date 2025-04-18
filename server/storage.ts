@@ -149,14 +149,17 @@ export class MemStorage implements IStorage {
     if (newStatus === "Processing" && oldStatus !== "Processing") {
       console.log(`Đã chuyển từ ${oldStatus} sang ${newStatus} thành công, không cần trừ tiền nữa`);
     }
-    // Nếu trạng thái mới là "Rejected" hoặc "Cancelled" và trạng thái cũ là "Processing",
-    // hoàn lại tiền vào số dư khả dụng của affiliate
-    else if ((newStatus === "Rejected" || newStatus === "Cancelled") && oldStatus === "Processing") {
+    // Nếu trạng thái mới là "Rejected" hoặc "Cancelled", 
+    // hoàn lại tiền vào số dư khả dụng của affiliate (bất kể trạng thái nào trước đó)
+    else if (newStatus === "Rejected" || newStatus === "Cancelled") {
       const amount = affiliate.withdrawal_history[withdrawalIndex].amount;
       
       // Hoàn lại tiền
       affiliate.remaining_balance += amount;
       affiliate.paid_balance -= amount;
+      
+      console.log(`Đã hoàn lại ${amount} VND vào số dư do yêu cầu bị ${newStatus}`);
+      console.log(`Số dư còn lại sau khi hoàn: ${affiliate.remaining_balance} VND`);
       
       console.log(`Đã hoàn lại ${amount} vào số dư khả dụng. Số dư mới: ${affiliate.remaining_balance}`);
     }
