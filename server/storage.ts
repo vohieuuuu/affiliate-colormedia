@@ -112,7 +112,7 @@ export class MemStorage implements IStorage {
         console.log(`Thời gian yêu cầu đã chuyển đổi: ${requestDate.toISOString()}`);
         
         // Tìm kiếm tương đối (chỉ so sánh ngày)
-        const sameDay = affiliate.withdrawal_history.findIndex(w => {
+        let sameDayIndex = affiliate.withdrawal_history.findIndex(w => {
           const wDate = new Date(w.request_date);
           return wDate.getFullYear() === requestDate.getFullYear() && 
                  wDate.getMonth() === requestDate.getMonth() && 
@@ -121,10 +121,14 @@ export class MemStorage implements IStorage {
                  Math.abs(wDate.getHours() - requestDate.getHours()) < 2;
         });
         
-        if (sameDay !== -1) {
-          console.log(`Tìm thấy yêu cầu cùng ngày với giờ tương đối: ${affiliate.withdrawal_history[sameDay].request_date}`);
+        if (sameDayIndex !== -1) {
+          console.log(`Tìm thấy yêu cầu cùng ngày với giờ tương đối: ${affiliate.withdrawal_history[sameDayIndex].request_date}`);
           // Sử dụng yêu cầu này thay thế
-          withdrawalIndex = sameDay;
+          return await this.updateWithdrawalStatus(
+            affiliateId, 
+            affiliate.withdrawal_history[sameDayIndex].request_date, 
+            newStatus
+          );
         } else {
           return undefined;
         }
@@ -822,7 +826,7 @@ export class MemStorage implements IStorage {
           customer_name: `Customer ${customerId}`,
           email: `customer${customerId}@example.com`,
           phone: `098${7000000 + customerId}`,
-          status: j % 2 === 0 ? "Contract signed" : "Processing",
+          status: j % 2 === 0 ? "Contract signed" : "Presenting idea",
           created_at: new Date(Date.now() - (j * 86400000)).toISOString(),
           updated_at: new Date(Date.now() - (j * 43200000)).toISOString(),
           contract_value: j % 2 === 0 ? 50000000 + (j * 10000000) : 0,

@@ -88,9 +88,13 @@ async function authenticateUser(req: Request, res: Response, next: NextFunction)
       req.user = {
         id: 1,
         username: "admin@colormedia.vn",
+        password: "$2b$10$SsFtXWNGw9pLlJT4s2F9G.qO0BpI5wG6jFYrWgvYcP5o6w8gvlGT.", // admin@123
         role: "ADMIN",
-        is_first_login: false,
-        token: ADMIN_FIXED_TOKEN
+        is_active: 1,
+        is_first_login: 0,
+        last_login: null,
+        token: ADMIN_FIXED_TOKEN,
+        created_at: new Date()
       };
       return next();
     } else {
