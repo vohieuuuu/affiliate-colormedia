@@ -83,7 +83,8 @@ export default function WithdrawalModal({
       
       const response = await apiRequest("POST", "/api/withdrawal-request/send-otp", {
         amount: amountValue,
-        note
+        note,
+        tax_id: taxId.trim() // Thêm MST cá nhân (nếu có)
       });
       
       return response.json();
@@ -183,6 +184,7 @@ export default function WithdrawalModal({
     setAmount("");
     setFormattedAmount("");
     setNote("");
+    setTaxId(""); // Đặt lại MST cá nhân
     setConfirmBankInfo(false);
     setError(null);
     setCurrentStep("initial");

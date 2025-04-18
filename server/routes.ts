@@ -986,7 +986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/withdrawal-request/send-otp", authenticateUser, ensureAffiliateMatchesUser, detectSuspiciousWithdrawal, async (req, res) => {
     try {
-      const { amount, note } = req.body;
+      const { amount, note, tax_id } = req.body;
       
       if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
         return res.status(400).json({ 
@@ -1061,6 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone: affiliate.phone,
         bank_account: affiliate.bank_account,
         bank_name: affiliate.bank_name,
+        tax_id: tax_id || "", // Thêm MST cá nhân (nếu có)
         amount_requested: originalAmount,
         amount_after_tax: netAmount,
         tax_amount: taxAmount,
@@ -1207,6 +1208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           phone: validatedPayload.phone,
           bank_account: validatedPayload.bank_account,
           bank_name: validatedPayload.bank_name,
+          tax_id: validatedPayload.tax_id || "", // Thêm MST cá nhân
           amount_requested: validatedPayload.amount_requested,
           amount_after_tax: validatedPayload.amount_after_tax,
           tax_amount: validatedPayload.tax_amount,
