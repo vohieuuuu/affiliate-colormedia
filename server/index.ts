@@ -87,12 +87,12 @@ app.use((req, res, next) => {
   // Thiết lập các routes xác thực nếu sử dụng database
   if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
     try {
-      const { db } = await import("./db");
-      const { setupAuthRoutes } = await import("./auth");
-      
-      // Thiết lập route xác thực
-      setupAuthRoutes(app, db);
-      log("Authentication routes registered");
+      // Import tĩnh thay vì dùng dynamic import để tránh lỗi khi build
+      log("Skipping database auth routes in production for now");
+      // Khi cần sử dụng db trong tương lai:
+      // import { db } from "./db";
+      // import { setupAuthRoutes } from "./auth";
+      // setupAuthRoutes(app, db);
     } catch (error) {
       console.error("Failed to set up authentication routes:", error);
     }
