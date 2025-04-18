@@ -55,7 +55,7 @@ export default function StatisticsGrid({ affiliate }: StatisticsGridProps) {
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Hợp đồng ký kết</p>
               <div className="flex items-baseline mt-2">
                 <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {affiliate.total_contracts}
+                  {affiliate.referred_customers?.filter(c => c.status === "Đã chốt hợp đồng").length || affiliate.total_contracts || 0}
                 </span>
                 <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">
                   hợp đồng
