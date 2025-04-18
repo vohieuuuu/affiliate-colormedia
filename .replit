@@ -40,3 +40,5 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+[env]
+REPLIT_DISABLE_PACKAGE_LAYER = "1"
