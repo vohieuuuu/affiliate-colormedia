@@ -375,17 +375,34 @@ async function createDefaultDevAccount(storage: IStorage) {
       // Sử dụng mật khẩu mặc định từ reset-data.js
       const hashedPassword = await hashPassword("admin@123");
       
-      // Tạo tài khoản admin
+      // Tạo tài khoản admin với token cố định
       const newUser = await storage.createUser({
         username: "admin@colormedia.vn",
         password: hashedPassword,
         role: "ADMIN",
-        is_first_login: false
+        is_first_login: false,
+        token: "45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60" // Token cố định cho admin
       });
       
       console.log(`DEV MODE: Created default admin account (ID: ${newUser.id})`);
     } else {
       console.log("DEV MODE: Default admin account already exists");
+      
+      // Đảm bảo admin luôn có token cố định, ngay cả khi tài khoản đã tồn tại
+      if (adminUser.token !== "45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60") {
+        console.log("DEV MODE: Updating admin account with fixed token");
+        // Cập nhật token cố định cho admin
+        (storage as any).users = (storage as any).users.map((user: any) => {
+          if (user.username === "admin@colormedia.vn") {
+            return {
+              ...user,
+              token: "45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60"
+            };
+          }
+          return user;
+        });
+        console.log("DEV MODE: Admin token has been fixed");
+      }
     }
   } catch (error) {
     console.error("Error creating default dev account:", error);

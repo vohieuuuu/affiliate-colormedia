@@ -14,6 +14,27 @@
 3. **API quản lý admin mới**:
    - `GET /api/admin/affiliates`: Lấy danh sách tất cả các affiliate trong hệ thống.
    - Cập nhật `POST /api/admin/affiliates` để tự động tạo tài khoản người dùng và liên kết với affiliate.
+   - `PUT /api/admin/withdrawals/:affiliate_id/:request_time`: Cập nhật trạng thái yêu cầu rút tiền.
+     - Yêu cầu xác thực quản trị viên.
+     - Hỗ trợ cập nhật các trạng thái: "Pending", "Processing", "Completed", "Rejected", "Cancelled".
+     - Body request: `{ "status": "Processing", "note": "Đang xử lý yêu cầu" }`
+     - Phản hồi thành công:
+     ```json
+     {
+       "status": "success",
+       "data": {
+         "message": "Trạng thái yêu cầu rút tiền đã được cập nhật thành Processing",
+         "withdrawal": {
+           "affiliate_id": "AFF001",
+           "full_name": "Võ Xuân Hiếu",
+           "amount": 15000000,
+           "request_time": "2025-04-18T02:51:55.606Z",
+           "status": "Processing",
+           "updated_at": "2025-04-18T03:08:44.221Z"
+         }
+       }
+     }
+     ```
 
 ### Ví dụ tài khoản test
 
@@ -45,7 +66,25 @@ Affiliate 2:
    - Email kích hoạt sẽ được gửi đến địa chỉ email của affiliate với thông tin đăng nhập.
    - API kiểm tra xem email đã được sử dụng cho affiliate nào chưa. Nếu email đã tồn tại và đã được liên kết với một affiliate, hệ thống sẽ báo lỗi và yêu cầu sử dụng email khác.
 
-3. **Thông tin dữ liệu test**:
+3. **Cập nhật API quản lý yêu cầu rút tiền (Admin)**:
+   - Thêm API endpoint mới: `PUT /api/admin/withdrawals/:affiliate_id/:request_time`
+   - API hỗ trợ toàn bộ quy trình quản lý yêu cầu rút tiền từ đầu đến cuối
+   - Các trạng thái hợp lệ: "Pending", "Processing", "Completed", "Rejected", "Cancelled"
+   - Quy trình thường qua các trạng thái: Pending → Processing → Completed/Rejected
+   - Khi chuyển sang trạng thái "Processing", hệ thống tự động trừ số dư của affiliate
+   - Khi chuyển sang trạng thái "Rejected", hệ thống hoàn trả số dư đã trừ cho affiliate
+   - Khi chuyển sang trạng thái "Cancelled", hệ thống hủy yêu cầu và hoàn trả số dư đã trừ
+   - Quản trị viên có thể thêm ghi chú (note) cho mỗi lần cập nhật trạng thái
+   - Xác thực bằng token quản trị viên (Bearer token)
+   - Ví dụ gọi API:
+     ```
+     curl -X PUT http://localhost:5000/api/admin/withdrawals/AFF001/2025-04-18T02:51:55.606Z \
+       -H "Content-Type: application/json" \
+       -H "Authorization: Bearer admin" \
+       -d '{"status":"Processing", "note":"Đang xử lý yêu cầu rút tiền"}'
+     ```
+   
+4. **Thông tin dữ liệu test**:
    - API `POST /api/reset-data` đã được cập nhật để tạo tài khoản test và dữ liệu mẫu.
    - Affiliate 1: 3 khách hàng (2 hợp đồng) với tổng giá trị 255M VND, hoa hồng 7.65M VND.
    - Affiliate 2: 4 khách hàng (3 hợp đồng) với tổng giá trị 780M VND, hoa hồng 23.4M VND.

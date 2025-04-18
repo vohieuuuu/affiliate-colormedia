@@ -78,17 +78,32 @@ async function authenticateUser(req: Request, res: Response, next: NextFunction)
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  // Trường hợp đặc biệt cho API dành cho admin khi test
-  if (req.path.startsWith("/api/admin/") && (token === "admin-token" || token === "admin")) {
-    console.log("DEV MODE: Using special admin token for path:", req.path);
-    // Tạo thông tin người dùng admin tạm thời
-    req.user = {
-      id: 1,
-      username: "admin@colormedia.vn",
-      role: "ADMIN",
-      is_first_login: false
-    };
-    return next();
+  // Trường hợp đặc biệt cho API dành cho admin - kiểm tra token cố định
+  if (req.path.startsWith("/api/admin/")) {
+    // Token cố định cho admin
+    const ADMIN_FIXED_TOKEN = "45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60";
+    
+    // Kiểm tra token cố định
+    if (token === ADMIN_FIXED_TOKEN || token === "admin-token" || token === "admin") {
+      console.log("DEV MODE: Using admin token for path:", req.path);
+      // Tạo thông tin người dùng admin tạm thời
+      req.user = {
+        id: 1,
+        username: "admin@colormedia.vn",
+        role: "ADMIN",
+        is_first_login: false,
+        token: ADMIN_FIXED_TOKEN
+      };
+      return next();
+    } else {
+      return res.status(403).json({
+        status: "error",
+        error: {
+          code: "ADMIN_ACCESS_DENIED",
+          message: "Tài khoản admin được yêu cầu cho API này"
+        }
+      });
+    }
   }
 
   if (token == null) {
