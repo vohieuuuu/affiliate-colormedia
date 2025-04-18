@@ -566,62 +566,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API để lấy danh sách khách hàng 
-  app.get("/api/customers", async (req, res) => {
+  app.get("/api/customers", authenticateUser, async (req, res) => {
     try {
-      // Trong môi trường development, sử dụng dữ liệu mẫu
-      if (process.env.NODE_ENV === "development") {
-        const userId = 1; // Admin user
-        
-        // Tìm affiliate liên kết với user
-        const affiliate = await storage.getAffiliateByUserId(userId);
-        
-        if (!affiliate || !affiliate.referred_customers) {
-          return res.status(200).json({
-            status: "success",
-            data: []
-          });
-        }
-        
-        // Trả về danh sách khách hàng với ID (index)
-        const customers = affiliate.referred_customers.map((customer, index) => ({
-          id: index,
-          customer_name: customer.customer_name,
-          status: customer.status,
-          created_at: customer.created_at,
-          updated_at: customer.updated_at,
-          contract_value: customer.contract_value,
-          commission: customer.commission,
-          contract_date: customer.contract_date,
-          note: customer.note,
-          phone: customer.phone,
-          email: customer.email
-        }));
-        
-        return res.status(200).json({
-          status: "success",
-          data: customers
-        });
-      }
+      console.log("Getting customers list for user:", req.user?.id, req.user?.username);
       
-      // Với môi trường production, lấy khách hàng của affiliate hiện tại
-      if (!req.user) {
-        return res.status(401).json({
-          status: "error",
-          error: {
-            code: "UNAUTHORIZED",
-            message: "Unauthorized access"
+      // Kiểm tra xem có affiliateId được chỉ định không (cho phép admin xem khách hàng của affiliate cụ thể)
+      const affiliateId = req.query.affiliate_id as string;
+      
+      let affiliate = null;
+      
+      // Nếu có affiliateId và user là admin, lấy thông tin affiliate đó
+      if (affiliateId && req.user?.role === "ADMIN") {
+        console.log(`Admin requesting customers for specific affiliate: ${affiliateId}`);
+        affiliate = await storage.getAffiliateByAffiliateId(affiliateId);
+      } else if (req.user) {
+        // Lấy affiliate của user đăng nhập
+        affiliate = await storage.getAffiliateByUserId(req.user.id);
+        
+        // Nếu không tìm thấy affiliate qua user_id, thử tìm qua email
+        if (!affiliate && req.user.username) {
+          console.log(`Trying to find affiliate by email: ${req.user.username}`);
+          affiliate = await storage.getAffiliateByEmail(req.user.username);
+          
+          if (affiliate) {
+            console.log(`Found affiliate by email: ${req.user.username}`);
+            // Cập nhật user_id của affiliate để khớp với user hiện tại
+            affiliate.user_id = req.user.id;
           }
-        });
+        }
       }
-      
-      const affiliate = await storage.getAffiliateByUserId(req.user.id);
       
       if (!affiliate || !affiliate.referred_customers) {
+        console.log("No affiliate or referred customers found for user:", req.user?.id);
         return res.status(200).json({
           status: "success",
           data: []
         });
       }
+      
+      console.log(`Found ${affiliate.referred_customers.length} customers for affiliate ${affiliate.affiliate_id}`);
+      
       
       const customers = affiliate.referred_customers.map((customer, index) => ({
         id: index,
@@ -1568,6 +1552,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Thêm khách hàng và lấy kết quả với ID
       const newCustomer = await storage.addReferredCustomer(affiliate_id, customerData);
       
+      // Vô hiệu hóa cache để đảm bảo dữ liệu mới được cập nhật
+      if (affiliate.user_id) {
+        statsCache.invalidate(`affiliate:${affiliate.user_id}`);
+        console.log(`Invalidated cache for affiliate:${affiliate.user_id} after adding new customer`);
+      }
+      
       // Return success response
       res.status(201).json({
         status: "success",
@@ -1840,6 +1830,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Vô hiệu hóa cache để đảm bảo dữ liệu mới được hiển thị
+      if (affiliate.user_id) {
+        statsCache.invalidate(`affiliate:${affiliate.user_id}`);
+        console.log(`Invalidated cache for affiliate:${affiliate.user_id} after updating contract`);
+      }
+      
       console.log(`Contract update successful, result:`, JSON.stringify({
         id: result.id,
         name: result.customer_name,
@@ -1952,6 +1948,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "Customer not found"
           }
         });
+      }
+      
+      // Vô hiệu hóa cache để đảm bảo dữ liệu mới được hiển thị
+      if (affiliate.user_id) {
+        statsCache.invalidate(`affiliate:${affiliate.user_id}`);
+        console.log(`Invalidated cache for affiliate:${affiliate.user_id} after updating customer status`);
       }
       
       // Log thông tin khách hàng sau khi cập nhật
