@@ -479,8 +479,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return affiliate;
       };
       
-      // Sử dụng cache để tăng hiệu suất
-      const affiliate = await statsCache.get(`affiliate:${userId}`, getAffiliateData);
+      // KHÔNG sử dụng cache cho dữ liệu affiliate để luôn lấy dữ liệu mới nhất
+      // const affiliate = await statsCache.get(`affiliate:${userId}`, getAffiliateData);
+      
+      // Luôn lấy dữ liệu mới từ storage
+      const affiliate = await getAffiliateData();
       
       if (!affiliate) {
         return res.status(404).json({ 
