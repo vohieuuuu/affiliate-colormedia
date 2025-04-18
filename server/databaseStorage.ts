@@ -139,15 +139,35 @@ export class DatabaseStorage implements IStorage {
       status: "Pending" // Trạng thái ban đầu là Pending
     });
     
-    // 6. Cập nhật affiliate với trạng thái Pending (chưa trừ tiền)
+    // 6. Trừ số dư trực tiếp (không đợi updateWithdrawalStatus)
+    const updatedRemainingBalance = affiliate.remaining_balance - request.amount_requested;
+    const updatedPaidBalance = (affiliate.paid_balance || 0) + request.amount_requested;
+    
+    console.log(`Trừ số dư trực tiếp: ${affiliate.remaining_balance} -> ${updatedRemainingBalance}`);
+    
+    // Cập nhật affiliate với trạng thái Pending (và đã trừ tiền)
     await db.update(affiliates)
       .set({ 
-        withdrawal_history: history
+        withdrawal_history: history,
+        remaining_balance: updatedRemainingBalance,
+        paid_balance: updatedPaidBalance
       })
       .where(eq(affiliates.id, affiliate.id));
       
-    // 7. Đổi trạng thái thành Processing và trừ tiền 
-    await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
+    // 7. Đổi trạng thái thành Processing (không cần trừ tiền nữa vì đã trừ ở trên)
+    try {
+      await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
+    } catch (error) {
+      // Nếu có lỗi khi cập nhật trạng thái, phải hoàn lại tiền
+      console.error("Lỗi khi cập nhật trạng thái, hoàn lại tiền:", error);
+      await db.update(affiliates)
+        .set({ 
+          remaining_balance: affiliate.remaining_balance,
+          paid_balance: affiliate.paid_balance || 0
+        })
+        .where(eq(affiliates.id, affiliate.id));
+      throw error;
+    }
   }
   
   /**
