@@ -82,7 +82,20 @@ export class MemStorage implements IStorage {
     // Tìm affiliate
     const affiliate = await this.getAffiliateByAffiliateId(affiliateId);
     if (!affiliate) {
+      console.error(`Không tìm thấy affiliate với ID: ${affiliateId}`);
       return undefined;
+    }
+    
+    console.log(`Đang tìm yêu cầu rút tiền cho ${affiliateId} với thời gian ${requestTime}`);
+    console.log(`Số lượng yêu cầu rút tiền hiện có: ${affiliate.withdrawal_history.length}`);
+    
+    // Kiểm tra và ghi nhật ký tất cả yêu cầu rút tiền hiện có
+    if (affiliate.withdrawal_history.length > 0) {
+      console.log(`Danh sách yêu cầu rút tiền hiện có:`, affiliate.withdrawal_history.map(w => ({
+        request_date: w.request_date,
+        amount: w.amount,
+        status: w.status
+      })));
     }
     
     // Tìm yêu cầu rút tiền dựa trên thời gian yêu cầu
@@ -91,10 +104,33 @@ export class MemStorage implements IStorage {
     );
     
     if (withdrawalIndex === -1) {
+      console.error(`Không tìm thấy yêu cầu rút tiền với thời gian ${requestTime} cho affiliate ${affiliateId}`);
+      
+      // Kiểm tra định dạng thời gian
+      try {
+        const requestDate = new Date(requestTime);
+        console.log(`Thời gian yêu cầu đã chuyển đổi: ${requestDate.toISOString()}`);
+        
+        // Tìm kiếm tương đối (chỉ so sánh ngày)
+        const sameDay = affiliate.withdrawal_history.findIndex(w => {
+          const wDate = new Date(w.request_date);
+          return wDate.getFullYear() === requestDate.getFullYear() && 
+                 wDate.getMonth() === requestDate.getMonth() && 
+                 wDate.getDate() === requestDate.getDate();
+        });
+        
+        if (sameDay !== -1) {
+          console.log(`Tìm thấy yêu cầu cùng ngày nhưng khác giờ: ${affiliate.withdrawal_history[sameDay].request_date}`);
+        }
+      } catch (e) {
+        console.error(`Lỗi khi chuyển đổi thời gian: ${e}`);
+      }
+      
       return undefined;
     }
     
     const oldStatus = affiliate.withdrawal_history[withdrawalIndex].status;
+    console.log(`Cập nhật trạng thái yêu cầu rút tiền từ ${oldStatus} thành ${newStatus}`);
     
     // Cập nhật trạng thái
     affiliate.withdrawal_history[withdrawalIndex].status = newStatus;
