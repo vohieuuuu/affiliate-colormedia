@@ -144,24 +144,10 @@ export class MemStorage implements IStorage {
     // Cập nhật trạng thái
     affiliate.withdrawal_history[withdrawalIndex].status = newStatus;
     
-    // Nếu trạng thái mới là "Processing" và trạng thái cũ không phải "Processing",
-    // trừ tiền từ số dư khả dụng của affiliate
+    // Chỉ xử lý trạng thái, không trừ tiền khi chuyển từ Pending sang Processing
+    // vì tiền đã được trừ khi tạo yêu cầu rút tiền ở trạng thái Pending
     if (newStatus === "Processing" && oldStatus !== "Processing") {
-      const amount = affiliate.withdrawal_history[withdrawalIndex].amount;
-      
-      console.log(`Chuẩn bị trừ ${amount} từ số dư khả dụng ${affiliate.remaining_balance}`);
-      
-      // Kiểm tra số dư
-      if (affiliate.remaining_balance < amount) {
-        console.error(`Số dư không đủ: ${affiliate.remaining_balance} < ${amount}`);
-        throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
-      }
-      
-      // Cập nhật số dư
-      affiliate.remaining_balance -= amount;
-      affiliate.paid_balance += amount;
-      
-      console.log(`Đã trừ tiền thành công: Số dư còn lại: ${affiliate.remaining_balance}, Đã thanh toán: ${affiliate.paid_balance}`);
+      console.log(`Đã chuyển từ ${oldStatus} sang ${newStatus} thành công, không cần trừ tiền nữa`);
     }
     // Nếu trạng thái mới là "Rejected" hoặc "Cancelled" và trạng thái cũ là "Processing",
     // hoàn lại tiền vào số dư khả dụng của affiliate
