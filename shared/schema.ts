@@ -1,6 +1,6 @@
 import { pgTable, text, serial, integer, timestamp, json, varchar, boolean } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { createInsertSchema } from "drizzle-zod/zod";
 
 // Define the status type for referred customer stages
 export const CustomerStatus = z.enum([
