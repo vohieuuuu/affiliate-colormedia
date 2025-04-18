@@ -544,22 +544,35 @@ export class MemStorage implements IStorage {
       throw new Error(`Affiliate not found with ID: ${affiliateId}`);
     }
     
-    // Tạo ID tự động cho khách hàng mới
-    // Tìm ID lớn nhất hiện có trong danh sách khách hàng của tất cả các affiliate
-    const allCustomers: ReferredCustomer[] = this.allAffiliates.flatMap(aff => aff.referred_customers);
+    // Lấy user_id từ affiliate
+    const userId = affiliate.user_id;
     
-    // Tìm ID lớn nhất hiện có (nếu có) và tăng lên 1
-    const maxCustomerId = allCustomers.length > 0 
-      ? Math.max(...allCustomers.filter(c => c.id !== undefined).map(c => c.id || 0)) 
-      : -1;
-    const newCustomerId = maxCustomerId + 1;
+    // Sử dụng user_id làm ID khách hàng nếu được chỉ định trong customerData
+    let customerId: number;
+    if (customerData.id !== undefined) {
+      // Sử dụng ID đã được chỉ định
+      customerId = customerData.id;
+      console.log(`Using provided customer ID: ${customerId}`);
+    } else if (userId) {
+      // Sử dụng user_id nếu không có ID được chỉ định
+      customerId = userId;
+      console.log(`Using user_id as customer ID: ${customerId}`);
+    } else {
+      // Tạo ID tự động nếu không có thông tin nào
+      const allCustomers: ReferredCustomer[] = this.allAffiliates.flatMap(aff => aff.referred_customers);
+      const maxCustomerId = allCustomers.length > 0 
+        ? Math.max(...allCustomers.filter(c => c.id !== undefined).map(c => c.id || 0)) 
+        : -1;
+      customerId = maxCustomerId + 1;
+      console.log(`Generated new customer ID: ${customerId}`);
+    }
     
     const now = new Date().toISOString();
     
-    // Tạo thông tin khách hàng mới với ID duy nhất và affiliate_id
+    // Tạo thông tin khách hàng mới với ID được xác định và affiliate_id
     const newCustomer: ReferredCustomer = {
       ...customerData,
-      id: newCustomerId,
+      id: customerId,
       affiliate_id: affiliateId,
       created_at: now,
       updated_at: now

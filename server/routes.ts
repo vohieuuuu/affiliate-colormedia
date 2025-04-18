@@ -1555,7 +1555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customer_name: name,
         phone: phone || "",
         email: email || "",
-        status: status || "Contact received",
+        status: status || "Mới nhập", // Sử dụng trạng thái mặc định đúng theo enum
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         note: description
