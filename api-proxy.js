@@ -1,58 +1,69 @@
-// Simple proxy for working around the content type issue
-import express from 'express';
-import cors from 'cors';
-import axios from 'axios';
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
+const path = require('path');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Enable CORS for all routes
 app.use(cors());
 app.use(express.json());
 
-// Define proxied routes
+// Serve static files from the 'dist/public' directory
+app.use(express.static(path.join(__dirname, 'dist/public')));
+
+// Simple health check endpoint
+app.get('/api/check', (req, res) => {
+  res.json({ status: 'ok', message: 'API proxy is working' });
+});
+
+// Redirect API requests to your actual API server
 app.all('/api/*', async (req, res) => {
   try {
-    const url = `http://localhost:5000${req.url}`;
-    const method = req.method;
-    const headers = {...req.headers};
-    delete headers.host;
-    delete headers.connection;
+    // Đây là đường dẫn đến API tạm thời, có thể điều chỉnh nếu cần
+    // Local server sẽ chạy trên cổng khác
+    const isProd = process.env.NODE_ENV === 'production';
+    const backendUrl = isProd ? process.env.API_URL || 'https://affclm-api.replit.app' : 'http://localhost:3000';
+    const method = req.method.toLowerCase();
+    const url = `${backendUrl}${req.url}`;
     
-    // Add JSON content type explicitly
-    headers['content-type'] = 'application/json';
-    headers['accept'] = 'application/json';
+    console.log(`Proxying ${method.toUpperCase()} request to: ${url}`);
     
-    // Log information for debugging
-    console.log(`[PROXY] ${method} ${req.url}`);
-    
-    // Make the proxied request
+    // Forward the request to the backend
     const response = await axios({
       method,
       url,
-      data: method !== 'GET' ? req.body : undefined,
-      headers,
-      responseType: 'json'
+      data: req.body,
+      headers: {
+        ...req.headers,
+        host: new URL(backendUrl).host,
+      },
+      validateStatus: () => true, // Accept any status code
     });
     
-    res.status(response.status).json(response.data);
+    // Set the response headers
+    Object.entries(response.headers).forEach(([key, value]) => {
+      res.set(key, value);
+    });
+    
+    // Send the response
+    res.status(response.status).send(response.data);
   } catch (error) {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error(`[ERROR] Status: ${error.response.status}, Data:`, error.response.data);
-      res.status(error.response.status).json(error.response.data);
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('[ERROR] No response received:', error.request);
-      res.status(500).json({ error: 'No response from server' });
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error('[ERROR]', error.message);
-      res.status(500).json({ error: error.message });
-    }
+    console.error('Proxy error:', error.message);
+    res.status(502).json({
+      error: 'Bad Gateway',
+      message: 'Failed to connect to the backend server',
+      details: error.message
+    });
   }
 });
 
-const PORT = 5001;
-app.listen(PORT, () => {
-  console.log(`API Proxy running at http://localhost:${PORT}`);
-  console.log('To use: curl http://localhost:5001/api/...');
+// Serve the index.html for all other routes (SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist/public/index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API proxy server running on port ${PORT}`);
 });
