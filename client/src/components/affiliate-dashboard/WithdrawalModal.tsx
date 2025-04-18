@@ -91,6 +91,14 @@ export default function WithdrawalModal({
     },
     onSuccess: (data) => {
       if (data.status === "success") {
+        // Vì số dư được trừ ngay khi tạo yêu cầu rút tiền, làm mới dữ liệu để hiển thị số dư mới
+        queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
+        
+        // Force refetch ngay lập tức
+        queryClient.refetchQueries({ queryKey: ['/api/affiliate'] });
+        queryClient.refetchQueries({ queryKey: ['/api/withdrawals'] });
+        
         setWithdrawalData(data.data.withdrawal_data);
         setMaskedEmail(data.data.email_masked);
         setCurrentStep("verification");
@@ -133,6 +141,11 @@ export default function WithdrawalModal({
       if (data.status === "success") {
         // Invalidate affiliate data cache và buộc refresh để cập nhật số dư mới
         queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
+        
+        // Buộc refresh ngay lập tức
+        queryClient.refetchQueries({ queryKey: ['/api/affiliate'] });
+        queryClient.refetchQueries({ queryKey: ['/api/withdrawals'] });
         
         toast({
           title: "Thành công",
@@ -213,8 +226,13 @@ export default function WithdrawalModal({
     setError(null);
     verifyOtp(otpInput);
     
-    // Hỗ trợ làm mới dữ liệu UI ngay lập tức 
+    // Hỗ trợ làm mới dữ liệu UI ngay lập tức
     queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
+    
+    // Force refresh
+    queryClient.refetchQueries({ queryKey: ['/api/affiliate'] });
+    queryClient.refetchQueries({ queryKey: ['/api/withdrawals'] });
   };
   
   const handleClose = () => {
