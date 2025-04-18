@@ -230,6 +230,7 @@ export async function sendWithdrawalRequestEmail(
     amountAfterTax?: number;
     hasTax?: boolean;
     taxRate?: number;
+    taxId?: string;
   }
 ): Promise<boolean> {
   // Override email for testing purposes
@@ -262,12 +263,20 @@ export async function sendWithdrawalRequestEmail(
     
     const taxRateFormatted = `${(taxInfo.taxRate || 0.1) * 100}%`;
     
+    // Thêm hiển thị MST nếu có
+    const taxIdSection = taxInfo.taxId ? 
+      `<p>🆔 MST cá nhân: <strong>${taxInfo.taxId}</strong></p>` : '';
+    
+    const taxIdTextSection = taxInfo.taxId ? 
+      `🆔 MST cá nhân: ${taxInfo.taxId}` : '';
+    
     taxSection = `
       <div style="background-color: #fff8e1; border-left: 4px solid #ffc919; padding: 15px; margin: 15px 0;">
         <p><strong>Thông tin thuế thu nhập cá nhân:</strong></p>
         <p>💰 Số tiền yêu cầu: <strong>${formattedAmount}</strong></p>
         <p>🔢 Thuế TNCN (${taxRateFormatted}): <strong>${formattedTaxAmount}</strong></p>
         <p>💸 Số tiền thực nhận: <strong>${formattedNetAmount}</strong></p>
+        ${taxIdSection}
         <p style="font-size: 0.9em; color: #555;">Theo quy định của pháp luật, khoản rút tiền trên 2 triệu VND sẽ bị khấu trừ 10% thuế TNCN.</p>
       </div>
     `;
@@ -277,6 +286,7 @@ Thông tin thuế thu nhập cá nhân:
 💰 Số tiền yêu cầu: ${formattedAmount}
 🔢 Thuế TNCN (${taxRateFormatted}): ${formattedTaxAmount}
 💸 Số tiền thực nhận: ${formattedNetAmount}
+${taxIdTextSection}
 Theo quy định của pháp luật, khoản rút tiền trên 2 triệu VND sẽ bị khấu trừ 10% thuế TNCN.
     `;
   }

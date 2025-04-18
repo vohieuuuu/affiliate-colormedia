@@ -1194,7 +1194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           taxAmount: validatedPayload.tax_amount,
           amountAfterTax: validatedPayload.amount_after_tax,
           hasTax: validatedPayload.has_tax,
-          taxRate: validatedPayload.tax_rate
+          taxRate: validatedPayload.tax_rate,
+          taxId: validatedPayload.tax_id // Thêm MST cá nhân vào email
         }
       );
       
