@@ -16,6 +16,25 @@ export function setupDevAuthRoutes(app: any, storage: IStorage) {
   // API đăng nhập
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
+      // Trường hợp đặc biệt cho admin khi phát triển
+      if (req.body.username === "admin" && req.body.password === "admin") {
+        console.log("DEV MODE: Using special admin login");
+        const token = generateToken();
+        
+        return res.status(200).json({
+          status: "success",
+          data: {
+            token: token,
+            user: {
+              id: 1,
+              username: "admin@colormedia.vn",
+              role: "ADMIN",
+              is_first_login: false
+            }
+          }
+        });
+      }
+      
       // Validate dữ liệu đầu vào
       const loginData = LoginSchema.parse(req.body);
       
