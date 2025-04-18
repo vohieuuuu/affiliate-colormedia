@@ -382,6 +382,21 @@ export class MemStorage implements IStorage {
     
     // Đổi trạng thái thành Processing và trừ tiền 
     try {
+      // Trừ số dư affiliate trước khi cập nhật trạng thái
+      // Kiểm tra số dư
+      if (affiliate.remaining_balance < request.amount_requested) {
+        throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
+      }
+      
+      console.log(`Số dư trước khi trừ tiền: ${affiliate.remaining_balance}`);
+      
+      // Trừ tiền trực tiếp
+      affiliate.remaining_balance -= request.amount_requested;
+      affiliate.paid_balance = (affiliate.paid_balance || 0) + request.amount_requested;
+      
+      console.log(`Đã trừ ${request.amount_requested} từ số dư trực tiếp. Số dư mới: ${affiliate.remaining_balance}`);
+      
+      // Cập nhật trạng thái
       await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
       console.log(`Đã cập nhật trạng thái thành công và trừ tiền: ${request.amount_requested}`);
       console.log(`Số dư sau khi cập nhật: ${affiliate.remaining_balance}`);

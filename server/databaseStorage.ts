@@ -188,10 +188,46 @@ export class DatabaseStorage implements IStorage {
     // Nếu trạng thái mới là "Processing" và trạng thái hiện tại không phải "Processing"
     // thì cần trừ số dư
     if (newStatus === "Processing" && currentStatus !== "Processing") {
-      const success = await this.updateAffiliateBalance(affiliateId, withdrawalAmount);
-      if (!success) {
-        throw new Error("Không thể cập nhật số dư hiện tại");
+      // Lấy affiliate mới nhất để đảm bảo số dư chính xác
+      const [latestAffiliate] = await db.select()
+        .from(affiliates)
+        .where(eq(affiliates.affiliate_id, affiliateId));
+      
+      if (!latestAffiliate) {
+        throw new Error("Không thể tìm thấy affiliate");
       }
+      
+      // Kiểm tra số dư trước khi cập nhật
+      console.log(`Kiểm tra số dư trước khi cập nhật: ${latestAffiliate.remaining_balance} >= ${withdrawalAmount}`);
+      
+      if (latestAffiliate.remaining_balance < withdrawalAmount) {
+        throw new Error(`Số dư không đủ: ${latestAffiliate.remaining_balance.toLocaleString()} < ${withdrawalAmount.toLocaleString()}`);
+      }
+      
+      // Cập nhật số dư trong đối tượng updateFields trực tiếp
+      updateFields.remaining_balance = latestAffiliate.remaining_balance - withdrawalAmount;
+      updateFields.paid_balance = (latestAffiliate.paid_balance || 0) + withdrawalAmount;
+      
+      console.log(`Đã trừ ${withdrawalAmount} từ số dư. Số dư mới: ${updateFields.remaining_balance}`);
+    }
+    
+    // Nếu trạng thái mới là "Rejected" hoặc "Cancelled" và trạng thái hiện tại là "Processing"
+    // thì cần hoàn lại tiền vào số dư
+    if ((newStatus === "Rejected" || newStatus === "Cancelled") && currentStatus === "Processing") {
+      // Lấy affiliate mới nhất để đảm bảo số dư chính xác
+      const [latestAffiliate] = await db.select()
+        .from(affiliates)
+        .where(eq(affiliates.affiliate_id, affiliateId));
+      
+      if (!latestAffiliate) {
+        throw new Error("Không thể tìm thấy affiliate");
+      }
+      
+      // Cập nhật số dư trong đối tượng updateFields trực tiếp
+      updateFields.remaining_balance = latestAffiliate.remaining_balance + withdrawalAmount;
+      updateFields.paid_balance = Math.max(0, (latestAffiliate.paid_balance || 0) - withdrawalAmount);
+      
+      console.log(`Đã hoàn lại ${withdrawalAmount} vào số dư. Số dư mới: ${updateFields.remaining_balance}`);
     }
     
     // Cập nhật affiliate
