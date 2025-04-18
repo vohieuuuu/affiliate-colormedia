@@ -1,749 +1,623 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
-  TableCell 
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { 
-  ChevronRight, 
-  UserPlus, 
-  BadgeCheck, 
-  AlertCircle,
-  PieChart,
-  Users,
-  FileCheck,
-  CheckCircle,
-  XCircle,
-  Clock,
+  UserCircle, 
+  PlusCircle,
+  Building, 
+  UserCheck,
+  Calendar,
   Phone,
   Mail,
-  Building,
-  Calendar
+  AlertCircle,
+  Loader2,
+  Camera,
+  ListFilter
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import KolContactsTable from "@/components/kol-vip/kol-contacts-table";
 import KpiProgressCard from "@/components/kol-vip/kpi-progress-card";
-import { KolContact, CustomerStatusType } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import AddContactModal from "@/components/kol-vip/add-contact-modal";
 import ScanCardModal from "@/components/kol-vip/scan-card-modal";
-
-// Định nghĩa kiểu dữ liệu cho KPI data
-interface KpiData {
-  contacts: {
-    current: number;
-    target: number;
-    percentage: number;
-  };
-  potentialContacts: {
-    current: number;
-    target: number;
-    percentage: number;
-  };
-  contracts: {
-    current: number;
-    target: number;
-    percentage: number;
-  };
-  overall: {
-    achieved: boolean;
-    performance: "ACHIEVED" | "NOT_ACHIEVED" | "PENDING";
-    lastEvaluated?: string;
-  };
-}
-
-// Định nghĩa kiểu dữ liệu cho API response
-interface KpiStatsResponse {
-  status: string;
-  data: {
-    kolVip: {
-      id: number;
-      affiliate_id: string;
-      full_name: string;
-      level: string;
-      current_base_salary: number;
-    };
-    period: {
-      year: number;
-      month: number;
-    };
-    kpi: KpiData;
-    stats: {
-      totalContacts: number;
-      potentialContacts: number;
-      contractsCount: number;
-      contractValue: number;
-      commission: number;
-      baseSalary: number;
-      totalIncome: number;
-    };
-    contacts: KolContact[];
-  };
-}
+import { KolVipAffiliate, KolContact, MonthlyKpi, KolVipLevel } from "@shared/schema";
 
 const KolDashboard = () => {
-  const [location, navigate] = useLocation();
   const { toast } = useToast();
-  const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
-  const [isScanCardModalOpen, setIsScanCardModalOpen] = useState(false);
-  
-  // Lấy thông tin affiliate từ API
-  const { data: kolData, isLoading, isError, refetch } = useQuery<{
-    status: string;
-    data: {
-      id: number;
-      user_id: number;
-      affiliate_id: string;
-      full_name: string;
-      email: string;
-      phone: string;
-      level: string;
-      current_base_salary: number;
-      join_date: string;
-      total_contacts: number;
-      potential_contacts: number;
-      total_contracts: number;
-      contract_value: number;
-      received_balance: number;
-      paid_balance: number;
-      remaining_balance: number;
-    }
-  }>({
-    queryKey: ['/api/kol/me'],
-    retry: 1,
-  });
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("contacts");
+  const [showAddContactModal, setShowAddContactModal] = useState(false);
+  const [showScanCardModal, setShowScanCardModal] = useState(false);
 
-  // Lấy thông tin KPI từ API
-  const { data: kpiStats, isLoading: isKpiLoading, refetch: refetchKpi } = useQuery<KpiStatsResponse>({
-    queryKey: ['/api/kol/stats'],
+  // Lấy thông tin KOL hiện tại
+  const {
+    data: kolInfo,
+    isLoading: isLoadingKolInfo,
+    error: kolInfoError,
+  } = useQuery({
+    queryKey: ["/api/kol/me"],
     queryFn: async () => {
-      if (!kolData?.data?.affiliate_id) {
-        throw new Error("KOL ID not available");
-      }
-      
-      const res = await fetch(`/api/kol/${kolData.data.affiliate_id}/kpi-stats`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch KPI stats");
-      }
-      
-      return res.json();
+      const response = await apiRequest("GET", "/api/kol/me");
+      return await response.json() as KolVipAffiliate;
     },
-    enabled: !!kolData?.data?.affiliate_id,
-    retry: 1,
+    enabled: !!user,
   });
 
-  // Lấy danh sách contacts từ API
-  const { data: contactsData, isLoading: isContactsLoading, refetch: refetchContacts } = useQuery<{
-    status: string;
-    data: KolContact[];
-  }>({
-    queryKey: ['/api/kol/contacts'],
+  // Lấy danh sách liên hệ
+  const {
+    data: contacts,
+    isLoading: isLoadingContacts,
+    error: contactsError,
+  } = useQuery({
+    queryKey: ["/api/kol", kolInfo?.id, "contacts"],
     queryFn: async () => {
-      if (!kolData?.data?.affiliate_id) {
-        throw new Error("KOL ID not available");
-      }
-      
-      const res = await fetch(`/api/kol/${kolData.data.affiliate_id}/contacts`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch contacts");
-      }
-      
-      return res.json();
+      const response = await apiRequest("GET", `/api/kol/${kolInfo?.id}/contacts`);
+      return await response.json() as KolContact[];
     },
-    enabled: !!kolData?.data?.affiliate_id,
-    retry: 1,
+    enabled: !!kolInfo?.id,
   });
 
-  useEffect(() => {
-    // Redirect to auth page if not authenticated
-    // Thêm logic ở đây nếu cần
-  }, [navigate]);
+  // Lấy thống kê KPI
+  const {
+    data: kpiStats,
+    isLoading: isLoadingKpiStats,
+    error: kpiStatsError,
+  } = useQuery({
+    queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/kol/${kolInfo?.id}/kpi-stats`);
+      return await response.json() as {
+        current_month: MonthlyKpi;
+        previous_months: MonthlyKpi[];
+      };
+    },
+    enabled: !!kolInfo?.id,
+  });
 
-  // Handler khi thêm contact mới
-  const handleAddContact = async (newContactData: any) => {
-    if (!kolData?.data?.affiliate_id) {
+  // Mutation thêm liên hệ mới
+  const addContactMutation = useMutation({
+    mutationFn: async (contactData: Omit<KolContact, "id" | "created_at">) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/kol/${kolInfo?.id}/contacts`,
+        contactData
+      );
+      return await response.json();
+    },
+    onSuccess: () => {
       toast({
-        title: "Lỗi",
-        description: "Không thể xác định KOL ID",
-        variant: "destructive"
+        title: "Thêm liên hệ thành công",
+        description: "Liên hệ mới đã được thêm vào danh sách của bạn",
       });
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/kol/${kolData.data.affiliate_id}/contacts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(newContactData)
-      });
-
-      if (!response.ok) {
-        throw new Error("Không thể thêm liên hệ mới");
-      }
-
-      // Refresh data
-      refetchContacts();
-      refetchKpi();
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"] });
+      setShowAddContactModal(false);
+    },
+    onError: (error: Error) => {
       toast({
-        title: "Thành công",
-        description: "Đã thêm liên hệ mới",
+        title: "Không thể thêm liên hệ",
+        description: error.message || "Đã xảy ra lỗi khi thêm liên hệ mới",
+        variant: "destructive",
       });
-      
-      setIsAddContactModalOpen(false);
-    } catch (error) {
+    },
+  });
+
+  // Mutation cập nhật trạng thái liên hệ
+  const updateContactMutation = useMutation({
+    mutationFn: async ({ 
+      contactId, 
+      data 
+    }: { 
+      contactId: number; 
+      data: Partial<KolContact> 
+    }) => {
+      const response = await apiRequest(
+        "PUT",
+        `/api/kol/${kolInfo?.id}/contacts/${contactId}`,
+        data
+      );
+      return await response.json();
+    },
+    onSuccess: () => {
       toast({
-        title: "Lỗi",
-        description: error.message || "Có lỗi xảy ra khi thêm liên hệ mới",
-        variant: "destructive"
+        title: "Cập nhật thành công",
+        description: "Thông tin liên hệ đã được cập nhật",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Không thể cập nhật",
+        description: error.message || "Đã xảy ra lỗi khi cập nhật liên hệ",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation thêm hợp đồng
+  const addContractMutation = useMutation({
+    mutationFn: async ({ 
+      contactId, 
+      data 
+    }: { 
+      contactId: number; 
+      data: { contractValue: number; note: string } 
+    }) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/kol/${kolInfo?.id}/contacts/${contactId}/contract`,
+        data
+      );
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Thêm hợp đồng thành công",
+        description: "Hợp đồng đã được thêm và liên hệ đã được cập nhật trạng thái",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Không thể thêm hợp đồng",
+        description: error.message || "Đã xảy ra lỗi khi thêm hợp đồng",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation xử lý ảnh card visit
+  const processCardImageMutation = useMutation({
+    mutationFn: async (imageData: { image_base64: string }) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/kol/${kolInfo?.id}/scan-card`,
+        imageData
+      );
+      return await response.json() as Partial<KolContact>;
+    },
+    onSuccess: (extractedData) => {
+      toast({
+        title: "Xử lý ảnh thành công",
+        description: "Đã trích xuất thông tin từ card visit",
+      });
+      setShowScanCardModal(false);
+      setShowAddContactModal(true); // Mở modal thêm liên hệ với dữ liệu đã trích xuất
+      setExtractedContactData(extractedData);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Không thể xử lý ảnh",
+        description: error.message || "Đã xảy ra lỗi khi trích xuất thông tin từ card visit",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // State lưu dữ liệu trích xuất từ card visit
+  const [extractedContactData, setExtractedContactData] = useState<Partial<KolContact> | null>(null);
+
+  // Xử lý thêm liên hệ
+  const handleAddContact = (contactData: any) => {
+    if (kolInfo?.id) {
+      addContactMutation.mutate({
+        ...contactData,
+        kol_id: kolInfo.id,
       });
     }
   };
 
-  // Handler khi quét card visit
-  const handleScanCard = async (scannedData: any) => {
-    if (!kolData?.data?.affiliate_id) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể xác định KOL ID",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Gửi dữ liệu quét lên API
-      const response = await fetch(`/api/kol/${kolData.data.affiliate_id}/scan-card`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(scannedData)
-      });
-
-      if (!response.ok) {
-        throw new Error("Không thể quét card visit");
-      }
-
-      const result = await response.json();
-      
-      // Tự động mở modal thêm contact với dữ liệu đã quét
-      // Set state và mở modal
-      setIsAddContactModalOpen(true);
-      
-      toast({
-        title: "Quét thành công",
-        description: "Đã quét thông tin từ card visit",
-      });
-      
-      setIsScanCardModalOpen(false);
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: error.message || "Có lỗi xảy ra khi quét card visit",
-        variant: "destructive"
+  // Xử lý cập nhật trạng thái liên hệ
+  const handleUpdateContact = (contactId: number, data: Partial<KolContact>) => {
+    if (kolInfo?.id) {
+      updateContactMutation.mutate({
+        contactId,
+        data,
       });
     }
   };
 
-  // Hiển thị tên tháng từ số tháng
-  const getMonthName = (month: number) => {
-    const months = [
-      "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
-      "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
-    ];
-    return months[month - 1] || "Không xác định";
+  // Xử lý thêm hợp đồng
+  const handleAddContract = (contactId: number, data: { contractValue: number; note: string }) => {
+    if (kolInfo?.id) {
+      addContractMutation.mutate({
+        contactId,
+        data,
+      });
+    }
   };
 
-  // Status badge component
-  const StatusBadge = ({ status }: { status: CustomerStatusType }) => {
-    const statusMap: Record<CustomerStatusType, { color: string, icon: React.ReactNode }> = {
-      "Mới nhập": { color: "bg-blue-100 text-blue-800", icon: <Clock className="w-3 h-3 mr-1" /> },
-      "Đang tư vấn": { color: "bg-orange-100 text-orange-800", icon: <Users className="w-3 h-3 mr-1" /> },
-      "Chờ phản hồi": { color: "bg-purple-100 text-purple-800", icon: <Clock className="w-3 h-3 mr-1" /> },
-      "Đã chốt hợp đồng": { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-3 h-3 mr-1" /> },
-      "Không tiềm năng": { color: "bg-red-100 text-red-800", icon: <XCircle className="w-3 h-3 mr-1" /> },
-    };
+  // Xử lý xử lý ảnh card visit
+  const handleProcessCardImage = (data: { image_base64: string }) => {
+    if (kolInfo?.id) {
+      processCardImageMutation.mutate(data);
+    }
+  };
 
-    const { color, icon } = statusMap[status] || { color: "bg-gray-100 text-gray-800", icon: null };
+  // Tính số lượng liên hệ theo trạng thái
+  const getContactsCountByStatus = (status: string) => {
+    if (!contacts) return 0;
+    return contacts.filter(contact => contact.status === status).length;
+  };
 
+  // Tính tổng giá trị hợp đồng
+  const getTotalContractValue = () => {
+    if (!contacts) return 0;
+    return contacts.reduce((total, contact) => total + (contact.contract_value || 0), 0);
+  };
+
+  // Kiểm tra nếu có lỗi
+  if (kolInfoError && typeof kolInfoError === 'object' && 'message' in kolInfoError) {
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
-        {icon}
-        {status}
-      </span>
-    );
-  };
-
-  // Performance badge component
-  const PerformanceBadge = ({ performance }: { performance: "ACHIEVED" | "NOT_ACHIEVED" | "PENDING" }) => {
-    const performanceMap = {
-      "ACHIEVED": { color: "bg-green-100 text-green-800", text: "Đạt", icon: <CheckCircle className="w-3 h-3 mr-1" /> },
-      "NOT_ACHIEVED": { color: "bg-red-100 text-red-800", text: "Không đạt", icon: <XCircle className="w-3 h-3 mr-1" /> },
-      "PENDING": { color: "bg-orange-100 text-orange-800", text: "Đang đánh giá", icon: <Clock className="w-3 h-3 mr-1" /> },
-    };
-
-    const { color, text, icon } = performanceMap[performance] || performanceMap.PENDING;
-
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
-        {icon}
-        {text}
-      </span>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+      <div className="p-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Lỗi</AlertTitle>
+          <AlertDescription>
+            {(kolInfoError as Error).message || "Không thể tải thông tin KOL/VIP. Vui lòng thử lại sau."}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
-  if (isError || !kolData) {
+  // Hiển thị loading
+  if (isLoadingKolInfo) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Lỗi khi tải dữ liệu</h1>
-        <p className="text-gray-500 mb-6">Không thể tải thông tin KOL/VIP. Vui lòng thử lại sau.</p>
-        <Button onClick={() => refetch()}>Tải lại</Button>
+      <div className="flex flex-col gap-4 items-center justify-center min-h-[70vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Đang tải thông tin...</p>
       </div>
     );
   }
 
-  const kol = kolData.data;
-  const currentDate = new Date();
-  const currentMonth = currentDate.getMonth() + 1;
-  const currentYear = currentDate.getFullYear();
-  const periodText = kpiStats?.data?.period 
-    ? `${getMonthName(kpiStats.data.period.month)}/${kpiStats.data.period.year}`
-    : `${getMonthName(currentMonth)}/${currentYear}`;
+  // Hiển thị thông báo nếu không phải là KOL/VIP
+  if (!kolInfo) {
+    return (
+      <div className="p-8">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Không có quyền truy cập</AlertTitle>
+          <AlertDescription>
+            Bạn không phải là thành viên KOL/VIP của ColorMedia. Vui lòng liên hệ với quản trị viên để biết thêm thông tin.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
-    <div className="container p-4 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{kol.full_name}</h1>
-          <p className="text-sm text-muted-foreground">
-            KOL/VIP ID: {kol.affiliate_id} | 
-            Level: {kol.level === "LEVEL_1" ? "1 (Fresher)" : 
-                   kol.level === "LEVEL_2" ? "2 (Advanced)" : 
-                   kol.level === "LEVEL_3" ? "3 (Elite)" : kol.level}
-          </p>
-        </div>
-        <div className="flex gap-3 mt-3 md:mt-0">
-          <Button 
-            variant="outline"
-            onClick={() => setIsScanCardModalOpen(true)}
-          >
-            <BadgeCheck className="mr-2 h-4 w-4" />
-            Quét Card Visit
-          </Button>
-          <Button onClick={() => setIsAddContactModalOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Thêm Liên Hệ
-          </Button>
-        </div>
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex flex-col space-y-6">
+        {/* Thông tin cá nhân KOL */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row justify-between gap-6">
+              <div className="flex gap-4 items-center">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <UserCircle className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">{kolInfo.full_name}</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge
+                      variant="outline"
+                      className="bg-blue-50 text-blue-600 border-blue-200"
+                    >
+                      KOL/VIP - {kolInfo.level === "LEVEL_1" ? "Fresher" : kolInfo.level === "LEVEL_2" ? "Advanced" : "Elite"}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {kolInfo.email}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-6">
+                <div>
+                  <p className="text-muted-foreground text-sm">Liên hệ trong tháng</p>
+                  <p className="text-2xl font-bold">
+                    {contacts ? contacts.length : 0}
+                    <span className="text-sm font-normal text-muted-foreground ml-1">liên hệ</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm">Hợp đồng đã ký</p>
+                  <p className="text-2xl font-bold">
+                    {getContactsCountByStatus("Đã chốt hợp đồng")}
+                    <span className="text-sm font-normal text-muted-foreground ml-1">hợp đồng</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm">Tổng giá trị</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {formatCurrency(getTotalContractValue())}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs chính */}
+        <Tabs defaultValue="contacts" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full md:w-[400px] grid-cols-2">
+            <TabsTrigger value="contacts">Danh sách liên hệ</TabsTrigger>
+            <TabsTrigger value="kpi">Theo dõi KPI</TabsTrigger>
+          </TabsList>
+
+          {/* Tab Danh sách liên hệ */}
+          <TabsContent value="contacts" className="space-y-4 mt-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h2 className="text-xl font-semibold">Quản lý liên hệ</h2>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => setShowScanCardModal(true)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Camera className="h-4 w-4" />
+                  Quét card visit
+                </Button>
+                <Button onClick={() => {
+                  setExtractedContactData(null);
+                  setShowAddContactModal(true);
+                }}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Thêm liên hệ mới
+                </Button>
+              </div>
+            </div>
+
+            {contactsError && typeof contactsError === 'object' && 'message' in contactsError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Lỗi</AlertTitle>
+                <AlertDescription>
+                  {(contactsError as Error).message || "Không thể tải danh sách liên hệ. Vui lòng thử lại sau."}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className="col-span-1">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ListFilter className="h-4 w-4" />
+                    Tổng quan liên hệ
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Tổng số:</span>
+                      <Badge variant="outline" className="font-medium">
+                        {contacts ? contacts.length : 0}
+                      </Badge>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Mới nhập:</span>
+                      <Badge variant="outline" className="bg-gray-50 text-gray-600">
+                        {getContactsCountByStatus("Mới nhập")}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Đang tư vấn:</span>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-600">
+                        {getContactsCountByStatus("Đang tư vấn")}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Chờ phản hồi:</span>
+                      <Badge variant="outline" className="bg-amber-50 text-amber-600">
+                        {getContactsCountByStatus("Chờ phản hồi")}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Đã chốt hợp đồng:</span>
+                      <Badge variant="outline" className="bg-green-50 text-green-600">
+                        {getContactsCountByStatus("Đã chốt hợp đồng")}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Không tiềm năng:</span>
+                      <Badge variant="outline" className="bg-red-50 text-red-600">
+                        {getContactsCountByStatus("Không tiềm năng")}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="col-span-1 md:col-span-3">
+                <CardContent className="p-6">
+                  <KolContactsTable
+                    contacts={contacts || []}
+                    isLoading={isLoadingContacts}
+                    onAddContact={() => {
+                      setExtractedContactData(null);
+                      setShowAddContactModal(true);
+                    }}
+                    onUpdateContact={handleUpdateContact}
+                    onAddContract={handleAddContract}
+                    kolId={kolInfo.id}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Tab Theo dõi KPI */}
+          <TabsContent value="kpi" className="space-y-6 mt-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Theo dõi KPI & Hiệu suất</h2>
+            </div>
+
+            {kpiStatsError && typeof kpiStatsError === 'object' && 'message' in kpiStatsError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Lỗi</AlertTitle>
+                <AlertDescription>
+                  {(kpiStatsError as Error).message || "Không thể tải thông tin KPI. Vui lòng thử lại sau."}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {isLoadingKpiStats ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Tháng hiện tại</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <KpiProgressCard
+                      level={kolInfo.level as KolVipLevel}
+                      monthlyKpi={kpiStats?.current_month}
+                      isCurrentMonth={true}
+                    />
+                    <Card className="md:col-span-2">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Thông tin chi tiết</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">Tháng đánh giá</p>
+                              <p className="font-medium flex items-center gap-1">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                {kpiStats?.current_month ? (
+                                  `Tháng ${kpiStats.current_month.month}/${kpiStats.current_month.year}`
+                                ) : (
+                                  "Chưa có dữ liệu"
+                                )}
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">Lương cơ bản</p>
+                              <p className="font-medium text-primary">
+                                {formatCurrency(
+                                  kolInfo.level === "LEVEL_1" 
+                                    ? 5000000 
+                                    : kolInfo.level === "LEVEL_2" 
+                                      ? 10000000 
+                                      : 15000000
+                                )}
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">Trạng thái</p>
+                              <div>
+                                {kpiStats?.current_month?.performance === "ACHIEVED" ? (
+                                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                                    Đã đạt KPI
+                                  </Badge>
+                                ) : kpiStats?.current_month?.performance === "NOT_ACHIEVED" ? (
+                                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+                                    Chưa đạt KPI
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                    Đang tiến hành
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">Liên hệ mới trong tháng</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <p className="text-2xl font-bold">
+                                  {kpiStats?.current_month?.total_contacts || 0}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Tổng số liên hệ</p>
+                              </div>
+                              <div>
+                                <p className="text-2xl font-bold">
+                                  {kpiStats?.current_month?.potential_contacts || 0}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Liên hệ tiềm năng</p>
+                              </div>
+                              <div>
+                                <p className="text-2xl font-bold">
+                                  {kpiStats?.current_month?.contracts || 0}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Hợp đồng đã ký</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {kpiStats?.current_month?.note && (
+                            <>
+                              <Separator />
+                              <div className="space-y-2">
+                                <p className="text-sm text-muted-foreground">Ghi chú</p>
+                                <p className="text-sm">{kpiStats.current_month.note}</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {kpiStats?.previous_months && kpiStats.previous_months.length > 0 && (
+                  <div className="space-y-4 mt-8">
+                    <h3 className="text-lg font-medium">Các tháng trước</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {kpiStats.previous_months.slice(0, 6).map((month, index) => (
+                        <KpiProgressCard
+                          key={`${month.year}-${month.month}`}
+                          level={kolInfo.level as KolVipLevel}
+                          monthlyKpi={month}
+                          isCurrentMonth={false}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="dashboard">Tổng quan</TabsTrigger>
-          <TabsTrigger value="contacts">Quản lý liên hệ</TabsTrigger>
-          <TabsTrigger value="kpi">KPI & Thu nhập</TabsTrigger>
-        </TabsList>
+      {/* Modal thêm liên hệ mới */}
+      {showAddContactModal && (
+        <AddContactModal
+          isOpen={showAddContactModal}
+          onClose={() => setShowAddContactModal(false)}
+          onSubmit={handleAddContact}
+          kolId={kolInfo.id}
+          initialData={extractedContactData || undefined}
+        />
+      )}
 
-        {/* Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Tổng số liên hệ
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <div className="mr-2 rounded-full p-2 bg-blue-100">
-                    <Users className="h-4 w-4 text-blue-700" />
-                  </div>
-                  <div className="text-2xl font-bold">{kol.total_contacts || 0}</div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Liên hệ tiềm năng
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <div className="mr-2 rounded-full p-2 bg-green-100">
-                    <BadgeCheck className="h-4 w-4 text-green-700" />
-                  </div>
-                  <div className="text-2xl font-bold">{kol.potential_contacts || 0}</div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Hợp đồng đã ký
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <div className="mr-2 rounded-full p-2 bg-purple-100">
-                    <FileCheck className="h-4 w-4 text-purple-700" />
-                  </div>
-                  <div className="text-2xl font-bold">{kol.total_contracts || 0}</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* KPI Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Tiến độ KPI {periodText}</CardTitle>
-              <CardDescription>
-                Tiến độ đạt KPI level {kol.level === "LEVEL_1" ? "1 (Fresher)" : 
-                              kol.level === "LEVEL_2" ? "2 (Advanced)" : 
-                              kol.level === "LEVEL_3" ? "3 (Elite)" : kol.level}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {isKpiLoading ? (
-                <div className="flex justify-center py-4">
-                  <div className="w-10 h-10 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-                </div>
-              ) : kpiStats ? (
-                <>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">Số liên hệ</span>
-                        <span className="text-sm font-medium">
-                          {kpiStats.data.kpi.contacts.current}/{kpiStats.data.kpi.contacts.target}
-                        </span>
-                      </div>
-                      <Progress value={kpiStats.data.kpi.contacts.percentage} />
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">Liên hệ tiềm năng</span>
-                        <span className="text-sm font-medium">
-                          {kpiStats.data.kpi.potentialContacts.current}/{kpiStats.data.kpi.potentialContacts.target}
-                        </span>
-                      </div>
-                      <Progress value={kpiStats.data.kpi.potentialContacts.percentage} />
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">Hợp đồng đã ký</span>
-                        <span className="text-sm font-medium">
-                          {kpiStats.data.kpi.contracts.current}/{kpiStats.data.kpi.contracts.target}
-                        </span>
-                      </div>
-                      <Progress value={kpiStats.data.kpi.contracts.percentage} />
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    <div>
-                      <span className="text-sm font-medium mr-2">Tổng đánh giá:</span>
-                      <PerformanceBadge performance={kpiStats.data.kpi.overall.performance} />
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to="/kol-kpi">
-                        Xem chi tiết <ChevronRight className="ml-1 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  Không có dữ liệu KPI
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Contacts */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Liên hệ gần đây</CardTitle>
-                <CardDescription>
-                  Danh sách 5 liên hệ mới nhất của bạn
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/kol-contacts">
-                  Xem tất cả <ChevronRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isContactsLoading ? (
-                <div className="flex justify-center py-4">
-                  <div className="w-10 h-10 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-                </div>
-              ) : contactsData && contactsData.data.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tên liên hệ</TableHead>
-                      <TableHead>Công ty</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead className="text-right">Ngày thêm</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {contactsData.data
-                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                      .slice(0, 5)
-                      .map((contact) => (
-                        <TableRow key={contact.id}>
-                          <TableCell className="font-medium">{contact.contact_name}</TableCell>
-                          <TableCell>{contact.company || "-"}</TableCell>
-                          <TableCell>
-                            <StatusBadge status={contact.status} />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {new Date(contact.created_at).toLocaleDateString("vi-VN")}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  Chưa có liên hệ nào. Thêm liên hệ đầu tiên của bạn ngay!
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Contacts Tab */}
-        <TabsContent value="contacts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quản lý liên hệ</CardTitle>
-              <CardDescription>
-                Quản lý tất cả các liên hệ của bạn
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <KolContactsTable 
-                onRefresh={() => {
-                  refetchContacts();
-                  refetchKpi();
-                }}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* KPI Tab */}
-        <TabsContent value="kpi">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>KPI {periodText}</CardTitle>
-                  <CardDescription>
-                    Chi tiết tiến độ KPI của bạn trong tháng này
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {isKpiLoading ? (
-                    <div className="flex justify-center py-4">
-                      <div className="w-10 h-10 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-                    </div>
-                  ) : kpiStats ? (
-                    <>
-                      <KpiProgressCard 
-                        title="Số liên hệ" 
-                        icon={<Users className="h-5 w-5" />}
-                        current={kpiStats.data.kpi.contacts.current}
-                        target={kpiStats.data.kpi.contacts.target}
-                        percentage={kpiStats.data.kpi.contacts.percentage}
-                      />
-                      
-                      <KpiProgressCard 
-                        title="Liên hệ tiềm năng" 
-                        icon={<BadgeCheck className="h-5 w-5" />}
-                        current={kpiStats.data.kpi.potentialContacts.current}
-                        target={kpiStats.data.kpi.potentialContacts.target}
-                        percentage={kpiStats.data.kpi.potentialContacts.percentage}
-                      />
-                      
-                      <KpiProgressCard 
-                        title="Hợp đồng đã ký" 
-                        icon={<FileCheck className="h-5 w-5" />}
-                        current={kpiStats.data.kpi.contracts.current}
-                        target={kpiStats.data.kpi.contracts.target}
-                        percentage={kpiStats.data.kpi.contracts.percentage}
-                      />
-                      
-                      <div className="flex justify-between items-center pt-4 border-t">
-                        <div className="flex items-center">
-                          <PieChart className="h-5 w-5 mr-2 text-primary" />
-                          <span className="font-medium">Kết quả đánh giá:</span>
-                          <div className="ml-2">
-                            <PerformanceBadge performance={kpiStats.data.kpi.overall.performance} />
-                          </div>
-                        </div>
-                        {kpiStats.data.kpi.overall.lastEvaluated && (
-                          <div className="text-xs text-muted-foreground">
-                            Đánh giá lần cuối: {new Date(kpiStats.data.kpi.overall.lastEvaluated).toLocaleDateString("vi-VN")}
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      Không có dữ liệu KPI
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Thu nhập</CardTitle>
-                  <CardDescription>
-                    Chi tiết thu nhập tháng {periodText}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isKpiLoading ? (
-                    <div className="flex justify-center py-4">
-                      <div className="w-10 h-10 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-                    </div>
-                  ) : kpiStats ? (
-                    <>
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Lương cơ bản:</span>
-                        <span>{formatCurrency(kpiStats.data.stats.baseSalary)}</span>
-                      </div>
-                      
-                      <div className="flex justify-between py-2 border-b">
-                        <span className="font-medium">Hoa hồng:</span>
-                        <span>{formatCurrency(kpiStats.data.stats.commission)}</span>
-                      </div>
-                      
-                      <div className="flex justify-between py-2 font-bold">
-                        <span>Tổng thu nhập:</span>
-                        <span>{formatCurrency(kpiStats.data.stats.totalIncome)}</span>
-                      </div>
-                      
-                      <div className="text-xs text-muted-foreground mt-2">
-                        <Calendar className="inline-block h-3 w-3 mr-1" />
-                        Lương được tính dựa trên kết quả KPI đánh giá vào cuối tháng
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      Không có dữ liệu thu nhập
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Thông tin KOL/VIP</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start space-x-4">
-                    <div className="min-w-0 flex-1 space-y-3">
-                      <div>
-                        <div className="flex items-center text-sm">
-                          <Building className="mr-1 h-4 w-4 text-muted-foreground" />
-                          <p className="truncate text-sm font-medium text-muted-foreground">Level:</p>
-                        </div>
-                        <p className="truncate text-sm font-medium">
-                          {kol.level === "LEVEL_1" ? "1 - Fresher (5M/tháng)" : 
-                          kol.level === "LEVEL_2" ? "2 - Advanced (10M/tháng)" : 
-                          kol.level === "LEVEL_3" ? "3 - Elite (15M/tháng)" : 
-                          kol.level}
-                        </p>
-                      </div>
-                      
-                      <div>
-                        <div className="flex items-center text-sm">
-                          <Phone className="mr-1 h-4 w-4 text-muted-foreground" />
-                          <p className="truncate text-sm font-medium text-muted-foreground">Số điện thoại:</p>
-                        </div>
-                        <p className="truncate text-sm font-medium">{kol.phone}</p>
-                      </div>
-                      
-                      <div>
-                        <div className="flex items-center text-sm">
-                          <Mail className="mr-1 h-4 w-4 text-muted-foreground" />
-                          <p className="truncate text-sm font-medium text-muted-foreground">Email:</p>
-                        </div>
-                        <p className="truncate text-sm font-medium">{kol.email}</p>
-                      </div>
-                      
-                      <div>
-                        <div className="flex items-center text-sm">
-                          <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
-                          <p className="truncate text-sm font-medium text-muted-foreground">Ngày tham gia:</p>
-                        </div>
-                        <p className="truncate text-sm font-medium">
-                          {kol.join_date ? new Date(kol.join_date).toLocaleDateString("vi-VN") : "N/A"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-      
-      {/* Add Contact Modal */}
-      <AddContactModal 
-        isOpen={isAddContactModalOpen} 
-        onClose={() => setIsAddContactModalOpen(false)}
-        onSubmit={handleAddContact}
-        kolId={kolData.data?.affiliate_id}
-      />
-      
-      {/* Scan Card Modal */}
-      <ScanCardModal
-        isOpen={isScanCardModalOpen}
-        onClose={() => setIsScanCardModalOpen(false)}
-        onSubmit={handleScanCard}
-      />
+      {/* Modal quét card visit */}
+      {showScanCardModal && (
+        <ScanCardModal
+          isOpen={showScanCardModal}
+          onClose={() => setShowScanCardModal(false)}
+          onSubmit={handleProcessCardImage}
+        />
+      )}
     </div>
   );
 };
