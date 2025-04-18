@@ -212,6 +212,9 @@ export default function WithdrawalModal({
     e.preventDefault();
     setError(null);
     verifyOtp(otpInput);
+    
+    // Hỗ trợ làm mới dữ liệu UI ngay lập tức 
+    queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
   };
   
   const handleClose = () => {
