@@ -8,27 +8,35 @@ import { randomBytes } from "crypto";
 import type { User } from "@shared/schema";
 import { sendAccountActivationEmail } from "./email";
 
-// Số lượng round cho bcrypt (càng lớn càng khó giải mã nhưng càng tốn tài nguyên)
+// Số lượng round cho bcrypt (tăng từ 10 lên 12 để tăng độ khó giải mã)
 const SALT_ROUNDS = 12;
+
+// Thêm pepper để tăng cường bảo mật (một khóa bí mật thêm vào trước khi băm)
+// Pepper khác với salt: salt được lưu cùng hash, pepper là bí mật của server
+const PEPPER = process.env.HASH_PEPPER || "co1or-m3d1a-aff1l1at3-s3cur1ty-p3pp3r";
 
 // Mật khẩu mặc định cho người dùng mới
 const DEFAULT_PASSWORD = "color1234@";
 
 /**
- * Mã hóa mật khẩu sử dụng bcrypt
- * Phương pháp này tự động tạo salt và đính kèm vào hash
+ * Mã hóa mật khẩu sử dụng bcrypt kết hợp với pepper
+ * Phương pháp này kết hợp cả pepper (bí mật của server) và salt (được tạo ngẫu nhiên)
+ * để tăng cường bảo mật cho mật khẩu
  */
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, SALT_ROUNDS);
+  // Thêm pepper vào password trước khi băm
+  const pepperedPassword = `${password}${PEPPER}`;
+  return bcrypt.hash(pepperedPassword, SALT_ROUNDS);
 }
 
 /**
  * So sánh mật khẩu nhập vào với mật khẩu đã lưu trong DB
- * bcrypt.compare tự động trích xuất salt từ hash và 
- * kiểm tra với mật khẩu đầu vào được hash cùng salt
+ * Thêm pepper vào mật khẩu nhập vào trước khi so sánh
  */
 export async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
-  return bcrypt.compare(supplied, stored);
+  // Thêm pepper vào supplied password trước khi so sánh
+  const pepperedPassword = `${supplied}${PEPPER}`;
+  return bcrypt.compare(pepperedPassword, stored);
 }
 
 /**

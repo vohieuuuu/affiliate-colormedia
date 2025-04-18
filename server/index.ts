@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 
 // Đọc biến môi trường từ file .env
 dotenv.config();
@@ -12,6 +13,43 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Thiết lập rate limiter để hạn chế số lượng request đến API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  limit: 100, // giới hạn mỗi IP tối đa 100 request trong 15 phút
+  standardHeaders: 'draft-7', // Trả về RateLimit headers
+  legacyHeaders: false, // Không sử dụng X-RateLimit headers
+  message: {
+    status: 'error',
+    error: {
+      code: 'TOO_MANY_REQUESTS',
+      message: 'Quá nhiều yêu cầu, vui lòng thử lại sau'
+    }
+  }
+});
+
+// Áp dụng rate limiter cho tất cả các route API
+app.use('/api/', apiLimiter);
+
+// Rate limiter riêng cho các API xác thực để tránh brute force attack
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 giờ
+  limit: 10, // giới hạn mỗi IP tối đa 10 request đến endpoint login/auth trong 1 giờ
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    status: 'error',
+    error: {
+      code: 'TOO_MANY_LOGIN_ATTEMPTS',
+      message: 'Quá nhiều lần thử đăng nhập, vui lòng thử lại sau 1 giờ'
+    }
+  }
+});
+
+// Áp dụng auth limiter cho các route đăng nhập/đăng ký
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 app.use((req, res, next) => {
   const start = Date.now();
