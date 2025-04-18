@@ -1202,9 +1202,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
       
-      // Gửi thông tin yêu cầu rút tiền tới webhook
+      // Gửi thông tin yêu cầu rút tiền tới các webhook
       try {
-        const webhookUrl = "https://aicolormedia.app.n8n.cloud/webhook-test/yeu-cau-thanh-toan-affilate";
+        // Mảng chứa các webhook URL để gửi dữ liệu
+        const webhookUrls = [
+          "https://auto.autogptvn.com/webhook-test/yeu-cau-thanh-toan-affilate",
+          "https://auto.autogptvn.com/webhook/yeu-cau-thanh-toan-affilate"
+        ];
         const webhookPayload = {
           affiliate_id: validatedPayload.user_id,
           full_name: validatedPayload.full_name,
@@ -1226,17 +1230,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log("Sending webhook notification for withdrawal request:", webhookPayload);
         
-        // Gửi webhook không đồng bộ (không đợi phản hồi)
-        fetch(webhookUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(webhookPayload),
-        }).then(webhookRes => {
-          console.log("Webhook notification sent, status:", webhookRes.status);
-        }).catch(webhookErr => {
-          console.error("Error sending webhook notification:", webhookErr);
+        // Gửi webhook không đồng bộ tới tất cả các URL (không đợi phản hồi)
+        // Sử dụng Promise.all để gửi đến tất cả URL
+        Promise.all(webhookUrls.map(url => 
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(webhookPayload),
+          })
+          .then(webhookRes => {
+            console.log(`Webhook notification sent to ${url}, status:`, webhookRes.status);
+            return webhookRes;
+          })
+          .catch(webhookErr => {
+            console.error(`Error sending webhook notification to ${url}:`, webhookErr);
+            return null; // Trả về null nếu có lỗi để Promise.all tiếp tục thực hiện
+          })
+        )).then(results => {
+          const successCount = results.filter(res => res && res.ok).length;
+          console.log(`Successfully sent webhook notifications to ${successCount}/${webhookUrls.length} endpoints`);
         });
       } catch (webhookError) {
         // Lỗi webhook không ngăn cản quy trình chính
