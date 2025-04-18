@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Affiliate } from "@shared/schema";
 import { DollarSign, Key, LockKeyhole, RotateCcw, Mail, AlertTriangle } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatNumberWithCommas, parseFormattedNumber } from "@/lib/formatters";
 import { OtpInput } from "@/components/OtpInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -131,6 +131,9 @@ export default function WithdrawalModal({
     },
     onSuccess: (data) => {
       if (data.status === "success") {
+        // Invalidate affiliate data cache và buộc refresh để cập nhật số dư mới
+        queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+        
         toast({
           title: "Thành công",
           description: "Yêu cầu rút tiền đã được xử lý thành công",
