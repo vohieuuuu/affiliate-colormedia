@@ -336,6 +336,11 @@ export class MemStorage implements IStorage {
       throw new Error(`Affiliate not found with ID: ${request.user_id}`);
     }
     
+    // DEBUG: Log thời gian hiện tại và thông tin affiliate
+    const now = new Date();
+    console.log(`[${now.toISOString()}] WITHDRAWAL DEBUG: Processing withdrawal request for ${request.user_id}`);
+    console.log(`WITHDRAWAL DEBUG: Initial balance - remaining: ${affiliate.remaining_balance}, paid: ${affiliate.paid_balance}`);
+    
     // Kiểm tra xem có yêu cầu rút tiền đang chờ xử lý cho affiliate này không
     const pendingWithdrawal = affiliate.withdrawal_history.find(w => 
       w.status === "Pending" && w.request_date === request.request_time);
@@ -344,20 +349,24 @@ export class MemStorage implements IStorage {
     // bỏ qua các kiểm tra số dư và giới hạn rút tiền để tránh lỗi xác thực OTP
     if (!pendingWithdrawal) {
       // Các kiểm tra chỉ thực hiện khi tạo yêu cầu mới, không phải khi xác nhận OTP
+      console.log(`WITHDRAWAL DEBUG: Creating new withdrawal request for amount: ${request.amount_requested}`);
       
       // Kiểm tra số dư tích lũy có bằng 0 không
       if (affiliate.remaining_balance <= 0) {
+        console.log(`WITHDRAWAL DEBUG: ERROR - Zero balance`);
         throw new Error("Không thể tạo yêu cầu rút tiền khi số dư hoa hồng tích lũy bằng 0");
       }
       
       // Kiểm tra giới hạn rút tiền theo ngày
       const dailyLimitCheck = await this.checkDailyWithdrawalLimit(request.user_id, request.amount_requested);
       if (dailyLimitCheck.exceeds) {
+        console.log(`WITHDRAWAL DEBUG: ERROR - Daily limit exceeded. Remaining: ${dailyLimitCheck.remainingLimit}`);
         throw new Error(`Vượt quá giới hạn rút tiền trong ngày. Hạn mức còn lại: ${dailyLimitCheck.remainingLimit.toLocaleString()} VND`);
       }
       
       // Kiểm tra số dư
       if (affiliate.remaining_balance < request.amount_requested) {
+        console.log(`WITHDRAWAL DEBUG: ERROR - Insufficient balance. Have: ${affiliate.remaining_balance}, Need: ${request.amount_requested}`);
         throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
       }
       
@@ -372,13 +381,12 @@ export class MemStorage implements IStorage {
       // Thêm vào đầu mảng để hiển thị theo thứ tự từ mới đến cũ
       affiliate.withdrawal_history.unshift(withdrawalEntry);
       
-      console.log(`Thêm yêu cầu rút tiền mới: ${JSON.stringify(withdrawalEntry)}`);
-      console.log(`Số lượng yêu cầu rút tiền hiện tại: ${affiliate.withdrawal_history.length}`);
+      console.log(`WITHDRAWAL DEBUG: Added withdrawal entry: ${JSON.stringify(withdrawalEntry)}`);
     } else {
-      console.log("Đã tìm thấy yêu cầu rút tiền đang chờ xử lý, tiếp tục xử lý xác thực OTP");
+      console.log(`WITHDRAWAL DEBUG: Found existing withdrawal request, processing OTP verification`);
     }
     
-    // Cập nhật trạng thái thành Processing và trừ tiền
+    // Cập nhật số dư và trừ tiền
     try {
       // Kiểm tra số dư trước khi trừ tiền
       if (affiliate.remaining_balance < request.amount_requested) {
@@ -386,26 +394,40 @@ export class MemStorage implements IStorage {
           // Nếu là yêu cầu mới và số dư không đủ, xóa yêu cầu vừa tạo
           affiliate.withdrawal_history.shift();
         }
+        console.log(`WITHDRAWAL DEBUG: ERROR - Insufficient balance at deduction time. Have: ${affiliate.remaining_balance}, Need: ${request.amount_requested}`);
         throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${affiliate.remaining_balance.toLocaleString()} VND`);
       }
       
-      console.log(`Số dư trước khi trừ tiền: ${affiliate.remaining_balance}`);
+      console.log(`WITHDRAWAL DEBUG: Balance before deduction: ${affiliate.remaining_balance} VND`);
       
       // Trừ tiền ngay khi tạo yêu cầu rút tiền (trạng thái Pending)
-      const updatedRemainingBalance = affiliate.remaining_balance - request.amount_requested;
-      const updatedPaidBalance = (affiliate.paid_balance || 0) + request.amount_requested;
+      const oldRemainingBalance = affiliate.remaining_balance;
+      const oldPaidBalance = affiliate.paid_balance || 0;
+      
+      const updatedRemainingBalance = oldRemainingBalance - request.amount_requested;
+      const updatedPaidBalance = oldPaidBalance + request.amount_requested;
       
       // Cập nhật số dư
       affiliate.remaining_balance = updatedRemainingBalance;
       affiliate.paid_balance = updatedPaidBalance;
       
-      console.log(`Đã trừ tiền ở trạng thái Pending: ${updatedRemainingBalance} (trừ ${request.amount_requested})`);
-      console.log(`Số dư trước khi trừ tiền: ${affiliate.remaining_balance}`);
-      console.log(`Số dư sau khi trừ tiền: ${updatedRemainingBalance}`);
-      // Tiền đã được trừ ở trên, không cần chuyển sang Processing
-      console.log(`Đã trừ tiền thành công khi tạo yêu cầu rút tiền Pending - Số dư mới: ${updatedRemainingBalance}`);
+      console.log(`WITHDRAWAL DEBUG: BALANCE UPDATE - Remaining: ${oldRemainingBalance} -> ${updatedRemainingBalance}`);
+      console.log(`WITHDRAWAL DEBUG: BALANCE UPDATE - Paid: ${oldPaidBalance} -> ${updatedPaidBalance}`);
+      console.log(`WITHDRAWAL DEBUG: Amount deducted: ${request.amount_requested} VND`);
+      
+      // Buộc reset cache ngay lập tức
+      if (global.statsCache) {
+        try {
+          console.log(`WITHDRAWAL DEBUG: Invalidating cache for affiliate:${request.user_id}`);
+          global.statsCache.invalidate(`affiliate:${request.user_id}`);
+        } catch (cacheError) {
+          console.error(`WITHDRAWAL DEBUG: Cache invalidation error: ${cacheError}`);
+        }
+      }
+      
+      console.log(`WITHDRAWAL DEBUG: COMPLETED - New remaining balance: ${updatedRemainingBalance} VND`);
     } catch (error) {
-      console.error(`Lỗi khi cập nhật trạng thái và trừ tiền: ${error}`);
+      console.error(`WITHDRAWAL DEBUG: ERROR - Update failed: ${error}`);
       // Nếu là yêu cầu mới tạo và có lỗi, xóa yêu cầu khỏi lịch sử
       if (!pendingWithdrawal) {
         affiliate.withdrawal_history.shift();

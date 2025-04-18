@@ -80,7 +80,13 @@ export class SmartCache {
 }
 
 // Cache cho dữ liệu thống kê
-export const statsCache = new SmartCache(300); // 5 phút
+export const statsCache = new SmartCache(10); // 10 giây, giảm thời gian cache xuống để dữ liệu luôn mới nhất
+
+// Đảm bảo statsCache có thể truy cập toàn cục để có thể invalidate từ các module khác
+declare global {
+  var statsCache: SmartCache;
+}
+global.statsCache = statsCache;
 
 // Middleware phát hiện hành vi đáng ngờ khi rút tiền
 export function detectSuspiciousWithdrawal(req: Request, res: Response, next: NextFunction) {
