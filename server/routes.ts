@@ -1933,19 +1933,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Sử dụng customerId như là index trong mảng (như API contract)
-      if (customerId < 0 || customerId >= affiliate.referred_customers.length) {
+      // Tìm khách hàng theo ID thay vì sử dụng index
+      const customerIndex = affiliate.referred_customers.findIndex(customer => customer.id === customerId);
+      
+      if (customerIndex === -1) {
         return res.status(404).json({
           status: "error",
           error: {
             code: "NOT_FOUND", 
-            message: `Customer at index ${customerId} not found for affiliate ${affiliate_id}`
+            message: `Customer with ID ${customerId} not found for affiliate ${affiliate_id}`
           }
         });
       }
-      
-      // Sử dụng index như là vị trí của khách hàng trong mảng
-      const customerIndex = customerId;
       
       // Update the customer status using the index in the array
       const updatedCustomer = await storage.updateCustomerStatus(
