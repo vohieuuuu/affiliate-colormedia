@@ -57,6 +57,10 @@ export type ReferredCustomer = z.infer<typeof ReferredCustomerSchema>;
 export const WithdrawalHistorySchema = z.object({
   request_date: z.string(),
   amount: z.number(),
+  tax_amount: z.number().optional(),    // Số tiền thuế đã trừ
+  amount_after_tax: z.number().optional(), // Số tiền sau thuế
+  has_tax: z.boolean().optional(),      // Có áp dụng thuế hay không
+  tax_rate: z.number().optional(),      // Tỷ lệ thuế (VD: 0.1 = 10%)
   note: z.string().optional(),
   status: WithdrawalStatus,
   message: z.string().optional(),
@@ -223,6 +227,10 @@ export const withdrawalRequestPayloadSchema = z.object({
   bank_account: z.string(),
   bank_name: z.string(),
   amount_requested: z.number().positive(),
+  amount_after_tax: z.number().positive().optional(),
+  tax_amount: z.number().min(0).optional(),
+  has_tax: z.boolean().optional(),
+  tax_rate: z.number().optional(),
   note: z.string().optional(),
   request_time: z.string(),
 });

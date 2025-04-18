@@ -1038,6 +1038,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Tính thuế TNCN 10% cho các khoản rút tiền trên 2 triệu VND
+      const originalAmount = parseFloat(amount);
+      let taxAmount = 0;
+      let netAmount = originalAmount;
+      let hasTax = false;
+      
+      const INCOME_TAX_THRESHOLD = 2000000; // 2 triệu VND
+      const INCOME_TAX_RATE = 0.1; // 10%
+      
+      if (originalAmount > INCOME_TAX_THRESHOLD) {
+        taxAmount = originalAmount * INCOME_TAX_RATE;
+        netAmount = originalAmount - taxAmount;
+        hasTax = true;
+      }
+      
       // Lưu thông tin request tạm thời vào session hoặc cache
       const withdrawalData = {
         user_id: affiliate.affiliate_id,
@@ -1046,7 +1061,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone: affiliate.phone,
         bank_account: affiliate.bank_account,
         bank_name: affiliate.bank_name,
-        amount_requested: parseFloat(amount),
+        amount_requested: originalAmount,
+        amount_after_tax: netAmount,
+        tax_amount: taxAmount,
+        has_tax: hasTax,
+        tax_rate: INCOME_TAX_RATE,
         note: note || "",
         request_time: new Date().toISOString()
       };
