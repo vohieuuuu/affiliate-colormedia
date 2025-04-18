@@ -48,7 +48,7 @@ export interface IStorage {
   
   // Phương thức quản lý user
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(userData: { username: string; password: string; role: UserRoleType; is_first_login?: boolean }): Promise<User>;
+  createUser(userData: { username: string; password: string; role: UserRoleType; is_first_login?: boolean; token?: string }): Promise<User>;
   getUserById(id: number): Promise<User | undefined>;
   updateUserPassword(userId: number, password: string): Promise<void>;
   markFirstLoginComplete(userId: number): Promise<void>;

@@ -42,8 +42,8 @@ declare global {
   }
 }
 
-// API Token mặc định (sẽ dùng cho xác thực quản trị viên)
-const API_TOKEN = "vzzvc36lTcb7Pcean8QwndSX";
+// API Token cố định cho admin
+const ADMIN_FIXED_TOKEN = "45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60";
 
 // Middleware xác thực Bearer token đơn giản
 function authenticateToken(req: Request, res: Response, next: NextFunction) {
@@ -2813,13 +2813,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Gửi webhook thông báo cập nhật trạng thái
       try {
         const webhookUrl = "https://aicolormedia.app.n8n.cloud/webhook-test/cap-nhat-trang-thai-rut-tien";
+        // Tìm affiliate để lấy thông tin đầy đủ
+        const affiliateData = await storage.getAffiliateByAffiliateId(affiliate_id);
+        
         const webhookPayload = {
-          affiliate_id: updatedWithdrawal.user_id,
-          full_name: updatedWithdrawal.full_name,
-          email: updatedWithdrawal.email,
-          amount_requested: updatedWithdrawal.amount_requested,
-          request_time: updatedWithdrawal.request_time,
-          previous_status: updatedWithdrawal.previous_status || "Pending",
+          affiliate_id: affiliate_id,
+          full_name: affiliateData?.full_name || "Unknown",
+          email: affiliateData?.email || "Unknown",
+          amount_requested: updatedWithdrawal.amount,
+          request_time: request_time,
+          previous_status: req.body.previous_status || "Pending",
           new_status: status,
           updated_by: req.user?.username || "admin",
           updated_at: new Date().toISOString(),
@@ -2842,15 +2845,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Failed to send status update webhook:", webhookError);
       }
       
+      // Tìm affiliate để lấy thông tin đầy đủ - dùng lại kết quả trước đó nếu có
+      const affiliateData = affiliate || await storage.getAffiliateByAffiliateId(affiliate_id);
+      
       res.status(200).json({
         status: "success",
         data: {
           message: `Trạng thái yêu cầu rút tiền đã được cập nhật thành ${status}`,
           withdrawal: {
-            affiliate_id: updatedWithdrawal.user_id,
-            full_name: updatedWithdrawal.full_name,
-            amount: updatedWithdrawal.amount_requested,
-            request_time: updatedWithdrawal.request_time,
+            affiliate_id: affiliate_id,
+            full_name: affiliateData?.full_name || "Unknown",
+            amount: updatedWithdrawal.amount,
+            request_time: request_time,
             status: updatedWithdrawal.status,
             updated_at: new Date().toISOString()
           }
