@@ -402,15 +402,11 @@ export class MemStorage implements IStorage {
       
       console.log(`Số dư trước khi trừ tiền: ${affiliate.remaining_balance}`);
       
-      // Nếu đã có tình trạng "Pending", chỉ cập nhật trạng thái, không trừ tiền lần nữa
-      if (!pendingWithdrawal) {
-        // Trừ tiền từ remaining_balance
-        affiliate.remaining_balance -= request.amount_requested;
-        affiliate.paid_balance = (affiliate.paid_balance || 0) + request.amount_requested;
-        console.log(`Đã trừ ${request.amount_requested} từ số dư. Số dư mới: ${affiliate.remaining_balance}`);
-      }
+      // CHỈNH SỬA: Không trừ tiền tại đây, để việc trừ tiền chỉ diễn ra ở updateWithdrawalStatus
+      // Ở giai đoạn này chỉ tạo yêu cầu với trạng thái Pending, tiền sẽ bị trừ khi thay đổi trạng thái
+      console.log(`Chuyển sang trạng thái Processing sau khi xác thực OTP`);
       
-      // Cập nhật trạng thái thành Processing
+      // Chuyển sang trạng thái Processing sẽ kích hoạt việc trừ tiền trong hàm updateWithdrawalStatus
       await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
       console.log(`Đã cập nhật trạng thái thành công thành Processing`);
     } catch (error) {
