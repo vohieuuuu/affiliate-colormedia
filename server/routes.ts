@@ -60,7 +60,7 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
     });
   }
 
-  if (token !== API_TOKEN) {
+  if (token !== ADMIN_FIXED_TOKEN) {
     return res.status(403).json({
       status: "error",
       error: {
@@ -80,8 +80,6 @@ async function authenticateUser(req: Request, res: Response, next: NextFunction)
 
   // Trường hợp đặc biệt cho API dành cho admin - kiểm tra token cố định
   if (req.path.startsWith("/api/admin/")) {
-    // Token cố định cho admin
-    const ADMIN_FIXED_TOKEN = "45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60";
     
     // Kiểm tra token cố định
     if (token === ADMIN_FIXED_TOKEN || token === "admin-token" || token === "admin") {
@@ -141,9 +139,9 @@ async function authenticateUser(req: Request, res: Response, next: NextFunction)
       next();
     } else {
       // Kiểm tra token trong môi trường phát triển
-      // 1. Kiểm tra nếu token là token mặc định (API_TOKEN)
-      if (token === API_TOKEN) {
-        console.log("DEV MODE: Using default API token");
+      // 1. Kiểm tra nếu token là token admin cố định
+      if (token === ADMIN_FIXED_TOKEN) {
+        console.log("DEV MODE: Using admin fixed token");
         return next();
       }
       
