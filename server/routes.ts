@@ -2874,7 +2874,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Gửi webhook thông báo cập nhật trạng thái
       try {
-        const webhookUrl = "https://aicolormedia.app.n8n.cloud/webhook-test/cap-nhat-trang-thai-rut-tien";
+        // Mảng chứa các webhook URL để gửi dữ liệu cập nhật trạng thái
+        const webhookUrls = [
+          "https://auto.autogptvn.com/webhook-test/cap-nhat-trang-thai-rut-tien",
+          "https://auto.autogptvn.com/webhook/cap-nhat-trang-thai-rut-tien"
+        ];
         // Tìm affiliate để lấy thông tin đầy đủ
         const affiliateData = await storage.getAffiliateByAffiliateId(affiliate_id);
         
@@ -2891,17 +2895,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           note: note || ""
         };
         
-        // Gửi webhook không đồng bộ
-        fetch(webhookUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(webhookPayload),
-        }).then(webhookRes => {
-          console.log("Status update webhook sent, status:", webhookRes.status);
-        }).catch(webhookErr => {
-          console.error("Error sending status update webhook:", webhookErr);
+        // Gửi webhook không đồng bộ tới tất cả các URL
+        Promise.all(webhookUrls.map(url => 
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(webhookPayload),
+          })
+          .then(webhookRes => {
+            console.log(`Status update webhook sent to ${url}, status:`, webhookRes.status);
+            return webhookRes;
+          })
+          .catch(webhookErr => {
+            console.error(`Error sending status update webhook to ${url}:`, webhookErr);
+            return null;
+          })
+        )).then(results => {
+          const successCount = results.filter(res => res && res.ok).length;
+          console.log(`Successfully sent status update webhooks to ${successCount}/${webhookUrls.length} endpoints`);
         });
       } catch (webhookError) {
         console.error("Failed to send status update webhook:", webhookError);
