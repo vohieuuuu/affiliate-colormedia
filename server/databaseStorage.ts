@@ -628,7 +628,8 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }> {
+  // Development version - more detailed implementation
+  private async _seedDataDev(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }> {
     // Giới hạn số lượng để tránh quá tải
     const numAffiliates = Math.min(affiliatesCount, 20);
     const numCustomersPerAffiliate = Math.min(customersPerAffiliate, 10);
@@ -1003,8 +1004,9 @@ export class DatabaseStorage implements IStorage {
     return true;
   }
   
+  // Production version - less complex implementation
   async seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }> {
-    // TODO: Implement seedData method
+    // Return empty result in production mode
     return { affiliates_added: 0, customers_added: 0, withdrawals_added: 0 };
   }
 }

@@ -1837,7 +1837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Tạo bản cập nhật cho khách hàng
       const updatedCustomer = {
         ...customer,
-        status: "Đã chốt hợp đồng",  // Cập nhật trạng thái thành đã ký hợp đồng
+        status: "Đã chốt hợp đồng" as const,  // Cập nhật trạng thái thành đã ký hợp đồng
         contract_value: contract_value, // Cập nhật giá trị hợp đồng mới (không phải chỉ phần bổ sung)
         commission: (customer.commission || 0) + additionalCommission, // Cộng dồn hoa hồng
         contract_date: contract_date || customer.contract_date || new Date().toISOString(),
