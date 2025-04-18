@@ -158,20 +158,25 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(affiliates.id, affiliate.id));
       
-    // 7. Đổi trạng thái thành Processing (không cần trừ tiền nữa vì đã trừ ở trên)
-    try {
-      await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
-    } catch (error) {
-      // Nếu có lỗi khi cập nhật trạng thái, phải hoàn lại tiền
-      console.error("Lỗi khi cập nhật trạng thái, hoàn lại tiền:", error);
-      await db.update(affiliates)
-        .set({ 
-          remaining_balance: affiliate.remaining_balance,
-          paid_balance: affiliate.paid_balance || 0
-        })
-        .where(eq(affiliates.id, affiliate.id));
-      throw error;
-    }
+    // Tiền đã được trừ ở trên rồi, không cần chuyển sang Processing nữa
+    // Điều này ngăn chặn tình trạng bị trừ tiền hai lần khi cập nhật trạng thái
+
+    // Trong trường hợp cần thêm xử lý OTP hoặc logic khác, hãy thêm code ở đây
+    console.log(`Yêu cầu rút tiền đã được tạo ở trạng thái Pending và số dư đã được trừ`);
+    
+    // Không gọi updateWithdrawalStatus nữa vì đã trừ tiền ở trên
+    // try {
+    //   await this.updateWithdrawalStatus(request.user_id, request.request_time, "Processing");
+    // } catch (error) {
+    //   console.error("Lỗi khi cập nhật trạng thái, hoàn lại tiền:", error);
+    //   await db.update(affiliates)
+    //     .set({ 
+    //       remaining_balance: affiliate.remaining_balance,
+    //       paid_balance: affiliate.paid_balance || 0
+    //     })
+    //     .where(eq(affiliates.id, affiliate.id));
+    //   throw error;
+    // }
   }
   
   /**
