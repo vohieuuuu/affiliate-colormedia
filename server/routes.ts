@@ -1731,7 +1731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint để cập nhật thông tin hợp đồng cho khách hàng
   app.put("/api/admin/customers/:id/contract", async (req, res) => {
     try {
-      const customerIndex = parseInt(req.params.id);
+      const customerId = parseInt(req.params.id);
       const { 
         contract_value, 
         contract_date, 
@@ -1739,12 +1739,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         affiliate_id 
       } = req.body;
       
-      if (isNaN(customerIndex) || !contract_value) {
+      if (isNaN(customerId) || !contract_value) {
         return res.status(400).json({
           status: "error",
           error: {
             code: "VALIDATION_ERROR",
-            message: "Valid customer index and contract value are required"
+            message: "Valid customer ID and contract value are required"
           }
         });
       }
@@ -1772,15 +1772,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log(`Looking for customer at index ${customerIndex} in ${affiliate.referred_customers.length} customers for affiliate ${affiliate_id}`);
+      // Tìm khách hàng theo ID thay vì vị trí trong mảng
+      const customerIndex = affiliate.referred_customers.findIndex(customer => customer.id === customerId);
       
-      // Sử dụng customerIndex như là index trong mảng khách hàng (tương tự API status)
-      if (customerIndex < 0 || customerIndex >= affiliate.referred_customers.length) {
+      if (customerIndex === -1) {
         return res.status(404).json({
           status: "error",
           error: {
             code: "NOT_FOUND", 
-            message: `Customer at index ${customerIndex} not found for affiliate ${affiliate_id}`
+            message: `Customer with ID ${customerId} not found for affiliate ${affiliate_id}`
           }
         });
       }
@@ -1828,7 +1828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         new_commission: updatedCustomer.commission
       }));
       
-      // Cập nhật khách hàng và số dư của affiliate
+      // Cập nhật khách hàng và số dư của affiliate, truyền ID thật của khách hàng
       const result = await storage.updateCustomerWithContract(
         customerIndex,
         updatedCustomer,

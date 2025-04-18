@@ -731,7 +731,7 @@ export class MemStorage implements IStorage {
       remaining_balance: number 
     }
   ): Promise<ReferredCustomer | undefined> {
-    console.log(`MemStorage: Updating customer contract for index ${customerIndex}`);
+    console.log(`MemStorage: Updating customer contract for customer at index ${customerIndex}`);
     
     // 1. Tìm affiliate cụ thể theo customerData.affiliate_id hoặc lấy affiliate đầu tiên nếu không có
     let targetAffiliate;
@@ -747,7 +747,7 @@ export class MemStorage implements IStorage {
     }
     
     if (!targetAffiliate || !targetAffiliate.referred_customers) {
-      console.error(`No affiliate found for customer with index ${customerIndex}`);
+      console.error(`No affiliate found for customer at index ${customerIndex}`);
       return undefined;
     }
     
