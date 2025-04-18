@@ -424,13 +424,13 @@ export class DatabaseStorage implements IStorage {
       updated_at: now
     };
     
-    // 3. Nếu trạng thái mới là "Contract signed" và trạng thái cũ không phải
+    // 3. Nếu trạng thái mới là "Đã chốt hợp đồng" và trạng thái cũ không phải
     let total_contracts = affiliate.total_contracts;
     let contract_value = affiliate.contract_value;
     let remaining_balance = affiliate.remaining_balance;
     let received_balance = affiliate.received_balance;
     
-    if (status === "Contract signed" && oldStatus !== "Contract signed") {
+    if (status === "Đã chốt hợp đồng" && oldStatus !== "Đã chốt hợp đồng") {
       total_contracts += 1;
       const defaultValue = 20000000; // 20M VND
       contract_value += defaultValue;
@@ -596,13 +596,13 @@ export class DatabaseStorage implements IStorage {
         // 2. Thêm khách hàng cho affiliate
         for (let j = 0; j < numCustomersPerAffiliate; j++) {
           const companyName = `${companyNames[Math.floor(Math.random() * companyNames.length)]} ${companySuffixes[Math.floor(Math.random() * companySuffixes.length)]} ${industries[Math.floor(Math.random() * industries.length)]}`;
-          const status = j % 5 === 0 ? "Contract signed" : 
-                        j % 4 === 0 ? "Pending reconciliation" : 
-                        j % 3 === 0 ? "Presenting idea" : 
-                        j % 2 === 0 ? "Ready to disburse" : "Contact received";
+          const status = j % 5 === 0 ? "Đã chốt hợp đồng" : 
+                        j % 4 === 0 ? "Chờ phản hồi" : 
+                        j % 3 === 0 ? "Đang tư vấn" : 
+                        j % 2 === 0 ? "Không tiềm năng" : "Mới nhập";
           
           const now = new Date().toISOString();
-          const contractValue = status === "Contract signed" ? 20000000 : undefined;
+          const contractValue = status === "Đã chốt hợp đồng" ? 20000000 : undefined;
           const commission = contractValue ? contractValue * 0.03 : undefined;
           
           const customerData: ReferredCustomer = {
@@ -612,7 +612,7 @@ export class DatabaseStorage implements IStorage {
             updated_at: now,
             contract_value: contractValue,
             commission: commission,
-            contract_date: status === "Contract signed" ? now : undefined,
+            contract_date: status === "Đã chốt hợp đồng" ? now : undefined,
             note: `Khách hàng được giới thiệu bởi ${newAffiliate.full_name}`
           };
           

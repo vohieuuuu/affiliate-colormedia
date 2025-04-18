@@ -826,7 +826,7 @@ export class MemStorage implements IStorage {
           customer_name: `Customer ${customerId}`,
           email: `customer${customerId}@example.com`,
           phone: `098${7000000 + customerId}`,
-          status: j % 2 === 0 ? "Contract signed" : "Presenting idea",
+          status: j % 2 === 0 ? "Đã chốt hợp đồng" : "Đang tư vấn",
           created_at: new Date(Date.now() - (j * 86400000)).toISOString(),
           updated_at: new Date(Date.now() - (j * 43200000)).toISOString(),
           contract_value: j % 2 === 0 ? 50000000 + (j * 10000000) : 0,
@@ -839,7 +839,7 @@ export class MemStorage implements IStorage {
         affiliateData.referred_customers.push(customerData);
         
         // Cập nhật thống kê cho affiliate
-        if (customerData.status === "Contract signed") {
+        if (customerData.status === "Đã chốt hợp đồng") {
           affiliateData.total_contracts += 1;
           const contractValue = customerData.contract_value || 0;
           const commission = contractValue * 0.03;

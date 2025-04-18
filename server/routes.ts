@@ -770,7 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Tính toán các giá trị thống kê
       const totalCustomers = customers.length;
-      const contractSignedCustomers = customers.filter(c => c.status === "Contract signed");
+      const contractSignedCustomers = customers.filter(c => c.status === "Đã chốt hợp đồng");
       const totalContracts = contractSignedCustomers.length;
       const totalContractValue = contractSignedCustomers.reduce((sum, c) => sum + (c.contract_value || 0), 0);
       const totalCommission = contractSignedCustomers.reduce((sum, c) => sum + (c.commission || 0), 0);
@@ -829,9 +829,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Lấy tất cả khách hàng có trạng thái "Contract signed"
+      // Lấy tất cả khách hàng có trạng thái "Đã chốt hợp đồng"
       const contractCustomers = (affiliate.referred_customers || [])
-        .filter(c => c.status === "Contract signed")
+        .filter(c => c.status === "Đã chốt hợp đồng")
         .map(c => ({
           ...c,
           contractDate: c.contract_date ? new Date(c.contract_date) : new Date(c.created_at)
