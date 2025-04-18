@@ -332,8 +332,8 @@ export class DatabaseStorage implements IStorage {
       updated_at: customerData.updated_at || now
     };
     
-    // 3. Nếu trạng thái là "Contract signed", cập nhật thông tin hợp đồng
-    if (newCustomer.status === "Contract signed") {
+    // 3. Nếu trạng thái là "Đã chốt hợp đồng", cập nhật thông tin hợp đồng
+    if (newCustomer.status === "Đã chốt hợp đồng") {
       const contractValue = newCustomer.contract_value || 20000000; // 20M VND
       const commission = contractValue * 0.03; // 3% hoa hồng theo yêu cầu mới
       
@@ -349,13 +349,13 @@ export class DatabaseStorage implements IStorage {
     // 5. Cập nhật tổng số khách hàng
     const total_contacts = affiliate.total_contacts + 1;
     
-    // 6. Nếu trạng thái là "Contract signed", cập nhật hợp đồng
+    // 6. Nếu trạng thái là "Đã chốt hợp đồng", cập nhật hợp đồng
     let total_contracts = affiliate.total_contracts;
     let contract_value = affiliate.contract_value;
     let remaining_balance = affiliate.remaining_balance;
     let received_balance = affiliate.received_balance;
     
-    if (newCustomer.status === "Contract signed") {
+    if (newCustomer.status === "Đã chốt hợp đồng") {
       total_contracts += 1;
       const contractValue = newCustomer.contract_value || 20000000;
       contract_value += contractValue;
@@ -529,14 +529,33 @@ export class DatabaseStorage implements IStorage {
         total_contracts += 1;
       }
       
-      // 6. Thực hiện cập nhật vào cơ sở dữ liệu
+      // 6. Tính toán sự chênh lệch giữa giá trị hiện tại và giá trị mới
+      // Chỉ tính chênh lệch và cộng dồn, không ghi đè toàn bộ giá trị
+      const currentContractValue = affiliate.contract_value || 0;
+      const newContractValue = (balanceUpdates.contract_value || 0);
+      const contractValueDifference = Math.max(0, newContractValue - currentContractValue);
+      
+      // Tính toán giá trị chênh lệch của hoa hồng (3% của giá trị hợp đồng mới)
+      const commissionDifference = contractValueDifference * 0.03;
+      
+      console.log(`Contract value calculation: Current=${currentContractValue}, New=${newContractValue}, Difference=${contractValueDifference}`);
+      console.log(`Commission calculation: Difference=${commissionDifference}`);
+      
+      // Cập nhật giá trị mới bằng cách cộng dồn chênh lệch
+      const newTotalContractValue = currentContractValue + contractValueDifference;
+      const newReceivedBalance = (affiliate.received_balance || 0) + commissionDifference;
+      const newRemainingBalance = (affiliate.remaining_balance || 0) + commissionDifference;
+      
+      console.log(`New values after adding differences: contract_value=${newTotalContractValue}, received_balance=${newReceivedBalance}, remaining_balance=${newRemainingBalance}`);
+      
+      // Thực hiện cập nhật vào cơ sở dữ liệu
       await db.update(affiliates)
         .set({
           referred_customers: customers,
           total_contracts,
-          contract_value: balanceUpdates.contract_value,
-          received_balance: balanceUpdates.received_balance,
-          remaining_balance: balanceUpdates.remaining_balance
+          contract_value: newTotalContractValue,
+          received_balance: newReceivedBalance,
+          remaining_balance: newRemainingBalance
         })
         .where(eq(affiliates.id, affiliate.id));
       
