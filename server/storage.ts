@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { affiliates, otpVerifications, users } from '../shared/schema.js';
+import { affiliates, kolVipAffiliates, otpVerifications, users } from '../shared/schema.js';
 import type {
   Affiliate,
   CustomerStatusType,
@@ -12,12 +12,19 @@ import type {
   WithdrawalRequestPayload,
   WithdrawalStatusType,
   User,
-  UserRoleType
+  UserRoleType,
+  KolVipAffiliate,
+  InsertKolVipAffiliate,
+  KolContact,
+  KpiPerformanceTypeValue,
+  KolVipLevelType,
+  MonthlyKpi
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { DatabaseStorage } from "./databaseStorage";
 
 export interface IStorage {
+  // Phương thức quản lý Affiliate thông thường
   getCurrentAffiliate(): Promise<Affiliate | undefined>;
   getTopAffiliates(): Promise<TopAffiliate[]>;
   addWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void>;
@@ -44,7 +51,42 @@ export interface IStorage {
       remaining_balance: number 
     }
   ): Promise<ReferredCustomer | undefined>;
-  seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;
+  
+  // Phương thức quản lý KOL/VIP Affiliate
+  createKolVipAffiliate(kolVipData: InsertKolVipAffiliate): Promise<KolVipAffiliate>;
+  getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined>;
+  getKolVipAffiliateByUserId(userId: number): Promise<KolVipAffiliate | undefined>;
+  getKolVipAffiliateByEmail(email: string): Promise<KolVipAffiliate | undefined>;
+  updateKolVipAffiliateLevel(affiliateId: string, newLevel: KolVipLevelType): Promise<KolVipAffiliate | undefined>;
+  updateKolVipAffiliateBalance(affiliateId: string, amount: number): Promise<boolean>;
+  addKolVipContact(kolId: string, contactData: KolContact): Promise<KolContact>;
+  updateKolVipContactStatus(
+    kolId: string,
+    contactId: number,
+    status: CustomerStatusType,
+    note: string
+  ): Promise<KolContact | undefined>;
+  updateKolVipContactWithContract(
+    contactId: number,
+    contactData: KolContact,
+    balanceUpdates: {
+      contract_value: number;
+      commission: number;
+      remaining_balance: number;
+    }
+  ): Promise<KolContact | undefined>;
+  getKolVipContacts(kolId: string): Promise<KolContact[]>;
+  addKolVipMonthlyKpi(
+    kolId: string,
+    kpiData: MonthlyKpi
+  ): Promise<MonthlyKpi>;
+  evaluateKolVipMonthlyKpi(
+    kolId: string,
+    year: number,
+    month: number,
+    performance: KpiPerformanceTypeValue,
+    note?: string
+  ): Promise<{ success: boolean, newLevel?: KolVipLevelType, previousLevel?: KolVipLevelType }>;  
   
   // Phương thức quản lý user
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -64,6 +106,9 @@ export interface IStorage {
   addVideo(video: VideoData): Promise<VideoData>;
   updateVideo(id: number, video: Partial<VideoData>): Promise<VideoData | undefined>;
   deleteVideo(id: number): Promise<boolean>;
+  
+  // Seed data
+  seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;
 }
 
 /**
@@ -167,6 +212,429 @@ export class MemStorage implements IStorage {
     return affiliate.withdrawal_history[withdrawalIndex];
   }
 
+  // Phương thức quản lý KOL/VIP Affiliate
+  async createKolVipAffiliate(kolVipData: InsertKolVipAffiliate): Promise<KolVipAffiliate> {
+    console.log(`Creating new KOL/VIP affiliate with ID: ${kolVipData.affiliate_id}`);
+    
+    // Kiểm tra xem affiliate_id đã tồn tại chưa
+    const existingKolVip = await this.getKolVipAffiliateByAffiliateId(kolVipData.affiliate_id);
+    if (existingKolVip) {
+      console.log(`KOL/VIP Affiliate with ID ${kolVipData.affiliate_id} already exists, returning existing KOL/VIP`);
+      return existingKolVip;
+    }
+    
+    // Tạo mới KOL/VIP Affiliate
+    const newKolVipAffiliate: KolVipAffiliate = {
+      id: this.kolVipAffiliates.length + 1,
+      ...kolVipData,
+      level: kolVipData.level || "LEVEL_1",
+      current_base_salary: kolVipData.current_base_salary || 5000000,
+      join_date: kolVipData.join_date || new Date(),
+      consecutive_failures: kolVipData.consecutive_failures || 0,
+      total_contacts: kolVipData.total_contacts || 0,
+      potential_contacts: kolVipData.potential_contacts || 0,
+      total_contracts: kolVipData.total_contracts || 0,
+      contract_value: kolVipData.contract_value || 0,
+      received_balance: kolVipData.received_balance || 0,
+      paid_balance: kolVipData.paid_balance || 0,
+      remaining_balance: kolVipData.remaining_balance || 0,
+      kpi_history: kolVipData.kpi_history || [],
+      referred_customers: kolVipData.referred_customers || [],
+      withdrawal_history: kolVipData.withdrawal_history || []
+    };
+    
+    // Thêm vào danh sách
+    this.kolVipAffiliates.push(newKolVipAffiliate);
+    
+    // Tạo mảng contacts trống cho KOL/VIP mới này
+    this.kolContacts.set(newKolVipAffiliate.affiliate_id, []);
+    
+    return newKolVipAffiliate;
+  }
+  
+  async getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
+    console.log(`Looking for KOL/VIP affiliate with affiliate_id: ${affiliateId}`);
+    
+    const foundKolVip = this.kolVipAffiliates.find(kol => kol.affiliate_id === affiliateId);
+    if (foundKolVip) {
+      console.log(`Found KOL/VIP with ID ${affiliateId}`);
+      return foundKolVip;
+    }
+    
+    console.log(`No KOL/VIP found with affiliate_id: ${affiliateId}`);
+    return undefined;
+  }
+  
+  async getKolVipAffiliateByUserId(userId: number): Promise<KolVipAffiliate | undefined> {
+    console.log(`Looking for KOL/VIP affiliate with user_id: ${userId}`);
+    
+    const foundKolVip = this.kolVipAffiliates.find(kol => kol.user_id === userId);
+    if (foundKolVip) {
+      console.log(`Found KOL/VIP for user_id ${userId}: ${foundKolVip.full_name}`);
+      return foundKolVip;
+    }
+    
+    console.log(`No KOL/VIP found with user_id: ${userId}`);
+    return undefined;
+  }
+  
+  async getKolVipAffiliateByEmail(email: string): Promise<KolVipAffiliate | undefined> {
+    console.log(`Looking for KOL/VIP affiliate with email: ${email}`);
+    
+    const foundKolVip = this.kolVipAffiliates.find(kol => kol.email === email);
+    if (foundKolVip) {
+      console.log(`Found KOL/VIP with email ${email}`);
+      return foundKolVip;
+    }
+    
+    console.log(`No KOL/VIP found with email: ${email}`);
+    return undefined;
+  }
+  
+  async updateKolVipAffiliateLevel(affiliateId: string, newLevel: KolVipLevelType): Promise<KolVipAffiliate | undefined> {
+    console.log(`Updating KOL/VIP level for ${affiliateId} to ${newLevel}`);
+    
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(affiliateId);
+    if (!kolVip) {
+      console.error(`KOL/VIP with ID ${affiliateId} not found`);
+      return undefined;
+    }
+    
+    const oldLevel = kolVip.level;
+    kolVip.level = newLevel;
+    
+    // Cập nhật mức lương theo level mới
+    const newSalary = 
+      newLevel === "LEVEL_1" ? 5000000 : 
+      newLevel === "LEVEL_2" ? 10000000 : 
+      newLevel === "LEVEL_3" ? 15000000 : 
+      5000000; // Mặc định
+
+    kolVip.current_base_salary = newSalary;
+    
+    // Cập nhật thời gian thăng/giáng cấp
+    const now = new Date();
+    if (this.getLevelValue(newLevel) > this.getLevelValue(oldLevel)) {
+      kolVip.last_promotion_date = now;
+      kolVip.consecutive_failures = 0; // Reset số lần thất bại liên tiếp khi thăng cấp
+    } else if (this.getLevelValue(newLevel) < this.getLevelValue(oldLevel)) {
+      kolVip.last_demotion_date = now;
+    }
+    
+    console.log(`KOL/VIP ${affiliateId} updated to level ${newLevel} with salary ${newSalary}`);
+    return kolVip;
+  }
+  
+  // Helper để chuyển level thành giá trị số để so sánh
+  private getLevelValue(level: KolVipLevelType): number {
+    switch(level) {
+      case "LEVEL_1": return 1;
+      case "LEVEL_2": return 2;
+      case "LEVEL_3": return 3;
+      default: return 1;
+    }
+  }
+  
+  async updateKolVipAffiliateBalance(affiliateId: string, amount: number): Promise<boolean> {
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(affiliateId);
+    
+    if (!kolVip) {
+      console.error(`KOL/VIP with ID ${affiliateId} not found`);
+      return false;
+    }
+    
+    // Kiểm tra số dư
+    if (kolVip.remaining_balance < amount) {
+      console.error(`Insufficient balance for KOL/VIP ${affiliateId}: ${kolVip.remaining_balance} < ${amount}`);
+      return false;
+    }
+    
+    // Trừ số dư, cập nhật paid_balance
+    kolVip.remaining_balance -= amount;
+    kolVip.paid_balance += amount;
+    
+    return true;
+  }
+  
+  async addKolVipContact(kolId: string, contactData: KolContact): Promise<KolContact> {
+    console.log(`Adding new contact for KOL/VIP ${kolId}`);
+    
+    // Kiểm tra KOL/VIP tồn tại
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+    if (!kolVip) {
+      throw new Error(`KOL/VIP with ID ${kolId} not found`);
+    }
+    
+    // Khởi tạo mảng contacts nếu chưa có
+    if (!this.kolContacts.has(kolId)) {
+      this.kolContacts.set(kolId, []);
+    }
+    
+    const contacts = this.kolContacts.get(kolId)!;
+    
+    // Tạo contact mới với ID tự động tăng
+    const newContact: KolContact = {
+      ...contactData,
+      id: contacts.length > 0 ? Math.max(...contacts.map(c => c.id || 0)) + 1 : 1,
+      kol_id: kolId,
+      created_at: contactData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Thêm vào mảng
+    contacts.push(newContact);
+    
+    // Cập nhật các chỉ số thống kê của KOL/VIP
+    kolVip.total_contacts++;
+    
+    // Nếu contact có nhu cầu (status khác "Mới nhập" và "Không tiềm năng")
+    if (newContact.status !== "Mới nhập" && newContact.status !== "Không tiềm năng") {
+      kolVip.potential_contacts++;
+    }
+    
+    return newContact;
+  }
+  
+  async updateKolVipContactStatus(
+    kolId: string, 
+    contactId: number, 
+    status: CustomerStatusType, 
+    note: string
+  ): Promise<KolContact | undefined> {
+    console.log(`Updating contact ${contactId} status for KOL/VIP ${kolId} to ${status}`);
+    
+    // Kiểm tra KOL/VIP tồn tại
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+    if (!kolVip) {
+      console.error(`KOL/VIP with ID ${kolId} not found`);
+      return undefined;
+    }
+    
+    // Kiểm tra và lấy danh sách contacts
+    if (!this.kolContacts.has(kolId)) {
+      console.error(`No contacts found for KOL/VIP ${kolId}`);
+      return undefined;
+    }
+    
+    const contacts = this.kolContacts.get(kolId)!;
+    
+    // Tìm contact cần cập nhật
+    const contactIndex = contacts.findIndex(c => c.id === contactId);
+    if (contactIndex === -1) {
+      console.error(`Contact with ID ${contactId} not found for KOL/VIP ${kolId}`);
+      return undefined;
+    }
+    
+    const contact = contacts[contactIndex];
+    const oldStatus = contact.status;
+    
+    // Cập nhật trạng thái
+    contact.status = status;
+    contact.note = note || contact.note;
+    contact.updated_at = new Date().toISOString();
+    
+    // Cập nhật các chỉ số thống kê của KOL/VIP
+    
+    // Nếu trước đó không phải có nhu cầu, nhưng giờ có nhu cầu
+    if ((oldStatus === "Mới nhập" || oldStatus === "Không tiềm năng") && 
+        (status !== "Mới nhập" && status !== "Không tiềm năng")) {
+      kolVip.potential_contacts++;
+    }
+    
+    // Nếu trước đó có nhu cầu, nhưng giờ không còn nhu cầu
+    if ((oldStatus !== "Mới nhập" && oldStatus !== "Không tiềm năng") && 
+        (status === "Mới nhập" || status === "Không tiềm năng")) {
+      kolVip.potential_contacts = Math.max(0, kolVip.potential_contacts - 1);
+    }
+    
+    return contact;
+  }
+  
+  async updateKolVipContactWithContract(
+    contactId: number,
+    contactData: KolContact,
+    balanceUpdates: {
+      contract_value: number;
+      commission: number;
+      remaining_balance: number;
+    }
+  ): Promise<KolContact | undefined> {
+    console.log(`Updating contact ${contactId} with contract data`);
+    
+    const kolId = contactData.kol_id;
+    
+    // Kiểm tra KOL/VIP tồn tại
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+    if (!kolVip) {
+      console.error(`KOL/VIP with ID ${kolId} not found`);
+      return undefined;
+    }
+    
+    // Kiểm tra và lấy danh sách contacts
+    if (!this.kolContacts.has(kolId)) {
+      console.error(`No contacts found for KOL/VIP ${kolId}`);
+      return undefined;
+    }
+    
+    const contacts = this.kolContacts.get(kolId)!;
+    
+    // Tìm contact cần cập nhật
+    const contactIndex = contacts.findIndex(c => c.id === contactId);
+    if (contactIndex === -1) {
+      console.error(`Contact with ID ${contactId} not found for KOL/VIP ${kolId}`);
+      return undefined;
+    }
+    
+    const contact = contacts[contactIndex];
+    const oldStatus = contact.status;
+    
+    // Chỉ khi có chuyển trạng thái thành "Đã chốt hợp đồng" mới cập nhật hợp đồng và hoa hồng
+    if (contactData.status === "Đã chốt hợp đồng" && oldStatus !== "Đã chốt hợp đồng") {
+      // Cập nhật thông tin hợp đồng
+      contact.contract_value = contactData.contract_value;
+      contact.commission = contactData.commission || Math.round(contactData.contract_value! * 0.03); // 3% giá trị hợp đồng
+      contact.contract_date = contactData.contract_date || new Date().toISOString();
+      
+      // Cập nhật thông tin balance của KOL/VIP
+      kolVip.contract_value += balanceUpdates.contract_value;
+      kolVip.received_balance += balanceUpdates.commission;
+      kolVip.remaining_balance += balanceUpdates.remaining_balance;
+      kolVip.total_contracts++;
+    }
+    
+    // Cập nhật các thông tin khác
+    contact.status = contactData.status;
+    contact.note = contactData.note || contact.note;
+    contact.updated_at = new Date().toISOString();
+    
+    return contact;
+  }
+  
+  async getKolVipContacts(kolId: string): Promise<KolContact[]> {
+    console.log(`Getting contacts for KOL/VIP ${kolId}`);
+    
+    // Kiểm tra KOL/VIP tồn tại
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+    if (!kolVip) {
+      console.error(`KOL/VIP with ID ${kolId} not found`);
+      return [];
+    }
+    
+    // Kiểm tra và lấy danh sách contacts
+    if (!this.kolContacts.has(kolId)) {
+      this.kolContacts.set(kolId, []);
+    }
+    
+    return this.kolContacts.get(kolId) || [];
+  }
+  
+  async addKolVipMonthlyKpi(kolId: string, kpiData: MonthlyKpi): Promise<MonthlyKpi> {
+    console.log(`Adding monthly KPI for KOL/VIP ${kolId} for ${kpiData.year}-${kpiData.month}`);
+    
+    // Kiểm tra KOL/VIP tồn tại
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+    if (!kolVip) {
+      throw new Error(`KOL/VIP with ID ${kolId} not found`);
+    }
+    
+    // Kiểm tra nếu đã có KPI cho tháng đó rồi thì cập nhật
+    const existingKpiIndex = kolVip.kpi_history.findIndex(
+      kpi => kpi.year === kpiData.year && kpi.month === kpiData.month
+    );
+    
+    if (existingKpiIndex !== -1) {
+      kolVip.kpi_history[existingKpiIndex] = {
+        ...kolVip.kpi_history[existingKpiIndex],
+        ...kpiData
+      };
+      return kolVip.kpi_history[existingKpiIndex];
+    }
+    
+    // Nếu chưa có thì thêm mới
+    kolVip.kpi_history.push(kpiData);
+    // Sắp xếp KPI theo thời gian giảm dần
+    kolVip.kpi_history.sort((a, b) => {
+      if (a.year !== b.year) return b.year - a.year;
+      return b.month - a.month;
+    });
+    
+    return kpiData;
+  }
+  
+  async evaluateKolVipMonthlyKpi(
+    kolId: string,
+    year: number,
+    month: number,
+    performance: KpiPerformanceTypeValue,
+    note?: string
+  ): Promise<{ success: boolean, newLevel?: KolVipLevelType, previousLevel?: KolVipLevelType }> {
+    console.log(`Evaluating KPI for KOL/VIP ${kolId} for ${year}-${month} with performance: ${performance}`);
+    
+    // Kiểm tra KOL/VIP tồn tại
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+    if (!kolVip) {
+      console.error(`KOL/VIP with ID ${kolId} not found`);
+      return { success: false };
+    }
+    
+    // Tìm KPI của tháng
+    const kpiIndex = kolVip.kpi_history.findIndex(
+      kpi => kpi.year === year && kpi.month === month
+    );
+    
+    if (kpiIndex === -1) {
+      console.error(`No KPI found for KOL/VIP ${kolId} for ${year}-${month}`);
+      return { success: false };
+    }
+    
+    // Cập nhật kết quả đánh giá
+    kolVip.kpi_history[kpiIndex].performance = performance;
+    kolVip.kpi_history[kpiIndex].evaluation_date = new Date().toISOString();
+    if (note) {
+      kolVip.kpi_history[kpiIndex].note = note;
+    }
+    
+    const previousLevel = kolVip.level;
+    let newLevel = previousLevel;
+    
+    // Xử lý thăng/giáng cấp
+    if (performance === "ACHIEVED") {
+      // Nếu đạt KPI và chưa phải level cao nhất thì thăng cấp
+      if (previousLevel !== "LEVEL_3") {
+        if (previousLevel === "LEVEL_1") {
+          newLevel = "LEVEL_2";
+        } else if (previousLevel === "LEVEL_2") {
+          newLevel = "LEVEL_3";
+        }
+        kolVip.consecutive_failures = 0; // Reset số lần thất bại liên tiếp
+      }
+    } else if (performance === "NOT_ACHIEVED") {
+      // Tăng số lần thất bại liên tiếp
+      kolVip.consecutive_failures++;
+      
+      // Nếu thất bại 2 lần liên tiếp và không phải level thấp nhất thì giáng cấp
+      if (kolVip.consecutive_failures >= 2 && previousLevel !== "LEVEL_1") {
+        if (previousLevel === "LEVEL_3") {
+          newLevel = "LEVEL_2";
+        } else if (previousLevel === "LEVEL_2") {
+          newLevel = "LEVEL_1";
+        }
+        kolVip.consecutive_failures = 0; // Reset sau khi giáng cấp
+      }
+    }
+    
+    // Nếu có thay đổi level thì cập nhật
+    if (newLevel !== previousLevel) {
+      await this.updateKolVipAffiliateLevel(kolId, newLevel);
+    }
+    
+    return { 
+      success: true, 
+      newLevel,
+      previousLevel
+    };
+  }
+  
   /**
    * Kiểm tra giới hạn rút tiền trong ngày
    * @param affiliateId ID của affiliate
@@ -254,6 +722,8 @@ export class MemStorage implements IStorage {
   
   private topAffiliates: TopAffiliate[];
   private allAffiliates: Affiliate[] = []; // Mảng lưu trữ tất cả các affiliates trong hệ thống
+  private kolVipAffiliates: KolVipAffiliate[] = []; // Mảng lưu trữ tất cả các KOL/VIP Affiliate
+  private kolContacts: Map<string, KolContact[]> = new Map(); // Ánh xạ KOL ID đến mảng contacts của họ
   private users: User[] = []; // Mảng lưu trữ người dùng mẫu
   private otpVerifications: OtpVerification[] = []; // Mảng lưu trữ các mã OTP
   private videos: VideoData[] = []; // Mảng lưu trữ các video của ColorMedia

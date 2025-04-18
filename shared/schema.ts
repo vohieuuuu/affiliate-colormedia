@@ -29,8 +29,9 @@ export type WithdrawalStatusType = z.infer<typeof WithdrawalStatus>;
 // User role type
 export const UserRole = z.enum([
   "ADMIN",        // Quản trị viên
-  "AFFILIATE",    // Người giới thiệu
-  "MANAGER"       // Quản lý
+  "AFFILIATE",    // Người giới thiệu thường
+  "MANAGER",      // Quản lý
+  "KOL_VIP"       // Affiliate KOL/VIP
 ]);
 
 export type UserRoleType = z.infer<typeof UserRole>;
@@ -289,3 +290,120 @@ export type VideoCollection = z.infer<typeof VideoCollectionSchema>;
 export const insertVideoSchema = createInsertSchema(VideoSchema);
 export type InsertVideo = z.infer<typeof insertVideoSchema>;
 export type Video = typeof VideoSchema.$inferSelect;
+
+// KOL/VIP Level Type
+export const KolVipLevel = z.enum([
+  "LEVEL_1",  // Fresher - Lương 5 triệu, KPI 10 contact, 5 contact có nhu cầu
+  "LEVEL_2",  // Advanced - Lương 10 triệu, KPI 20 contact, 10 contact có nhu cầu, 1 hợp đồng
+  "LEVEL_3"   // Elite - Lương 15 triệu, KPI 30 contact, 15 contact có nhu cầu, 2 hợp đồng
+]);
+
+export type KolVipLevelType = z.infer<typeof KolVipLevel>;
+
+// KPI Performance Type for KOL/VIP
+export const KpiPerformanceType = z.enum([
+  "ACHIEVED",      // Đạt KPI
+  "NOT_ACHIEVED",  // Không đạt KPI
+  "PENDING"        // Đang đánh giá
+]);
+
+export type KpiPerformanceTypeValue = z.infer<typeof KpiPerformanceType>;
+
+// KPI Performance Schema cho mỗi tháng
+export const MonthlyKpiSchema = z.object({
+  year: z.number(),
+  month: z.number(),
+  total_contacts: z.number(),
+  potential_contacts: z.number(),  // Contact có nhu cầu
+  contracts: z.number(),
+  performance: KpiPerformanceType,
+  base_salary: z.number(),         // Lương cứng tháng đó (5M, 10M, 15M)
+  commission: z.number(),          // Hoa hồng từ các hợp đồng
+  evaluation_date: z.string(),     // Ngày đánh giá KPI
+  note: z.string().optional()
+});
+
+export type MonthlyKpi = z.infer<typeof MonthlyKpiSchema>;
+
+// KOL/VIP Affiliate Schema
+export const kolVipAffiliates = pgTable("kol_vip_affiliates", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id), // Reference to users table
+  affiliate_id: text("affiliate_id").notNull().unique(),
+  full_name: text("full_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  bank_account: text("bank_account").notNull(),
+  bank_name: text("bank_name").notNull(),
+  level: varchar("level", { length: 20 }).$type<KolVipLevelType>().notNull().default("LEVEL_1"),
+  current_base_salary: integer("current_base_salary").notNull().default(5000000), // Lương cứng hiện tại (mặc định là 5 triệu VND)
+  join_date: timestamp("join_date").notNull().defaultNow(),
+  last_promotion_date: timestamp("last_promotion_date"),
+  last_demotion_date: timestamp("last_demotion_date"),
+  consecutive_failures: integer("consecutive_failures").notNull().default(0), // Số tháng liên tiếp không đạt KPI
+  total_contacts: integer("total_contacts").notNull().default(0),
+  potential_contacts: integer("potential_contacts").notNull().default(0), // Contact có nhu cầu
+  total_contracts: integer("total_contracts").notNull().default(0),
+  contract_value: integer("contract_value").notNull().default(0),
+  received_balance: integer("received_balance").notNull().default(0), // Tổng thu nhập đã nhận (lương + hoa hồng)
+  paid_balance: integer("paid_balance").notNull().default(0),         // Tổng đã rút
+  remaining_balance: integer("remaining_balance").notNull().default(0), // Số dư có thể rút
+  kpi_history: json("kpi_history").$type<MonthlyKpi[]>().notNull().default([]),
+  referred_customers: json("referred_customers").$type<ReferredCustomer[]>().notNull().default([]),
+  withdrawal_history: json("withdrawal_history").$type<WithdrawalHistory[]>().notNull().default([]),
+});
+
+export const KolContactSchema = z.object({
+  id: z.number().optional(),
+  kol_id: z.string(), // ID của KOL/VIP sở hữu contact
+  contact_name: z.string(),
+  company: z.string().optional(),
+  position: z.string().optional(),
+  phone: z.string(),
+  email: z.string().optional(),
+  status: CustomerStatus,
+  created_at: z.string().default(() => new Date().toISOString()),
+  updated_at: z.string(),
+  source: z.string().optional(), // Nguồn (Card visit, Giới thiệu, etc.)
+  image_url: z.string().optional(), // URL hình ảnh card visit (nếu có)
+  note: z.string().optional(),
+  potential_value: z.number().optional(), // Giá trị tiềm năng
+  meeting_time: z.string().optional(), // Thời gian hẹn gặp
+  contract_value: z.number().optional(),
+  commission: z.number().optional(),
+  contract_date: z.string().optional(),
+});
+
+export type KolContact = z.infer<typeof KolContactSchema>;
+
+// KOL/VIP Contacts table
+export const kolContacts = pgTable("kol_contacts", {
+  id: serial("id").primaryKey(),
+  kol_id: text("kol_id").notNull().references(() => kolVipAffiliates.affiliate_id),
+  contact_name: text("contact_name").notNull(),
+  company: text("company"),
+  position: text("position"),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  status: varchar("status", { length: 30 }).$type<CustomerStatusType>().notNull().default("Mới nhập"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  source: text("source"),
+  image_url: text("image_url"),
+  note: text("note"),
+  potential_value: integer("potential_value"),
+  meeting_time: timestamp("meeting_time"),
+  contract_value: integer("contract_value"),
+  commission: integer("commission"),
+  contract_date: timestamp("contract_date"),
+});
+
+// Insert schemas for KOL/VIP
+export const insertKolVipAffiliateSchema = createInsertSchema(kolVipAffiliates);
+export const insertKolContactSchema = createInsertSchema(kolContacts);
+
+// Types for KOL/VIP
+export type InsertKolVipAffiliate = z.infer<typeof insertKolVipAffiliateSchema>;
+export type KolVipAffiliate = typeof kolVipAffiliates.$inferSelect;
+export type InsertKolContact = z.infer<typeof insertKolContactSchema>;
+export type KolContactDB = typeof kolContacts.$inferSelect;
