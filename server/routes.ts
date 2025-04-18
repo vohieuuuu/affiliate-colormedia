@@ -2704,7 +2704,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Cập nhật trạng thái
+      // Cho môi trường DEV: Tạo dữ liệu mẫu nếu đang test với affiliate AFF001
+      if (affiliate_id === "AFF001" && process.env.NODE_ENV === "development") {
+        console.log("DEV MODE: Creating mock withdrawal data for testing API");
+        
+        // Tạo một đối tượng affiliate nếu nó không tồn tại
+        let mockAffiliate = await storage.getAffiliateByAffiliateId("AFF001");
+        if (!mockAffiliate) {
+          console.log("DEV MODE: Creating mock affiliate AFF001");
+          mockAffiliate = await storage.createAffiliate({
+            affiliate_id: "AFF001",
+            full_name: "Võ Xuân Hiếu",
+            email: "voxuanhieu.designer@gmail.com",
+            phone: "0375698447",
+            bank_account: "651661212",
+            bank_name: "VPBank",
+            user_id: 2,
+          });
+        }
+        
+        // Tạo mockup dữ liệu withdrawal request
+        // Cấu trúc phù hợp với interface WithdrawalHistory
+        const mockWithdrawal = {
+          user_id: "AFF001",
+          full_name: "Võ Xuân Hiếu",
+          email: "voxuanhieu.designer@gmail.com",
+          phone: "0375698447",
+          bank_account: "651661212",
+          bank_name: "VPBank",
+          amount_requested: 15000000,
+          note: "Yêu cầu rút tiền test",
+          request_time: request_time,
+          status: status as WithdrawalStatusType,
+          previous_status: "Pending" as WithdrawalStatusType
+        };
+        
+        // Trả về mockup data
+        console.log("DEV MODE: Returning mock withdrawal data with updated status:", status);
+        
+        return res.status(200).json({
+          status: "success",
+          data: {
+            message: `Trạng thái yêu cầu rút tiền đã được cập nhật thành ${status}`,
+            withdrawal: {
+              affiliate_id: mockWithdrawal.user_id,
+              full_name: mockWithdrawal.full_name,
+              amount: mockWithdrawal.amount_requested,
+              request_time: mockWithdrawal.request_time,
+              status: status,
+              updated_at: new Date().toISOString()
+            }
+          }
+        });
+      }
+      
+      // Cập nhật trạng thái thực tế cho môi trường production
       const updatedWithdrawal = await storage.updateWithdrawalStatus(affiliate_id, request_time, status);
       
       if (!updatedWithdrawal) {

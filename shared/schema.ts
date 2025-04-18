@@ -18,7 +18,8 @@ export const WithdrawalStatus = z.enum([
   "Pending",     // Đang chờ xử lý
   "Processing",  // Đang xử lý, đã trừ số dư
   "Completed",   // Đã hoàn thành
-  "Rejected"     // Đã từ chối
+  "Rejected",    // Đã từ chối
+  "Cancelled"    // Đã hủy bởi affiliate
 ]);
 
 export type WithdrawalStatusType = z.infer<typeof WithdrawalStatus>;
