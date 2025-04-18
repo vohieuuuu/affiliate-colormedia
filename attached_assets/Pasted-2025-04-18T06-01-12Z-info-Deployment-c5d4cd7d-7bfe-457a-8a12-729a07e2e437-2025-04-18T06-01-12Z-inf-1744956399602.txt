@@ -1,0 +1,267 @@
+2025-04-18T06:01:12Z info: Deployment: c5d4cd7d-7bfe-457a-8a12-729a07e2e437
+2025-04-18T06:01:12Z info: Build: 481b4344-7790-4c5a-91fe-caa8a669bc21
+2025-04-18T06:01:12Z info: Connecting to builder
+2025-04-18T06:01:12Z info: Deployment: c5d4cd7d-7bfe-457a-8a12-729a07e2e437
+2025-04-18T06:01:12Z info: Build: 481b4344-7790-4c5a-91fe-caa8a669bc21
+2025-04-18T06:01:12Z info: Connecting to builder
+2025-04-18T06:01:15Z info: Builder connected
+2025-04-18T06:01:17Z info: Installing packages
+2025-04-18T06:01:18Z info: Starting Build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+
+vite v5.4.14 building for production...
+
+transforming...
+
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+✓ 2551 modules transformed.
+
+rendering chunks...
+
+computing gzip size...
+
+../dist/public/index.html                   1.85 kB │ gzip:   0.76 kB
+
+../dist/public/assets/index-Xc5sJ596.css   68.69 kB │ gzip:  11.98 kB
+
+../dist/public/assets/index-DV0TJ3k_.js   895.02 kB │ gzip: 257.81 kB
+
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+✓ built in 13.59s
+
+▲ [WARNING] Duplicate member "seedData" in class body [duplicate-class-member]
+
+    server/databaseStorage.ts:1006:8:
+      1006 │   async seedData(affiliatesCount: number, customersPerAffiliate:...
+           ╵         ~~~~~~~~
+
+  The original member "seedData" is here:
+
+    server/databaseStorage.ts:631:8:
+      631 │   async seedData(affiliatesCount: number, customersPerAffiliate: ...
+          ╵         ~~~~~~~~
+
+
+1 warning
+
+
+  dist/index.js  211.4kb
+
+⚡ Done in 213ms
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.3.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.3.0
+npm notice To update run: npm install -g npm@11.3.0
+npm notice
+
+2025-04-18T06:01:39Z info: Pushing pid1 binary layer...
+2025-04-18T06:01:41Z info: Pushing hosting layer...
+2025-04-18T06:01:41Z info: Pushing Repl layer...
+2025-04-18T06:01:41Z info: Retrieved cached nix layer
+2025-04-18T06:01:41Z info: Created pid1 binary layer
+2025-04-18T06:01:41Z info: Created hosting layer
+2025-04-18T06:02:05Z info: Created Repl layer
+2025-04-18T06:02:05Z info: Pushed image manifest
+2025-04-18T06:02:06Z info: Pushed soci index manifest
+2025-04-18T06:02:10Z info: Creating Autoscale service
+    at file:///home/runner/workspace/dist/index.js:9:9
+
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+forwarding local port 5000 to external port 80 (mapped as 1104)
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+npm notice
+starting up user application
+npm notice To update run: npm install -g npm@11.3.0
+
+        ^
+  throw Error('Dynamic require of "' + x + '" is not supported');
+> NODE_ENV=production node dist/index.js
+file:///home/runner/workspace/dist/index.js:9
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.3.0
+> rest-express@1.0.0 start
+npm notice New major version of npm available! 10.8.2 -> 11.3.0
+> rest-express@1.0.0 start
+    at file:///home/runner/workspace/dist/index.js:5436:7
+> NODE_ENV=production node dist/index.js
+command finished with error [npm run start]: exit status 1
+        ^
+Error: Dynamic require of "drizzle-orm" is not supported
+Node.js v20.18.1
+Error: Dynamic require of "drizzle-orm" is not supported
+    at file:///home/runner/workspace/dist/index.js:9:9
+file:///home/runner/workspace/dist/index.js:9
+npm notice
+    at file:///home/runner/workspace/dist/index.js:9:9
+
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+  throw Error('Dynamic require of "' + x + '" is not supported');
+Node.js v20.18.1
+    at file:///home/runner/workspace/dist/index.js:5436:7
+
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+command finished with error [npm run start]: exit status 1
+> rest-express@1.0.0 start
+    at file:///home/runner/workspace/dist/index.js:9:9
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+> NODE_ENV=production node dist/index.js
+    at file:///home/runner/workspace/dist/index.js:5436:7
+    at file:///home/runner/workspace/dist/index.js:9:9
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+        ^
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+file:///home/runner/workspace/dist/index.js:9
+> NODE_ENV=production node dist/index.js
+Error: Dynamic require of "drizzle-orm" is not supported
+
+
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+command finished with error [npm run start]: exit status 1
+    at file:///home/runner/workspace/dist/index.js:9:9
+    at file:///home/runner/workspace/dist/index.js:5436:7
+    at file:///home/runner/workspace/dist/index.js:9:9
+  throw Error('Dynamic require of "' + x + '" is not supported');
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+  throw Error('Dynamic require of "' + x + '" is not supported');
+
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+Node.js v20.18.1
+> rest-express@1.0.0 start
+
+        ^
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+    at file:///home/runner/workspace/dist/index.js:9:9
+Error: Dynamic require of "drizzle-orm" is not supported
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+file:///home/runner/workspace/dist/index.js:9
+Node.js v20.18.1
+command finished with error [npm run start]: exit status 1
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+        ^
+> rest-express@1.0.0 start
+  throw Error('Dynamic require of "' + x + '" is not supported');
+    at file:///home/runner/workspace/dist/index.js:9:9
+    at file:///home/runner/workspace/dist/index.js:9:9
+command finished with error [npm run start]: exit status 1
+        ^
+    at file:///home/runner/workspace/dist/index.js:9:9
+Error: Dynamic require of "drizzle-orm" is not supported
+file:///home/runner/workspace/dist/index.js:9
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+> rest-express@1.0.0 start
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+> NODE_ENV=production node dist/index.js
+
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+> NODE_ENV=production node dist/index.js
+
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+    at file:///home/runner/workspace/dist/index.js:5436:7
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+  throw Error('Dynamic require of "' + x + '" is not supported');
+Error: Dynamic require of "drizzle-orm" is not supported
+
+Node.js v20.18.1
+file:///home/runner/workspace/dist/index.js:9
+Node.js v20.18.1
+command finished with error [npm run start]: exit status 1
+    at file:///home/runner/workspace/dist/index.js:9:9
+    at file:///home/runner/workspace/dist/index.js:5436:7
+
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+Error: Dynamic require of "drizzle-orm" is not supported
+file:///home/runner/workspace/dist/index.js:9
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+    at file:///home/runner/workspace/dist/index.js:9:9
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+
+
+    at file:///home/runner/workspace/dist/index.js:5436:7
+
+> rest-express@1.0.0 start
+Node.js v20.18.1
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+  throw Error('Dynamic require of "' + x + '" is not supported');
+        ^
+    at file:///home/runner/workspace/dist/index.js:9:9
+  throw Error('Dynamic require of "' + x + '" is not supported');
+Error: Dynamic require of "drizzle-orm" is not supported
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+    at file:///home/runner/workspace/dist/index.js:5436:7
+        ^
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+command finished with error [npm run start]: exit status 1
+    at file:///home/runner/workspace/dist/index.js:9:9
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+    at file:///home/runner/workspace/dist/index.js:9:9
+Node.js v20.18.1
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+> NODE_ENV=production node dist/index.js
+
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+file:///home/runner/workspace/dist/index.js:9
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+command finished with error [npm run start]: exit status 1
+file:///home/runner/workspace/dist/index.js:9
+  throw Error('Dynamic require of "' + x + '" is not supported');
+    at file:///home/runner/workspace/dist/index.js:9:9
+Error: Dynamic require of "drizzle-orm" is not supported
+        ^
+    at file:///home/runner/workspace/dist/index.js:5436:7
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+
+> NODE_ENV=production node dist/index.js
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+command finished with error [npm run start]: exit status 1
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+Node.js v20.18.1
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+
+> rest-express@1.0.0 start
+    at file:///home/runner/workspace/dist/index.js:9:9
+        ^
+file:///home/runner/workspace/dist/index.js:9
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+
+    at async file:///home/runner/workspace/dist/index.js:5444:18
+    at file:///home/runner/workspace/dist/index.js:5436:7
+Failed to set up authentication routes: Error: Dynamic require of "drizzle-orm" is not supported
+    at file:///home/runner/workspace/dist/index.js:9:9
+> NODE_ENV=production node dist/index.js
+> rest-express@1.0.0 start
+    at setupAuthRoutes (file:///home/runner/workspace/dist/index.js:639:23)
+
+    at registerRoutes (file:///home/runner/workspace/dist/index.js:3179:5)
+Node.js v20.18.1
+command finished with error [npm run start]: exit status 1
+    at file:///home/runner/workspace/dist/index.js:9:9
+  throw Error('Dynamic require of "' + x + '" is not supported');
+Error: Dynamic require of "drizzle-orm" is not supported
+crash loop detected
+2025-04-18T06:03:40Z error: The deployment is crash looping. This can happen if the run command fails or exits immediately after starting. Check the logs for more information.
