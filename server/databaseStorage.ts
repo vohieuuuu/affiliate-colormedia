@@ -130,11 +130,15 @@ export class DatabaseStorage implements IStorage {
       request_time: new Date(request.request_time)
     });
     
-    // 5. Cập nhật withdrawal_history của affiliate
+    // 5. Cập nhật withdrawal_history của affiliate với thông tin thuế nếu có
     const history = affiliate.withdrawal_history || [];
     history.unshift({
       request_date: request.request_time,
       amount: request.amount_requested,
+      tax_amount: request.tax_amount || 0,
+      amount_after_tax: request.amount_after_tax || request.amount_requested,
+      has_tax: request.has_tax || false,
+      tax_rate: request.tax_rate || 0,
       note: request.note || "",
       status: "Pending" // Trạng thái ban đầu là Pending
     });
