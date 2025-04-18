@@ -31,6 +31,7 @@ export default function WithdrawalModal({
 }: WithdrawalModalProps) {
   const { toast } = useToast();
   const [amount, setAmount] = useState<string>("");
+  const [formattedAmount, setFormattedAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [confirmBankInfo, setConfirmBankInfo] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -241,11 +242,17 @@ export default function WithdrawalModal({
                 <div className="relative">
                   <Input
                     id="amount"
-                    type="number"
+                    type="text"
                     placeholder="0"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    max={maxAmount}
+                    value={formattedAmount}
+                    onChange={(e) => {
+                      // Chỉ cho phép nhập số và dấu phẩy
+                      const inputValue = e.target.value.replace(/[^\d,]/g, '');
+                      setFormattedAmount(formatNumberWithCommas(inputValue));
+                      // Lưu giá trị số thực không có dấu phẩy để xử lý
+                      setAmount(inputValue.replace(/,/g, ''));
+                    }}
+                    className="text-right pr-14"
                     required
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
