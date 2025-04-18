@@ -1,11 +1,36 @@
-# Cập nhật API Documentation - Module KOL/VIP
+# Tài liệu API - Hệ thống ColorMedia Affiliate (Module KOL/VIP)
 
 ## Giới thiệu
-Tài liệu này bổ sung API cho module KOL/VIP của hệ thống ColorMedia Affiliate. Module này quản lý và theo dõi KPI của các KOL/VIP Affiliate, với hệ thống phân cấp và theo dõi tiến độ riêng biệt.
+Tài liệu này mô tả chi tiết API của hệ thống ColorMedia Affiliate module KOL/VIP, cho phép quản lý thông tin KOL/VIP, theo dõi KPI và liên hệ, cũng như quản lý các hợp đồng đã ký.
+
+## Định dạng phản hồi
+Tất cả API trả về phản hồi ở định dạng JSON với header `Content-Type: application/json`. Các phản hồi tuân theo định dạng chuẩn:
+
+- **Thành công**: `{ "status": "success", "data": {...} }`
+- **Lỗi**: `{ "status": "error", "error": { "code": "ERROR_CODE", "message": "Thông báo lỗi" } }`
+
+## Xác thực
+Xác thực người dùng sử dụng token Bearer JWT. Trừ các endpoint dành riêng cho việc đăng nhập và đăng ký, tất cả các API khác đều yêu cầu xác thực.
+
+### Đăng nhập lần đầu
+Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu mặc định `color1234@`. API sẽ trả về mã lỗi `CHANGE_PASSWORD_REQUIRED` nếu người dùng cần đổi mật khẩu.
 
 ## API Xác thực
-Module KOL/VIP vẫn sử dụng các API xác thực đã có như `/api/auth/login`, `/api/auth/change-password`, và `/api/auth/logout`. API xác thực sẽ trả về giá trị `role` là `"kol-vip"` cho người dùng thuộc module này.
 
+### Đăng nhập
+**Endpoint**: `POST /api/auth/login`
+
+**Mô tả**: Xác thực người dùng và cung cấp token truy cập.
+
+**Request Body**:
+```json
+{
+  "username": "kol1@colormedia.vn",
+  "password": "password123"
+}
+```
+
+**Phản hồi thành công**:
 ```json
 {
   "status": "success",
@@ -14,6 +39,84 @@ Module KOL/VIP vẫn sử dụng các API xác thực đã có như `/api/auth/l
     "username": "kol1@colormedia.vn",
     "role": "kol-vip",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+**Phản hồi lỗi (cần đổi mật khẩu)**:
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "CHANGE_PASSWORD_REQUIRED",
+    "message": "Bạn cần đổi mật khẩu trước khi đăng nhập lần đầu",
+    "user_id": 5
+  }
+}
+```
+
+### Đổi mật khẩu
+**Endpoint**: `POST /api/auth/change-password`
+
+**Mô tả**: Đổi mật khẩu người dùng.
+
+**Request Body**:
+```json
+{
+  "user_id": 5,
+  "old_password": "color1234@",
+  "new_password": "newStrongPassword123!"
+}
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Đổi mật khẩu thành công. Vui lòng đăng nhập lại với mật khẩu mới."
+  }
+}
+```
+
+### Đăng xuất
+**Endpoint**: `POST /api/auth/logout`
+
+**Mô tả**: Đăng xuất người dùng hiện tại và hủy token.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Đăng xuất thành công"
+  }
+}
+```
+
+### Lấy thông tin người dùng hiện tại
+**Endpoint**: `GET /api/auth/me`
+
+**Mô tả**: Lấy thông tin người dùng hiện tại dựa trên token.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 5,
+    "username": "kol1@colormedia.vn",
+    "role": "kol-vip"
   }
 }
 ```
@@ -326,7 +429,7 @@ Authorization: Bearer <token>
 
 **Headers**:
 ```
-Authorization: Bearer <token>
+Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60
 ```
 
 **Phản hồi thành công**:
@@ -367,7 +470,7 @@ Authorization: Bearer <token>
 
 **Headers**:
 ```
-Authorization: Bearer <token>
+Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60
 ```
 
 **Request Body**:
@@ -408,7 +511,7 @@ Authorization: Bearer <token>
 
 **Headers**:
 ```
-Authorization: Bearer <token>
+Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60
 ```
 
 **Params**:
@@ -437,9 +540,14 @@ Authorization: Bearer <token>
 }
 ```
 
-## Tài khoản kiểm thử cho KOL/VIP
+## Tài khoản kiểm thử
 
 ```
+Admin:
+- Username: admin@colormedia.vn
+- Password: admin@123
+- Admin token: 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60
+
 KOL/VIP 1:
 - Username: kol1@colormedia.vn
 - Password: kol1@123
@@ -457,8 +565,11 @@ KOL/VIP 2:
 
 1. Module KOL/VIP hoạt động độc lập và không ảnh hưởng đến module Affiliate thông thường.
 2. Chỉ người dùng với quyền "kol-vip" mới có thể truy cập các API của KOL/VIP.
-3. Chỉ người dùng với quyền "admin" mới có thể quản lý và tạo tài khoản KOL/VIP.
-4. Các enum trạng thái trong module KOL/VIP:
-   - Level: "LEVEL_1" (Fresher), "LEVEL_2" (Advanced), "LEVEL_3" (Elite)
-   - Trạng thái liên hệ: "Mới nhập", "Đang tư vấn", "Chờ phản hồi", "Đã chốt hợp đồng", "Không tiềm năng"
-   - Trạng thái KPI: "ACHIEVED", "NOT_ACHIEVED", "PENDING"
+3. Chỉ người dùng với quyền "admin" (sử dụng token Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60) mới có thể quản lý và tạo tài khoản KOL/VIP.
+4. KOL/VIP được phân chia thành 3 cấp độ:
+   - LEVEL_1 (Fresher): Lương cơ bản 5 triệu VND/tháng, KPI: 10 liên hệ, 5 liên hệ tiềm năng
+   - LEVEL_2 (Advanced): Lương cơ bản 10 triệu VND/tháng, KPI: 20 liên hệ, 10 liên hệ tiềm năng, 1 hợp đồng
+   - LEVEL_3 (Elite): Lương cơ bản 15 triệu VND/tháng, KPI: 30 liên hệ, 15 liên hệ tiềm năng, 2 hợp đồng
+5. Tất cả KOL/VIP đều được hưởng hoa hồng 3% trên giá trị hợp đồng.
+6. Trạng thái liên hệ bao gồm: "Mới nhập", "Đang tư vấn", "Chờ phản hồi", "Đã chốt hợp đồng", "Không tiềm năng".
+7. Tính năng quét card visit yêu cầu OPENAI_API_KEY được cấu hình trong hệ thống.
