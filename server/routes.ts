@@ -16,6 +16,15 @@ import {
 } from "@shared/schema";
 import { setupDevAuthRoutes } from "./devAuth";
 import { setupVideoRoutes } from "./videoRoutes";
+import { 
+  detectSuspiciousWithdrawal, 
+  withdrawalLimiter, 
+  authLimiter, 
+  sanitizeAffiliateData, 
+  statsCache,
+  encryptSensitiveData,
+  decryptSensitiveData
+} from "./security";
 
 // Extend Express.Request to include user property
 declare global {
@@ -445,19 +454,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = 1; // Admin user
       }
       
-      // Tìm affiliate liên kết với user
-      let affiliate = await storage.getAffiliateByUserId(userId);
-      
-      // Nếu không tìm thấy affiliate qua user_id, thử tìm qua username (email)
-      if (!affiliate && req.user && req.user.username) {
-        const affiliateByEmail = await storage.getAffiliateByEmail(req.user.username);
-        if (affiliateByEmail) {
-          console.log(`Found affiliate by email ${req.user.username} instead of user_id ${userId}`);
-          // Cập nhật user_id của affiliate để khớp với user hiện tại
-          affiliateByEmail.user_id = userId;
-          affiliate = affiliateByEmail;
+      // Sử dụng cache cho dữ liệu affiliate nếu có thể
+      const getAffiliateData = async () => {
+        // Tìm affiliate liên kết với user
+        let affiliate = await storage.getAffiliateByUserId(userId);
+        
+        // Nếu không tìm thấy affiliate qua user_id, thử tìm qua username (email)
+        if (!affiliate && req.user && req.user.username) {
+          const affiliateByEmail = await storage.getAffiliateByEmail(req.user.username);
+          if (affiliateByEmail) {
+            console.log(`Found affiliate by email ${req.user.username} instead of user_id ${userId}`);
+            // Cập nhật user_id của affiliate để khớp với user hiện tại
+            affiliateByEmail.user_id = userId;
+            affiliate = affiliateByEmail;
+          }
         }
-      }
+        
+        return affiliate;
+      };
+      
+      // Sử dụng cache để tăng hiệu suất
+      const affiliate = await statsCache.get(`affiliate:${userId}`, getAffiliateData);
       
       if (!affiliate) {
         return res.status(404).json({ 
@@ -469,10 +486,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Trả về dữ liệu affiliate
+      // Ẩn thông tin nhạy cảm trước khi trả về
+      const sanitizedData = sanitizeAffiliateData(affiliate);
+      
+      // Trả về dữ liệu affiliate đã được bảo vệ
       res.json({
         status: "success",
-        data: affiliate
+        data: sanitizedData
       });
     } catch (error) {
       console.error("Error getting affiliate data:", error);
@@ -946,21 +966,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const affiliate = req.affiliate;
     
-    // Kiểm tra các yếu tố nguy cơ
-    const amountValue = parseFloat(amount);
-    const isUnusualAmount = amountValue > 10000000; // 10 triệu VND
-    const isHighRatio = amountValue > affiliate.remaining_balance * 0.7; // Rút hơn 70% số dư
-    
-    // Lưu trữ thông tin kiểm tra
-    req.withdrawalRiskFactors = {
-      isUnusualAmount,
-      isHighRatio,
-      requireStrictVerification: isUnusualAmount || isHighRatio
-    };
+    // Sử dụng middleware phát hiện hành vi rút tiền đáng ngờ (đã được cải tiến)
+    // Các yếu tố rủi ro sẽ được lưu vào req.withdrawalRiskFactors
+    detectSuspiciousWithdrawal(req, res, () => {});
     
     // Ghi log nếu phát hiện hành vi đáng ngờ
-    if (isUnusualAmount || isHighRatio) {
-      console.log(`SECURITY_ALERT: Suspicious withdrawal detected for affiliate ${affiliate.affiliate_id}. Amount: ${amountValue}, IP: ${userIP}, UserAgent: ${userAgent.substring(0, 50)}...`);
+    if (req.withdrawalRiskFactors?.requireStrictVerification) {
+      console.log(`SECURITY_ALERT: Suspicious withdrawal detected for affiliate ${affiliate.affiliate_id}. Amount: ${parseFloat(amount)}, IP: ${userIP}, UserAgent: ${userAgent.substring(0, 50)}...`);
     }
     
     next();
