@@ -950,12 +950,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const affiliate = req.affiliate;
     
-    // Sử dụng middleware phát hiện hành vi rút tiền đáng ngờ (đã được cải tiến)
-    // Các yếu tố rủi ro sẽ được lưu vào req.withdrawalRiskFactors
-    detectSuspiciousWithdrawal(req, res, () => {});
+    // Tự phân tích hành vi đáng ngờ thay vì gọi lại middleware
+    // Tính toán các yếu tố rủi ro
+    const amountValue = parseFloat(amount);
+    const isUnusualAmount = amountValue > 10000000; // 10 triệu VND
+    const isHighRatio = amountValue > affiliate.remaining_balance * 0.7; // Rút hơn 70% số dư
+    
+    // Lưu trữ thông tin kiểm tra
+    req.withdrawalRiskFactors = {
+      isUnusualAmount,
+      isHighRatio,
+      requireStrictVerification: isUnusualAmount || isHighRatio
+    };
     
     // Ghi log nếu phát hiện hành vi đáng ngờ
-    if (req.withdrawalRiskFactors?.requireStrictVerification) {
+    if (req.withdrawalRiskFactors.requireStrictVerification) {
       console.log(`SECURITY_ALERT: Suspicious withdrawal detected for affiliate ${affiliate.affiliate_id}. Amount: ${parseFloat(amount)}, IP: ${userIP}, UserAgent: ${userAgent.substring(0, 50)}...`);
     }
     
