@@ -21,12 +21,16 @@ export default function WithdrawalHistorySection({
   
   const getStatusBadge = (status: WithdrawalStatusType) => {
     switch (status) {
+      case "Pending":
+        return <Badge className="bg-blue-500 hover:bg-blue-600">{status}</Badge>;
       case "Processing":
         return <Badge className="bg-yellow-500 hover:bg-yellow-600">{status}</Badge>;
       case "Completed":
         return <Badge className="bg-green-500 hover:bg-green-600">{status}</Badge>;
       case "Rejected":
         return <Badge variant="destructive">{status}</Badge>;
+      case "Cancelled":
+        return <Badge variant="outline">{status}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
