@@ -399,9 +399,11 @@ export class MemStorage implements IStorage {
       affiliate.remaining_balance = updatedRemainingBalance;
       affiliate.paid_balance = updatedPaidBalance;
       
-      console.log(`Đã trừ tiền ở trạng thái Pending: ${affiliate.remaining_balance} (trừ ${request.amount_requested})`);
+      console.log(`Đã trừ tiền ở trạng thái Pending: ${updatedRemainingBalance} (trừ ${request.amount_requested})`);
+      console.log(`Số dư trước khi trừ tiền: ${affiliate.remaining_balance}`);
+      console.log(`Số dư sau khi trừ tiền: ${updatedRemainingBalance}`);
       // Tiền đã được trừ ở trên, không cần chuyển sang Processing
-      console.log(`Đã trừ tiền thành công khi tạo yêu cầu rút tiền Pending`);
+      console.log(`Đã trừ tiền thành công khi tạo yêu cầu rút tiền Pending - Số dư mới: ${updatedRemainingBalance}`);
     } catch (error) {
       console.error(`Lỗi khi cập nhật trạng thái và trừ tiền: ${error}`);
       // Nếu là yêu cầu mới tạo và có lỗi, xóa yêu cầu khỏi lịch sử
