@@ -708,15 +708,112 @@ export class MemStorage implements IStorage {
   }
 
   async seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }> {
-    // For the in-memory store, we'll just generate random data
-    // In a real implementation, this would insert data into the database
-    
+    // For the in-memory store, we'll generate sample data for testing
     const affiliates_added = Math.min(affiliatesCount, 20); // Limit to 20 for performance
     const customers_added = affiliates_added * Math.min(customersPerAffiliate, 10); // Limit to 10 per affiliate
     const withdrawals_added = affiliates_added * Math.min(withdrawalsPerAffiliate, 5); // Limit to 5 per affiliate
     
-    // This function would add sample data to the database
-    // Here in memory implementation we'll just return the counts
+    // Tạo các affiliate mẫu
+    for (let i = 0; i < affiliates_added; i++) {
+      const affiliateId = `AFF${1000 + i}`;
+      const userId = 100 + i;
+      
+      // Tạo affiliate
+      const affiliateData: Affiliate = {
+        id: i + 10,
+        user_id: userId,
+        affiliate_id: affiliateId,
+        full_name: `Affiliate Test ${i + 1}`,
+        email: `affiliate${i + 1}@test.com`,
+        phone: `090${1000000 + i}`,
+        bank_account: `9876543${i}`,
+        bank_name: "VietcomBank",
+        total_contacts: 0,
+        total_contracts: 0,
+        contract_value: 0,
+        received_balance: 0,
+        paid_balance: 0,
+        remaining_balance: 100000000, // 100M VND mặc định
+        referred_customers: [],
+        withdrawal_history: []
+      };
+      
+      // Thêm khách hàng cho affiliate này
+      for (let j = 0; j < customersPerAffiliate; j++) {
+        const customerId = i * 100 + j;
+        const customerData: ReferredCustomer = {
+          id: customerId,
+          affiliate_id: affiliateId,
+          customer_name: `Customer ${customerId}`,
+          email: `customer${customerId}@example.com`,
+          phone: `098${7000000 + customerId}`,
+          status: j % 2 === 0 ? "Contract signed" : "Processing",
+          created_at: new Date(Date.now() - (j * 86400000)).toISOString(),
+          updated_at: new Date(Date.now() - (j * 43200000)).toISOString(),
+          contract_value: j % 2 === 0 ? 50000000 + (j * 10000000) : 0,
+          commission: j % 2 === 0 ? (50000000 + (j * 10000000)) * 0.03 : 0,
+          contract_date: j % 2 === 0 ? new Date(Date.now() - (j * 86400000)).toISOString() : undefined,
+          note: j % 2 === 0 ? "Hợp đồng đã ký" : "Đang xử lý"
+        };
+        
+        // Thêm khách hàng vào affiliate
+        affiliateData.referred_customers.push(customerData);
+        
+        // Cập nhật thống kê cho affiliate
+        if (customerData.status === "Contract signed") {
+          affiliateData.total_contracts += 1;
+          const contractValue = customerData.contract_value || 0;
+          const commission = contractValue * 0.03;
+          
+          affiliateData.contract_value += contractValue;
+          affiliateData.received_balance += commission;
+          affiliateData.remaining_balance += commission;
+        }
+        
+        affiliateData.total_contacts += 1;
+      }
+      
+      // Thêm yêu cầu rút tiền cho affiliate này
+      for (let k = 0; k < withdrawalsPerAffiliate; k++) {
+        const requestDate = new Date(Date.now() - (k * 172800000)); // 2 ngày một lần
+        const requestTime = requestDate.toISOString();
+        const amount = 5000000 + (k * 1000000); // 5M-10M VND
+        
+        const withdrawalHistory: WithdrawalHistory = {
+          request_date: requestTime,
+          amount: amount,
+          note: `Yêu cầu rút tiền #${k + 1}`,
+          status: k === 0 ? "Pending" : (k === 1 ? "Processing" : "Completed"),
+          message: k === 0 ? undefined : (k === 1 ? "Đang xử lý giao dịch" : "Đã hoàn tất"),
+          transaction_id: k > 1 ? `TXN${100000 + k}` : undefined,
+          completed_date: k > 1 ? new Date(requestDate.getTime() + 86400000).toISOString() : undefined
+        };
+        
+        // Thêm vào lịch sử rút tiền
+        affiliateData.withdrawal_history.push(withdrawalHistory);
+        
+        // Nếu đã hoàn tất hoặc đang xử lý, giảm số dư
+        if (k === 1 || k > 1) {
+          affiliateData.paid_balance += amount;
+          affiliateData.remaining_balance -= amount;
+        }
+      }
+      
+      // Thêm affiliate vào danh sách
+      this.allAffiliates.push(affiliateData);
+      
+      // Thêm vào top affiliates
+      this.topAffiliates.push({
+        id: affiliateData.id,
+        full_name: affiliateData.full_name,
+        total_contracts: affiliateData.total_contracts,
+        contract_value: affiliateData.contract_value
+      });
+    }
+    
+    // Cập nhật danh sách top affiliates
+    this.topAffiliates.sort((a, b) => b.contract_value - a.contract_value);
+    this.topAffiliates = this.topAffiliates.slice(0, 5);
     
     return {
       affiliates_added,
