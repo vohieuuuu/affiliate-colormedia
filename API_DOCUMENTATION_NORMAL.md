@@ -316,7 +316,7 @@ Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ad
 ```
 
 ### Tạo affiliate mới
-**Endpoint**: `POST /api/admin/affiliates`
+**Endpoint**: `POST /api/admin/affiliate/create`
 
 **Mô tả**: Tạo một affiliate mới và tài khoản người dùng liên kết.
 
