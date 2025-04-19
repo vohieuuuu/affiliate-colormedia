@@ -37,7 +37,7 @@ Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi m
   "data": {
     "id": 5,
     "username": "kol1@colormedia.vn",
-    "role": "kol-vip",
+    "role": "KOL_VIP",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
 }
@@ -116,7 +116,7 @@ Authorization: Bearer <token>
   "data": {
     "id": 5,
     "username": "kol1@colormedia.vn",
-    "role": "kol-vip"
+    "role": "KOL_VIP"
   }
 }
 ```
@@ -564,7 +564,7 @@ KOL/VIP 2:
 ## Lưu ý quan trọng
 
 1. Module KOL/VIP hoạt động độc lập và không ảnh hưởng đến module Affiliate thông thường.
-2. Chỉ người dùng với quyền "kol-vip" mới có thể truy cập các API của KOL/VIP.
+2. Chỉ người dùng với quyền "KOL_VIP" mới có thể truy cập các API của KOL/VIP.
 3. Chỉ người dùng với quyền "admin" (sử dụng token Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60) mới có thể quản lý và tạo tài khoản KOL/VIP.
 4. KOL/VIP được phân chia thành 3 cấp độ:
    - LEVEL_1 (Fresher): Lương cơ bản 5 triệu VND/tháng, KPI: 10 liên hệ, 5 liên hệ tiềm năng
