@@ -1,6 +1,8 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
+import { Redirect, useParams } from "wouter";
+import { useEffect } from "react";
+import { queryClient } from "@/lib/queryClient";
 
 /**
  * RoleBasedRoute - Component dùng để chuyển hướng người dùng dựa trên vai trò
@@ -9,15 +11,29 @@ import { Redirect, Route } from "wouter";
  * 1. Kiểm tra người dùng đã đăng nhập hay chưa, nếu chưa thì chuyển hướng đến trang đăng nhập
  * 2. Nếu cần đổi mật khẩu, chuyển hướng đến trang đổi mật khẩu
  * 3. Sau đó kiểm tra vai trò và chuyển hướng đến trang dashboard phù hợp
+ * 
+ * Thêm tham số refresh để làm mới dữ liệu người dùng
  */
 export function RoleBasedRoute() {
   const { user, isLoading, requiresPasswordChange } = useAuth();
+  const params = useParams();
+  const shouldRefresh = params.refresh === "refresh";
+  
   console.log("RoleBasedRoute: Checking user role for redirection", { 
     userExists: !!user, 
     userRole: user?.role,
     isLoading,
-    requiresPasswordChange
+    requiresPasswordChange,
+    shouldRefresh
   });
+
+  // Làm mới dữ liệu người dùng nếu có tham số refresh
+  useEffect(() => {
+    if (shouldRefresh) {
+      console.log("Refreshing user data...");
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    }
+  }, [shouldRefresh]);
 
   // Hiển thị trạng thái đang tải trong quá trình kiểm tra xác thực
   if (isLoading) {
@@ -41,8 +57,10 @@ export function RoleBasedRoute() {
 
   // Dựa vào vai trò người dùng, chuyển hướng đến trang dashboard tương ứng
   if (user.role === "KOL_VIP") {
+    console.log("Redirecting KOL/VIP user to KOL dashboard");
     return <Redirect to="/kol-dashboard" />;
   } else {
+    console.log("Redirecting regular user to normal dashboard");
     return <Redirect to="/" />;
   }
 }

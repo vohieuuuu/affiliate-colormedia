@@ -184,16 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setRequiresPasswordChange(false);
     
-    // Đảm bảo sử dụng role-redirect ngay sau khi đổi mật khẩu
-    if (typeof window !== 'undefined' && user) {
-      console.log("User role after password change:", user.role);
-      if (user.role === "KOL_VIP") {
-        window.location.href = "/kol-dashboard";
-      } else {
-        window.location.href = "/";
-      }
-    }
-  }, [user]);
+    // Chuyển hướng được xử lý tại component ChangePasswordPage
+    // để tránh xung đột và đảm bảo đúng luồng
+  }, []);
 
   return (
     <AuthContext.Provider

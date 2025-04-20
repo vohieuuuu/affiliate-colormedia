@@ -81,9 +81,13 @@ export default function ChangePasswordPage() {
       // Chuyển hướng về trang phù hợp với vai trò sau khi đổi mật khẩu
       setTimeout(() => {
         try {
-          // Đánh dấu không còn yêu cầu đổi mật khẩu và chuyển hướng dựa trên vai trò
-          // clearPasswordChangeRequirement đã xử lý chuyển hướng đến đúng trang
+          // Đánh dấu không còn yêu cầu đổi mật khẩu
           clearPasswordChangeRequirement();
+          
+          // Chuyển hướng đến trang phân quyền vai trò với tham số refresh
+          // để làm mới dữ liệu người dùng trước khi chuyển hướng
+          console.log("Redirecting to role-redirect with refresh parameter");
+          window.location.href = "/role-redirect/refresh";
         } catch (error) {
           console.error("Error during redirect:", error);
           // Fallback nếu có lỗi, chuyển hướng trực tiếp dựa trên vai trò hiện tại
