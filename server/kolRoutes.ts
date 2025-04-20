@@ -627,9 +627,12 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
       });
 
       // Tạo KOL/VIP affiliate
+      // Tạo mã affiliate_id nếu chưa có
       const kolVipData = {
         user_id: user.id,
         ...affiliate_data,
+        // Đảm bảo có affiliate_id, nếu không tạo mới với format "KOL" + user.id
+        affiliate_id: affiliate_data.affiliate_id || `KOL${user.id}`,
         level: affiliate_data.level || "LEVEL_1",
         current_base_salary: affiliate_data.level === "LEVEL_3" ? 15000000 : 
                             affiliate_data.level === "LEVEL_2" ? 10000000 : 5000000
