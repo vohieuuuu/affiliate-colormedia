@@ -24,6 +24,7 @@ export async function apiRequest(
     : API_TOKEN;
   
   headers["Authorization"] = `Bearer ${authToken}`;
+  headers["Accept"] = "application/json";
   
   if (data) {
     headers["Content-Type"] = "application/json";
@@ -32,15 +33,27 @@ export async function apiRequest(
   // Tạo URL đầy đủ khi cần (cho môi trường production)
   const fullUrl = API_URL ? `${API_URL}${url}` : url;
   
-  const res = await fetch(fullUrl, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  console.log(`API Request: ${method} ${url} with token: ${authToken ? "Present" : "Missing"}`);
+  
+  try {
+    const res = await fetch(fullUrl, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    // Log cho mục đích debug
+    if (!res.ok) {
+      console.error(`API Error (${res.status}): ${fullUrl}`);
+    }
+
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error(`API Request Failed: ${method} ${url}`, error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

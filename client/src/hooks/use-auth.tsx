@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState, useCallback } from "react";
+import { createContext, ReactNode, useContext, useState, useCallback, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -75,6 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
+
+  // Xử lý lỗi xác thực bằng cách kiểm tra error
+  useEffect(() => {
+    if (error) {
+      console.error("Error fetching user data:", error);
+      // Xóa bỏ thông tin token đã lưu nếu lỗi 401 hoặc lỗi khác
+      if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
+        console.log("Auth error detected, clearing session data");
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem("auth_token");
+          // Không tự động chuyển hướng để tránh vòng lặp
+        }
+      }
+    }
+  }, [error]);
 
   // Mutation đăng nhập
   const loginMutation = useMutation<LoginResponse, Error, LoginData>({
