@@ -75,6 +75,13 @@ export default function Dashboard() {
   };
 
   // Nếu người dùng là KOL/VIP, hiển thị thông báo chuyển hướng
+  useEffect(() => {
+    if (user?.role === "KOL_VIP") {
+      console.log("Dashboard detected KOL/VIP user, redirecting to KOL dashboard");
+      window.location.href = "/kol-dashboard";
+    }
+  }, [user]);
+  
   if (user?.role === "KOL_VIP") {
     return (
       <div className="min-h-screen flex items-center justify-center">

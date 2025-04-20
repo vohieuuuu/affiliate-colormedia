@@ -78,26 +78,20 @@ export default function ChangePasswordPage() {
         description: "Mật khẩu của bạn đã được cập nhật, bạn sẽ được chuyển hướng đến trang chính.",
       });
       
-      // Chuyển hướng về trang phân quyền vai trò sau khi đổi mật khẩu
+      // Chuyển hướng về trang phù hợp với vai trò sau khi đổi mật khẩu
       setTimeout(() => {
         try {
-          // Đánh dấu không còn yêu cầu đổi mật khẩu
+          // Đánh dấu không còn yêu cầu đổi mật khẩu và chuyển hướng dựa trên vai trò
+          // clearPasswordChangeRequirement đã xử lý chuyển hướng đến đúng trang
           clearPasswordChangeRequirement();
-          
-          // Tải lại thông tin người dùng trước khi chuyển hướng
-          queryClient.refetchQueries({ queryKey: ["/api/auth/me"] }).then(() => {
-            console.log("Redirecting to role-redirect page...");
-            // Chuyển hướng đến trang phân quyền vai trò
-            window.location.href = "/role-redirect";
-          }).catch(err => {
-            console.error("Error refetching user data:", err);
-            // Fallback nếu refetch thất bại
-            window.location.href = "/role-redirect";
-          });
         } catch (error) {
           console.error("Error during redirect:", error);
-          // Fallback nếu có lỗi
-          window.location.href = "/role-redirect";
+          // Fallback nếu có lỗi, chuyển hướng trực tiếp dựa trên vai trò hiện tại
+          if (user?.role === "KOL_VIP") {
+            window.location.href = "/kol-dashboard";
+          } else {
+            window.location.href = "/";
+          }
         }
       }, 2000);
     },

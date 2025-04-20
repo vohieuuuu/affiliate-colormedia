@@ -18,7 +18,7 @@ function Router() {
       <ProtectedRoute path="/change-password" component={ChangePasswordPage} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
       <ProtectedRoute path="/" component={Dashboard} />
-      <Route path="/role-redirect" component={RoleBasedRoute} />
+      <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
       <Route component={NotFound} />
     </Switch>
   );

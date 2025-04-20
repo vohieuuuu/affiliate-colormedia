@@ -178,11 +178,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Xóa yêu cầu đổi mật khẩu khi hoàn thành
   const clearPasswordChangeRequirement = useCallback(() => {
+    console.log("Clearing password change requirement");
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem("requires_password_change");
     }
     setRequiresPasswordChange(false);
-  }, []);
+    
+    // Đảm bảo sử dụng role-redirect ngay sau khi đổi mật khẩu
+    if (typeof window !== 'undefined' && user) {
+      console.log("User role after password change:", user.role);
+      if (user.role === "KOL_VIP") {
+        window.location.href = "/kol-dashboard";
+      } else {
+        window.location.href = "/";
+      }
+    }
+  }, [user]);
 
   return (
     <AuthContext.Provider
