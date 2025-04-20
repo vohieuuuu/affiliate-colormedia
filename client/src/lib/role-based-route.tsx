@@ -12,13 +12,19 @@ import { Redirect, Route } from "wouter";
  */
 export function RoleBasedRoute() {
   const { user, isLoading, requiresPasswordChange } = useAuth();
+  console.log("RoleBasedRoute: Checking user role for redirection", { 
+    userExists: !!user, 
+    userRole: user?.role,
+    isLoading,
+    requiresPasswordChange
+  });
 
   // Hiển thị trạng thái đang tải trong quá trình kiểm tra xác thực
   if (isLoading) {
     return (
       <div className="flex flex-col gap-2 items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Đang tải thông tin...</p>
+        <p className="text-sm text-muted-foreground">Đang tải thông tin người dùng...</p>
       </div>
     );
   }

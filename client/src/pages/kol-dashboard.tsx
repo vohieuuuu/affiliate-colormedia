@@ -36,13 +36,7 @@ const KolDashboard = () => {
   const [showAddContactModal, setShowAddContactModal] = useState(false);
   const [showScanCardModal, setShowScanCardModal] = useState(false);
   
-  // Chuyển hướng affiliate thường về trang dashboard chính
-  useEffect(() => {
-    if (user && user.role !== "KOL_VIP") {
-      console.log("User is not KOL/VIP, redirecting to normal dashboard");
-      window.location.href = "/";
-    }
-  }, [user]);
+  // Đã sử dụng RoleBasedRoute để xử lý chuyển hướng dựa trên vai trò
 
   // Lấy thông tin KOL hiện tại
   const {

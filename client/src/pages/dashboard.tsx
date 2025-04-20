@@ -24,13 +24,7 @@ export default function Dashboard() {
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<ReferredCustomer | null>(null);
   
-  // Chuyển hướng người dùng KOL/VIP đến trang KOL dashboard
-  useEffect(() => {
-    if (user?.role === "KOL_VIP") {
-      console.log("User is KOL/VIP, redirecting to KOL dashboard");
-      window.location.href = "/kol-dashboard";
-    }
-  }, [user]);
+  // Đã sử dụng RoleBasedRoute để xử lý chuyển hướng dựa trên vai trò
 
   // Fetch affiliate data với polling 15 giây để giảm tải cho backend
   const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, error: affiliateError, refetch: refetchAffiliate } = useQuery({
