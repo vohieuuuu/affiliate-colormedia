@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import type { IStorage } from "./storage";
 import { authenticateUser } from "./routes";
 import { KolContact, KolVipAffiliate, KolVipLevelType, MonthlyKpi } from "@shared/schema";
+import { hashPassword } from "./auth";
 
 /**
  * Thiết lập routes quản lý KOL/VIP
@@ -614,11 +615,13 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
         });
       }
 
-      // Tạo user mới với role KOL_VIP và mật khẩu mặc định
+      // Tạo user mới với role KOL_VIP và mật khẩu mặc định đã băm
       const defaultPassword = "color1234@";
+      // Băm mật khẩu mặc định trước khi lưu
+      const hashedPassword = await hashPassword(defaultPassword);
       const user = await storage.createUser({
         username,
-        password: defaultPassword,
+        password: hashedPassword,
         role: "KOL_VIP",
         is_first_login: true
       });
