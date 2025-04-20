@@ -78,38 +78,26 @@ export default function ChangePasswordPage() {
         description: "Mật khẩu của bạn đã được cập nhật, bạn sẽ được chuyển hướng đến trang chính.",
       });
       
-      // Chuyển hướng về trang dashboard phù hợp với vai trò
+      // Chuyển hướng về trang phân quyền vai trò sau khi đổi mật khẩu
       setTimeout(() => {
         try {
+          // Đánh dấu không còn yêu cầu đổi mật khẩu
+          clearPasswordChangeRequirement();
+          
           // Tải lại thông tin người dùng trước khi chuyển hướng
           queryClient.refetchQueries({ queryKey: ["/api/auth/me"] }).then(() => {
-            // Truy cập trực tiếp vào dữ liệu từ query client để có thông tin mới nhất
-            const userData = queryClient.getQueryData(["/api/auth/me"]);
-            const currentRole = userData && typeof userData === 'object' && 'data' in userData && 
-              userData.data && typeof userData.data === 'object' && 'user' in userData.data
-              ? (userData.data as any).user.role 
-              : user?.role;
-              
-            console.log("Current user role after refetch:", currentRole);
-            
-            if (currentRole === "KOL_VIP") {
-              window.location.href = "/kol-dashboard"; // Sử dụng window.location thay vì setLocation
-            } else {
-              window.location.href = "/";
-            }
+            console.log("Redirecting to role-redirect page...");
+            // Chuyển hướng đến trang phân quyền vai trò
+            window.location.href = "/role-redirect";
           }).catch(err => {
             console.error("Error refetching user data:", err);
             // Fallback nếu refetch thất bại
-            if (user?.role === "KOL_VIP") {
-              window.location.href = "/kol-dashboard";
-            } else {
-              window.location.href = "/";
-            }
+            window.location.href = "/role-redirect";
           });
         } catch (error) {
           console.error("Error during redirect:", error);
           // Fallback nếu có lỗi
-          window.location.href = user?.role === "KOL_VIP" ? "/kol-dashboard" : "/";
+          window.location.href = "/role-redirect";
         }
       }, 2000);
     },

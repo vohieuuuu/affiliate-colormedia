@@ -9,6 +9,7 @@ import AuthPage from "@/pages/auth-page";
 import ChangePasswordPage from "@/pages/change-password";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { RoleBasedRoute } from "@/lib/role-based-route";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <ProtectedRoute path="/change-password" component={ChangePasswordPage} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
       <ProtectedRoute path="/" component={Dashboard} />
+      <Route path="/role-redirect" component={RoleBasedRoute} />
       <Route component={NotFound} />
     </Switch>
   );

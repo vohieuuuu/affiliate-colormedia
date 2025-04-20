@@ -106,6 +106,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Đăng nhập thành công",
         description: `Chào mừng quay trở lại, ${response.user.username}!`,
       });
+      
+      // Chuyển hướng đến trang dựa vào vai trò
+      if (needsPasswordChange) {
+        // Nếu cần đổi mật khẩu, chuyển đến trang đổi mật khẩu trước
+        window.location.href = "/change-password";
+      } else {
+        // Nếu không cần đổi mật khẩu, chuyển đến trang phân quyền vai trò
+        window.location.href = "/role-redirect";
+      }
     },
     onError: (error: Error) => {
       toast({
