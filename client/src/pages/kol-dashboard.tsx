@@ -264,15 +264,15 @@ const KolDashboard = () => {
     );
   }
 
-  // Hiển thị thông báo nếu không phải là KOL/VIP
+  // Hiển thị thông báo nếu không phải là KOL/VIP hoặc thông tin KOL chưa được tải
   if (!kolInfo) {
     return (
       <div className="p-8">
         <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Không có quyền truy cập</AlertTitle>
+          <AlertTitle>Đang tải thông tin</AlertTitle>
           <AlertDescription>
-            Bạn không phải là thành viên KOL/VIP của ColorMedia. Vui lòng liên hệ với quản trị viên để biết thêm thông tin.
+            Thông tin KOL/VIP đang được tải. Nếu bạn vừa đổi mật khẩu, vui lòng đăng nhập lại để tiếp tục.
           </AlertDescription>
         </Alert>
       </div>

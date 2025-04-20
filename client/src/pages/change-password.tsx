@@ -80,11 +80,14 @@ export default function ChangePasswordPage() {
       
       // Chuyển hướng về trang dashboard phù hợp với vai trò
       setTimeout(() => {
-        if (user?.role === "KOL_VIP") {
-          setLocation("/kol-dashboard");
-        } else {
-          setLocation("/");
-        }
+        // Tải lại thông tin người dùng trước khi chuyển hướng
+        queryClient.refetchQueries({ queryKey: ["/api/auth/me"] }).then(() => {
+          if (user?.role === "KOL_VIP") {
+            setLocation("/kol-dashboard");
+          } else {
+            setLocation("/");
+          }
+        });
       }, 2000);
     },
     onError: (error: Error) => {
