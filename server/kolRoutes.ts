@@ -23,8 +23,16 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
       });
     }
 
-    // Kiểm tra role KOL_VIP
-    if (req.user.role !== "KOL_VIP" && req.user.role !== "ADMIN") {
+    // Kiểm tra role KOL_VIP - sử dụng chuẩn hóa chữ hoa
+    const normalizedRole = String(req.user.role).toUpperCase();
+    console.log("requireKolVip checking: ", {
+      role: req.user.role, 
+      normalizedRole, 
+      isKolVip: normalizedRole === "KOL_VIP", 
+      isAdmin: normalizedRole === "ADMIN"
+    });
+    
+    if (normalizedRole !== "KOL_VIP" && normalizedRole !== "ADMIN") {
       return res.status(403).json({
         status: "error",
         error: {
@@ -36,7 +44,8 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
 
     // Tìm thông tin KOL/VIP
     const kolVip = await storage.getKolVipAffiliateByUserId(req.user.id);
-    if (!kolVip && req.user.role === "KOL_VIP") {
+    // Sử dụng normalizedRole đã được định nghĩa ở trên
+    if (!kolVip && normalizedRole === "KOL_VIP") {
       return res.status(404).json({
         status: "error",
         error: {
@@ -55,8 +64,15 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
   const ensureOwnKolVipData = (req: Request, res: Response, next: NextFunction) => {
     const requestedKolId = req.params.kolId || req.body.kolId;
     
-    // Admin có thể truy cập tất cả
-    if (req.user?.role === "ADMIN") {
+    // Admin có thể truy cập tất cả - sử dụng chuẩn hóa chữ hoa
+    const normalizedRole = String(req.user?.role || '').toUpperCase();
+    console.log("ensureOwnKolVipData checking: ", {
+      role: req.user?.role, 
+      normalizedRole,
+      isAdmin: normalizedRole === "ADMIN"
+    });
+    
+    if (normalizedRole === "ADMIN") {
       return next();
     }
     

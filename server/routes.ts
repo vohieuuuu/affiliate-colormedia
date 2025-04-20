@@ -1327,7 +1327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Đảm bảo user_id trong payload là affiliate_id
       if (req.affiliate) {
         validatedPayload.user_id = req.affiliate.affiliate_id;
-      } else if (req.user?.role === "ADMIN") {
+      } else if (isAdminRole(req.user)) {
         // Đối với admin, lấy affiliate_id từ payload và đảm bảo nó đã được đặt
         if (!validatedPayload.user_id) {
           validatedPayload.user_id = "ADMIN-AFF"; // Gán ID mặc định cho admin

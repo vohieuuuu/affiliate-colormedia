@@ -158,7 +158,13 @@ export function getDashboardForRole(user: User | null): string {
   // Chuẩn hóa role thành chữ hoa
   const normalizedRole = typeof user.role === 'string' 
     ? user.role.toUpperCase() 
-    : user.role;
+    : String(user.role).toUpperCase();
+  
+  console.log("getDashboardForRole for:", { 
+    role: user.role,
+    normalizedRole,
+    route: ROLE_ROUTES[normalizedRole as keyof typeof ROLE_ROUTES] || '/dashboard'
+  });
   
   return ROLE_ROUTES[normalizedRole as keyof typeof ROLE_ROUTES] || '/dashboard';
 }
