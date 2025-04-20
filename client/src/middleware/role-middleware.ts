@@ -55,9 +55,20 @@ const ROLE_ROUTES = {
  */
 export function isAdminRole(user?: User | null): boolean {
   if (!user) return false;
-  // Chuyển đổi chuỗi thành chữ hoa để so sánh không phân biệt chữ hoa/thường
-  const role = typeof user.role === 'string' ? user.role.toUpperCase() : user.role;
-  return role === ADMIN_ROLE || role === 'ADMIN';
+  
+  // Chuẩn hóa cả role người dùng và giá trị ADMIN_ROLE thành cùng một định dạng
+  const normalizedRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
+  const normalizedExpectedRole = ADMIN_ROLE.toUpperCase();
+  
+  console.log("isAdminRole checking:", { 
+    role: user.role,
+    normalizedRole, 
+    normalizedExpectedRole, 
+    isEqual: normalizedRole === normalizedExpectedRole, 
+    user_role_type: typeof user.role 
+  });
+  
+  return normalizedRole === normalizedExpectedRole;
 }
 
 /**
@@ -67,15 +78,20 @@ export function isAdminRole(user?: User | null): boolean {
  */
 export function isKolVipRole(user?: User | null): boolean {
   if (!user) return false;
-  // Chuyển đổi chuỗi thành chữ hoa để so sánh không phân biệt chữ hoa/thường
-  const role = typeof user.role === 'string' ? user.role.toUpperCase() : user.role;
+  
+  // Chuẩn hóa cả role người dùng và giá trị KOL_VIP_ROLE thành cùng một định dạng
+  const normalizedRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
+  const normalizedExpectedRole = KOL_VIP_ROLE.toUpperCase();
+  
   console.log("isKolVipRole checking:", { 
-    role, 
-    KOL_VIP_ROLE, 
-    isEqual: role === KOL_VIP_ROLE, 
+    role: user.role,
+    normalizedRole, 
+    normalizedExpectedRole, 
+    isEqual: normalizedRole === normalizedExpectedRole, 
     user_role_type: typeof user.role 
   });
-  return role === KOL_VIP_ROLE;
+  
+  return normalizedRole === normalizedExpectedRole;
 }
 
 /**
@@ -85,9 +101,20 @@ export function isKolVipRole(user?: User | null): boolean {
  */
 export function isAffiliateRole(user?: User | null): boolean {
   if (!user) return false;
-  // Chuyển đổi chuỗi thành chữ hoa để so sánh không phân biệt chữ hoa/thường
-  const role = typeof user.role === 'string' ? user.role.toUpperCase() : user.role;
-  return role === AFFILIATE_ROLE;
+  
+  // Chuẩn hóa cả role người dùng và giá trị AFFILIATE_ROLE thành cùng một định dạng
+  const normalizedRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
+  const normalizedExpectedRole = AFFILIATE_ROLE.toUpperCase();
+  
+  console.log("isAffiliateRole checking:", { 
+    role: user.role,
+    normalizedRole, 
+    normalizedExpectedRole, 
+    isEqual: normalizedRole === normalizedExpectedRole, 
+    user_role_type: typeof user.role 
+  });
+  
+  return normalizedRole === normalizedExpectedRole;
 }
 
 /**
@@ -102,7 +129,13 @@ export function getApiForRole(user: User | null, apiType: string): string | unde
   // Chuẩn hóa role thành chữ hoa
   const normalizedRole = typeof user.role === 'string' 
     ? user.role.toUpperCase() 
-    : user.role;
+    : String(user.role).toUpperCase();
+  
+  console.log("getApiForRole for:", { 
+    role: user.role,
+    normalizedRole,
+    apiType
+  });
   
   // Lấy mapping API cho role
   const apiMapping = ROLE_API_MAPPING[normalizedRole as keyof typeof ROLE_API_MAPPING];

@@ -32,10 +32,14 @@ import {
 // Hàm trợ giúp để kiểm tra vai trò thống nhất
 function isUserRole(role: any, expectedRole: string): boolean {
   if (!role) return false;
-  return (
-    role === expectedRole ||
-    String(role).toUpperCase() === expectedRole.toUpperCase()
-  );
+  
+  // Chuẩn hóa cả role và expectedRole về cùng một định dạng (uppercase)
+  const normalizedRole = typeof role === 'string' ? role.toUpperCase() : String(role).toUpperCase();
+  const normalizedExpectedRole = expectedRole.toUpperCase();
+  
+  console.log(`Role checking: ${normalizedRole} vs ${normalizedExpectedRole}`);
+  
+  return normalizedRole === normalizedExpectedRole;
 }
 
 // Kiểm tra xem một user có phải là admin hay không
