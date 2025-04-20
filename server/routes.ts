@@ -496,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: req.user.username,
             phone: "",
             bank_name: "Admin Bank",
-            bank_account: "0000000000",  // Đảm bảo tên thuộc tính đúng theo schema
+            bank_account: "0000000000",
             bank_account_name: "Administrator",
             is_active: 1,
             balance: 0,
@@ -510,6 +510,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json({
             status: "success",
             data: adminAffiliate
+          });
+        }
+        
+        // Xử lý đặc biệt cho KOL/VIP
+        if (req.user.role === "KOL_VIP") {
+          console.log("DEV MODE: KOL/VIP user is accessing affiliate data - creating dummy KOL data");
+          
+          // Trả về dữ liệu giả cho KOL/VIP để tránh lỗi
+          const kolAffiliate = {
+            id: userId,
+            affiliate_id: `KOL${userId}`,
+            user_id: req.user.id,
+            full_name: "KOL VIP User",
+            email: req.user.username,
+            phone: "",
+            bank_name: "Default Bank",
+            bank_account: "0000000000",
+            bank_account_name: "KOL VIP User",
+            is_active: 1,
+            level: 1,
+            balance: 0,
+            total_earned: 0,
+            monthly_salary: 5000000,
+            kpi_status: "Pending",
+            referred_customers: [],
+            withdrawal_history: [],
+            created_at: new Date(),
+            total_contracts: 0,
+            total_contacts: 0
+          };
+          
+          return res.json({
+            status: "success",
+            data: kolAffiliate
           });
         }
       } else if (process.env.NODE_ENV === "development") {
