@@ -76,7 +76,13 @@ export default function RoleRouter() {
   // Kiểm tra user và role có tồn tại không để tránh lỗi
   if (!user || !user.role) {
     console.error("User or user role is undefined");
-    return <Redirect to="/auth" />;
+    window.location.href = "/auth";
+    return (
+      <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Đang chuyển hướng đến trang đăng nhập...</p>
+      </div>
+    );
   }
 
   // Tạo một biến kiểm tra để bỏ qua các lỗi TypeScript
@@ -139,11 +145,23 @@ export default function RoleRouter() {
     );
   } else if (userRole === "KOL_VIP") {
     // Chuyển hướng đến dashboard KOL/VIP
-    console.log("Rendering KOL Dashboard for user with role:", userRole);
-    return <KolDashboard />;
+    console.log("Routing KOL/VIP user to KOL dashboard");
+    window.location.href = "/kol-dashboard";
+    return (
+      <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Đang chuyển hướng đến KOL Dashboard...</p>
+      </div>
+    );
   } else {
     // Chuyển hướng đến dashboard thông thường cho affiliate
-    console.log("Rendering Normal Dashboard for user with role:", userRole);
-    return <Dashboard />;
+    console.log("Routing affiliate user to normal dashboard");
+    window.location.href = "/dashboard";
+    return (
+      <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Đang chuyển hướng đến Dashboard...</p>
+      </div>
+    );
   }
 }

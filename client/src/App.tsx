@@ -24,17 +24,17 @@ function Router() {
       {/* Route điều hướng vai trò - giữ lại để tương thích với code cũ */}
       <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
       
+      {/* Đặt route cho KOL/VIP và Dashboard thông thường TRƯỚC route chính / 
+         để đảm bảo chúng được ưu tiên cao hơn */}
+      <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
+      <ProtectedRoute path="/dashboard" component={Dashboard} />
+      
       {/* 
         GIẢI PHÁP MỚI: Sử dụng RoleRouter để quyết định hiển thị Dashboard nào
         dựa trên vai trò người dùng. RoleRouter sẽ kiểm tra vai trò và 
         hiển thị giao diện phù hợp cho mỗi loại người dùng
       */}
       <ProtectedRoute path="/" component={RoleRouter} />
-      
-      {/* Routes đặc biệt cho KOL/VIP và Dashboard thông thường
-           - giữ lại để tương thích với các chức năng cũ */}
-      <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
-      <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       {/* Route mặc định nếu không tìm thấy trang */}
       <Route component={NotFound} />
