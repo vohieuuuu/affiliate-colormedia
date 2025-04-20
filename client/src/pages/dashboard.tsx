@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -15,12 +15,21 @@ import WithdrawalModal from "@/components/affiliate-dashboard/WithdrawalModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReferredCustomer } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isTimelineModalOpen, setIsTimelineModalOpen] = useState(false);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<ReferredCustomer | null>(null);
+  
+  // Chuyển hướng người dùng KOL/VIP đến trang KOL dashboard
+  useEffect(() => {
+    if (user?.role === "KOL_VIP") {
+      window.location.href = "/kol-dashboard";
+    }
+  }, [user]);
   
   // Fetch affiliate data với polling 15 giây để giảm tải cho backend
   const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, error: affiliateError, refetch: refetchAffiliate } = useQuery({
@@ -28,6 +37,7 @@ export default function Dashboard() {
     refetchInterval: 15000, // Polling mỗi 15 giây để giảm tải cho BE
     staleTime: 5000, // Đặt staleTime 5 giây để vẫn có thể invalidate nhưng giảm số lượng requests
     refetchOnMount: "always", // Luôn refetch khi component được mount (quan trọng sau khi rút tiền)
+    enabled: user?.role !== "KOL_VIP", // Chỉ lấy dữ liệu nếu không phải là KOL/VIP
     refetchOnWindowFocus: true, // Refetch khi cửa sổ được focus
   });
   
