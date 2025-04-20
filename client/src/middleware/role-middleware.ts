@@ -55,7 +55,9 @@ const ROLE_ROUTES = {
  */
 export function isAdminRole(user?: User | null): boolean {
   if (!user) return false;
-  return user.role === ADMIN_ROLE || user.role === 'admin';
+  // Chuyển đổi chuỗi thành chữ hoa để so sánh không phân biệt chữ hoa/thường
+  const role = typeof user.role === 'string' ? user.role.toUpperCase() : user.role;
+  return role === ADMIN_ROLE || role === 'ADMIN';
 }
 
 /**
@@ -65,7 +67,9 @@ export function isAdminRole(user?: User | null): boolean {
  */
 export function isKolVipRole(user?: User | null): boolean {
   if (!user) return false;
-  return user.role === KOL_VIP_ROLE;
+  // Chuyển đổi chuỗi thành chữ hoa để so sánh không phân biệt chữ hoa/thường
+  const role = typeof user.role === 'string' ? user.role.toUpperCase() : user.role;
+  return role === KOL_VIP_ROLE;
 }
 
 /**
@@ -75,7 +79,9 @@ export function isKolVipRole(user?: User | null): boolean {
  */
 export function isAffiliateRole(user?: User | null): boolean {
   if (!user) return false;
-  return user.role === AFFILIATE_ROLE;
+  // Chuyển đổi chuỗi thành chữ hoa để so sánh không phân biệt chữ hoa/thường
+  const role = typeof user.role === 'string' ? user.role.toUpperCase() : user.role;
+  return role === AFFILIATE_ROLE;
 }
 
 /**

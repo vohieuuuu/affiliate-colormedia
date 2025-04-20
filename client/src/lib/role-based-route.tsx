@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Redirect, useParams } from "wouter";
 import { useEffect } from "react";
 import { queryClient } from "@/lib/queryClient";
+import { isKolVipRole, getDashboardForRole } from "@/middleware/role-middleware";
 
 /**
  * RoleBasedRoute - Component dùng để chuyển hướng người dùng dựa trên vai trò
@@ -10,7 +11,7 @@ import { queryClient } from "@/lib/queryClient";
  * Luồng xử lý:
  * 1. Kiểm tra người dùng đã đăng nhập hay chưa, nếu chưa thì chuyển hướng đến trang đăng nhập
  * 2. Nếu cần đổi mật khẩu, chuyển hướng đến trang đổi mật khẩu
- * 3. Sau đó kiểm tra vai trò và chuyển hướng đến trang dashboard phù hợp
+ * 3. Sau đó kiểm tra vai trò và chuyển hướng đến trang dashboard phù hợp sử dụng middleware mới
  * 
  * Thêm tham số refresh để làm mới dữ liệu người dùng
  */
@@ -22,6 +23,8 @@ export function RoleBasedRoute() {
   console.log("RoleBasedRoute: Checking user role for redirection", { 
     userExists: !!user, 
     userRole: user?.role,
+    isKolVip: user?.isKolVip,
+    dashboardRoute: user?.dashboardRoute,
     isLoading,
     requiresPasswordChange,
     shouldRefresh
@@ -55,12 +58,18 @@ export function RoleBasedRoute() {
     return <Redirect to="/change-password" />;
   }
 
-  // Dựa vào vai trò người dùng, chuyển hướng đến trang dashboard tương ứng
-  if (user.role === "KOL_VIP") {
+  // Sử dụng middleware vai trò để kiểm tra và quyết định chuyển hướng
+  console.log(`Using role middleware to determine dashboard route for role: ${user.role}`);
+  
+  // Nếu là KOL/VIP, chuyển đến dashboard của KOL
+  if (isKolVipRole(user)) {
     console.log("Redirecting KOL/VIP user to KOL dashboard");
     return <Redirect to="/kol-dashboard" />;
-  } else {
-    console.log("Redirecting regular user to normal dashboard");
-    return <Redirect to="/" />;
+  } 
+  // Ngược lại, sử dụng hàm getDashboardForRole để lấy route tương ứng
+  else {
+    const dashboardRoute = getDashboardForRole(user);
+    console.log(`Redirecting user to: ${dashboardRoute}`);
+    return <Redirect to={dashboardRoute} />;
   }
 }
