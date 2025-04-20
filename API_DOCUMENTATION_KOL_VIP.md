@@ -565,6 +565,20 @@ KOL/VIP 2:
 - Level: LEVEL_2
 ```
 
+## So sánh với module Affiliate thường
+
+Module KOL/VIP có nhiều tính năng tương tự với module Affiliate thường (như quản lý thông tin cá nhân, hoa hồng, v.v.), nhưng khác biệt ở những điểm sau:
+
+1. **Cơ cấu thu nhập**: KOL/VIP có lương cứng theo 3 cấp độ + 3% hoa hồng trên tổng giá trị hợp đồng (giống với Affiliate thường).
+2. **Hệ thống KPI**: Có hệ thống theo dõi KPI hàng tháng, với các ngưỡng khác nhau theo cấp độ.
+3. **Cơ chế thăng/giáng cấp**: 
+   - Đạt KPI trong 2 tháng liên tiếp: Được thăng cấp lên level cao hơn
+   - Không đạt KPI trong 2 tháng liên tiếp: Bị giáng cấp xuống level thấp hơn
+4. **Quản lý liên hệ**: Có hệ thống quản lý chi tiết thông tin liên hệ và trạng thái.
+5. **Công nghệ AI**: Có tính năng quét ảnh card visit để tự động trích xuất thông tin liên hệ.
+
+Ngoài những điểm trên, các tính năng còn lại (đăng nhập, xác thực, quản lý thông tin cá nhân, API admin, v.v.) hoạt động tương tự như module Affiliate thường.
+
 ## Lưu ý quan trọng
 
 1. Module KOL/VIP hoạt động độc lập và không ảnh hưởng đến module Affiliate thông thường.
@@ -574,6 +588,6 @@ KOL/VIP 2:
    - LEVEL_1 (Fresher): Lương cơ bản 5 triệu VND/tháng, KPI: 10 liên hệ, 5 liên hệ tiềm năng
    - LEVEL_2 (Advanced): Lương cơ bản 10 triệu VND/tháng, KPI: 20 liên hệ, 10 liên hệ tiềm năng, 1 hợp đồng
    - LEVEL_3 (Elite): Lương cơ bản 15 triệu VND/tháng, KPI: 30 liên hệ, 15 liên hệ tiềm năng, 2 hợp đồng
-5. Tất cả KOL/VIP đều được hưởng hoa hồng 3% trên giá trị hợp đồng.
+5. Tất cả KOL/VIP đều được hưởng hoa hồng 3% trên giá trị hợp đồng (giống với Affiliate thường).
 6. Trạng thái liên hệ bao gồm: "Mới nhập", "Đang tư vấn", "Chờ phản hồi", "Đã chốt hợp đồng", "Không tiềm năng".
 7. Tính năng quét card visit yêu cầu OPENAI_API_KEY được cấu hình trong hệ thống.
