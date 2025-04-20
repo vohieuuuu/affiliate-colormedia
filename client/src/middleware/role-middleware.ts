@@ -69,6 +69,12 @@ export function isKolVipRole(user?: User | null): boolean {
   if (!user) return false;
   // Chuyển đổi chuỗi thành chữ hoa để so sánh không phân biệt chữ hoa/thường
   const role = typeof user.role === 'string' ? user.role.toUpperCase() : user.role;
+  console.log("isKolVipRole checking:", { 
+    role, 
+    KOL_VIP_ROLE, 
+    isEqual: role === KOL_VIP_ROLE, 
+    user_role_type: typeof user.role 
+  });
   return role === KOL_VIP_ROLE;
 }
 

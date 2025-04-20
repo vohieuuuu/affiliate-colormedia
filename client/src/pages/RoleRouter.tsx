@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { Redirect } from "wouter";
 import Dashboard from "@/pages/dashboard";
 import KolDashboard from "@/pages/kol-dashboard";
 import { isAdminRole, isKolVipRole, isAffiliateRole } from "@/middleware/role-middleware";
@@ -70,9 +71,19 @@ export default function RoleRouter() {
   }
 
   // Render dashboard tương ứng với vai trò - sử dụng middleware vai trò mới
-  console.log("RoleRouter: Rendering dashboard for role:", user.role);
+  console.log("RoleRouter: Rendering dashboard for role:", user?.role);
+
+  // Kiểm tra user và role có tồn tại không để tránh lỗi
+  if (!user || !user.role) {
+    console.error("User or user role is undefined");
+    return <Redirect to="/auth" />;
+  }
+
+  // Tạo một biến kiểm tra để bỏ qua các lỗi TypeScript
+  const userRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
+  console.log("RoleRouter: User role normalized:", userRole);
   
-  if (isAdminRole(user)) {
+  if (userRole === "ADMIN") {
     // Hiển thị một trang quản trị hoặc một thông báo cho admin
     return (
       <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
@@ -126,13 +137,13 @@ export default function RoleRouter() {
         </div>
       </div>
     );
-  } else if (isKolVipRole(user)) {
+  } else if (userRole === "KOL_VIP") {
     // Chuyển hướng đến dashboard KOL/VIP
-    console.log("Rendering KOL Dashboard for user with role:", user.role);
+    console.log("Rendering KOL Dashboard for user with role:", userRole);
     return <KolDashboard />;
   } else {
     // Chuyển hướng đến dashboard thông thường cho affiliate
-    console.log("Rendering Normal Dashboard for user with role:", user.role);
+    console.log("Rendering Normal Dashboard for user with role:", userRole);
     return <Dashboard />;
   }
 }

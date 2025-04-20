@@ -61,15 +61,18 @@ export function RoleBasedRoute() {
   // Sử dụng middleware vai trò để kiểm tra và quyết định chuyển hướng
   console.log(`Using role middleware to determine dashboard route for role: ${user.role}`);
   
+  // Chuẩn hóa role thành chữ hoa để kiểm tra chính xác
+  const userRole = typeof user.role === 'string' ? user.role.toUpperCase() : user.role;
+  console.log("RoleBasedRoute: User role normalized:", userRole);
+  
   // Nếu là KOL/VIP, chuyển đến dashboard của KOL
-  if (isKolVipRole(user)) {
+  if (userRole === "KOL_VIP") {
     console.log("Redirecting KOL/VIP user to KOL dashboard");
     return <Redirect to="/kol-dashboard" />;
   } 
-  // Ngược lại, sử dụng hàm getDashboardForRole để lấy route tương ứng
+  // Ngược lại, chuyển đến dashboard thông thường
   else {
-    const dashboardRoute = getDashboardForRole(user);
-    console.log(`Redirecting user to: ${dashboardRoute}`);
-    return <Redirect to={dashboardRoute} />;
+    console.log(`Redirecting regular user to dashboard`);
+    return <Redirect to="/dashboard" />;
   }
 }
