@@ -29,6 +29,27 @@ import {
   decryptSensitiveData
 } from "./security";
 
+// Hàm trợ giúp để kiểm tra vai trò thống nhất
+function isUserRole(role: any, expectedRole: string): boolean {
+  if (!role) return false;
+  return (
+    role === expectedRole ||
+    String(role).toUpperCase() === expectedRole.toUpperCase()
+  );
+}
+
+// Kiểm tra xem một user có phải là admin hay không
+export function isAdminRole(user: User | undefined): boolean {
+  if (!user) return false;
+  return isUserRole(user.role, "ADMIN");
+}
+
+// Kiểm tra xem một user có phải là KOL/VIP hay không
+export function isKolVipRole(user: User | undefined): boolean {
+  if (!user) return false;
+  return isUserRole(user.role, "KOL_VIP");
+}
+
 // Extend Express.Request to include user property
 declare global {
   namespace Express {
@@ -171,7 +192,12 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
 // Middleware kiểm tra quyền admin
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
   // Nếu không có user (môi trường dev) hoặc user có role ADMIN, cho phép truy cập
-  if (!req.user || req.user.role === "ADMIN") {
+  if (!req.user) {
+    return next();
+  }
+  
+  // Sử dụng hàm trợ giúp để kiểm tra vai trò admin
+  if (isAdminRole(req.user)) {
     return next();
   }
 
@@ -187,8 +213,13 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 // Middleware kiểm tra quyền truy cập affiliate
 // Đảm bảo affiliate chỉ truy cập dữ liệu của họ
 function affiliateAccessControl(req: Request, res: Response, next: NextFunction) {
-  // Nếu là admin hoặc không có user (môi trường dev), cho phép truy cập
-  if (!req.user || req.user.role === "ADMIN") {
+  // Nếu không có user (môi trường dev), cho phép truy cập
+  if (!req.user) {
+    return next();
+  }
+  
+  // Sử dụng hàm trợ giúp để kiểm tra vai trò admin
+  if (isAdminRole(req.user)) {
     return next();
   }
   
@@ -265,34 +296,9 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
     });
   }
   
-  // Nếu user là admin, luôn tạo dữ liệu mẫu cho xác thực OTP
-  if (req.user.role === "ADMIN") {
+  // Sử dụng hàm trợ giúp để kiểm tra admin
+  if (isAdminRole(req.user)) {
     console.log("DEV MODE: Using default affiliate data for admin in OTP middleware");
-    req.affiliate = {
-      id: 1,
-      user_id: req.user.id,
-      affiliate_id: "ADMIN-AFF",
-      full_name: "ColorMedia Admin",
-      email: req.user.username, // Sử dụng email của admin để nhận OTP
-      phone: "0909123456",
-      bank_account: "9876543210",
-      bank_name: "VietcomBank",
-      total_contacts: 30,
-      total_contracts: 12,
-      contract_value: 240000000,
-      received_balance: 48000000,
-      paid_balance: 20000000,
-      remaining_balance: 95000000,
-      referred_customers: [],
-      withdrawal_history: []
-    };
-    return next();
-  }
-  
-  // Kiểm tra xem user có phải là ADMIN hay không
-  if (req.user && req.user.role === "ADMIN") {
-    console.log("DEV MODE: Admin user is accessing affiliate data - bypassing affiliate check");
-    // Thiết lập một affiliate "giả" để tránh lỗi cho admin và không làm ảnh hưởng đến logic hiện tại
     req.affiliate = {
       id: 9999,
       affiliate_id: "ADMIN",
@@ -301,14 +307,15 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
       email: req.user.username,
       phone: "",
       bank_name: "Admin Bank",
-      bank_account: "0000000000",  // Đảm bảo sử dụng đúng tên thuộc tính
-      bank_account_name: "Administrator",
-      is_active: 1,
-      balance: 0,
-      total_earned: 0,
+      bank_account: "0000000000",
+      total_contracts: 0,
+      total_contacts: 0,
       referred_customers: [],
       withdrawal_history: [],
-      total_contracts: 0,
+      contract_value: 0,
+      received_balance: 0,
+      paid_balance: 0,
+      remaining_balance: 0,
       created_at: new Date()
     };
     return next();
@@ -481,10 +488,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Kiểm tra user đã được xác thực từ middleware
       if (req.user) {
         userId = req.user.id;
-        console.log(`Getting affiliate data for user ID: ${userId}, role: ${req.user.role}`);
+        console.log(`Getting affiliate data for user ID: ${userId}, role: ${req.user.role}, role type: ${typeof req.user.role}`);
         
-        // Xử lý đặc biệt cho admin
-        if (req.user.role === "ADMIN") {
+        // Xử lý đặc biệt cho admin và KOL/VIP
+        // Sử dụng hàm trợ giúp để kiểm tra vai trò
+        console.log("Is user an admin?", isAdminRole(req.user));
+        console.log("Is user a KOL/VIP?", isKolVipRole(req.user));
+        
+        if (isAdminRole(req.user)) {
           console.log("DEV MODE: Admin user is accessing affiliate data - creating dummy affiliate data");
           
           // Trả về dữ liệu giả cho Admin để tránh lỗi
@@ -497,24 +508,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             phone: "",
             bank_name: "Admin Bank",
             bank_account: "0000000000",
-            bank_account_name: "Administrator",
-            is_active: 1,
-            balance: 0,
-            total_earned: 0,
+            total_contracts: 0,
+            total_contacts: 0,
+            contract_value: 0,
+            paid_balance: 0,
+            received_balance: 0,
+            remaining_balance: 0,
             referred_customers: [],
             withdrawal_history: [],
-            created_at: new Date(),
-            total_contracts: 0
+            created_at: new Date()
           };
           
           return res.json({
             status: "success",
             data: adminAffiliate
           });
-        }
-        
-        // Xử lý đặc biệt cho KOL/VIP
-        if (req.user.role === "KOL_VIP") {
+        } else if (isKolVipRole(req.user)) {
           console.log("DEV MODE: KOL/VIP user is accessing affiliate data - creating dummy KOL data");
           
           // Trả về dữ liệu giả cho KOL/VIP để tránh lỗi
@@ -527,18 +536,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             phone: "",
             bank_name: "Default Bank",
             bank_account: "0000000000",
-            bank_account_name: "KOL VIP User",
-            is_active: 1,
-            level: 1,
-            balance: 0,
-            total_earned: 0,
-            monthly_salary: 5000000,
-            kpi_status: "Pending",
+            total_contracts: 0,
+            total_contacts: 0,
+            contract_value: 0,
+            paid_balance: 0,
+            received_balance: 0,
+            remaining_balance: 0,
             referred_customers: [],
             withdrawal_history: [],
             created_at: new Date(),
-            total_contracts: 0,
-            total_contacts: 0
+            level: 1,
+            monthly_salary: 5000000,
+            kpi_status: "Pending"
           };
           
           return res.json({
@@ -684,7 +693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let affiliate = null;
       
       // Nếu có affiliateId và user là admin, lấy thông tin affiliate đó
-      if (affiliateId && req.user?.role === "ADMIN") {
+      if (affiliateId && (req.user?.role === "ADMIN" || req.user?.role === "admin")) {
         console.log(`Admin requesting customers for specific affiliate: ${affiliateId}`);
         affiliate = await storage.getAffiliateByAffiliateId(affiliateId);
       } else if (req.user) {
@@ -754,6 +763,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: {
             code: "UNAUTHORIZED",
             message: "Bạn phải đăng nhập để sử dụng tính năng này"
+          }
+        });
+      }
+      
+      // Xử lý đặc biệt cho admin
+      if (req.user && (req.user.role === "ADMIN" || req.user.role === "admin")) {
+        // Trả về dữ liệu mẫu cho admin
+        return res.json({
+          status: "success",
+          data: {
+            totalCustomers: 0,
+            totalContracts: 0,
+            totalContractValue: 0,
+            totalCommission: 0,
+            periodType: "all",
+            periodStart: new Date(0).toISOString(),
+            periodEnd: new Date().toISOString(),
+            customers: []
           }
         });
       }
@@ -879,6 +906,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: {
             code: "UNAUTHORIZED",
             message: "Bạn phải đăng nhập để sử dụng tính năng này"
+          }
+        });
+      }
+      
+      // Xử lý đặc biệt cho admin
+      if (req.user && (req.user.role === "ADMIN" || req.user.role === "admin")) {
+        // Trả về dữ liệu mẫu cho admin
+        return res.json({
+          status: "success",
+          data: {
+            periodType: "month",
+            data: []
           }
         });
       }
