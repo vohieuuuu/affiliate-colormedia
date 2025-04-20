@@ -65,27 +65,10 @@ export function RoleBasedRoute() {
   const userRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
   console.log("RoleBasedRoute: User role normalized:", userRole);
   
-  // Nếu là KOL/VIP, chuyển đến dashboard của KOL 
-  // Quan trọng: Sử dụng window.location.href thay vì Redirect để buộc làm mới trang
-  if (userRole === "KOL_VIP") {
-    console.log("Redirecting KOL/VIP user to KOL dashboard");
-    window.location.href = "/kol-dashboard";
-    return (
-      <div className="flex flex-col gap-2 items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Đang chuyển hướng đến KOL Dashboard...</p>
-      </div>
-    );
-  } 
-  // Ngược lại, chuyển đến dashboard thông thường
-  else {
-    console.log(`Redirecting regular user to dashboard`);
-    window.location.href = "/dashboard";
-    return (
-      <div className="flex flex-col gap-2 items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Đang chuyển hướng đến Dashboard...</p>
-      </div>
-    );
-  }
+  // Lấy route phù hợp với vai trò và chuyển hướng tới đó
+  // Quan trọng: Sử dụng Redirect thay vì window.location.href để tránh refresh không cần thiết
+  const dashboardRoute = getDashboardForRole(user);
+  console.log(`RoleBasedRoute: Redirecting user to ${dashboardRoute}`);
+  
+  return <Redirect to={dashboardRoute} />;
 }
