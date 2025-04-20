@@ -148,9 +148,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Login success: redirecting to change-password page");
         window.location.href = "/change-password";
       } else {
-        // Nếu không cần đổi mật khẩu, chuyển đến trang chủ sử dụng RoleRouter mới
-        console.log("Login success: redirecting to home page with RoleRouter");
-        window.location.href = "/";
+        // Nếu không cần đổi mật khẩu, chuyển trực tiếp đến dashboard dựa vào vai trò
+        const userRole = typeof response.user.role === 'string' 
+          ? response.user.role.toUpperCase() 
+          : String(response.user.role).toUpperCase();
+        
+        console.log("Login success: redirecting based on role", userRole);
+        
+        if (userRole === "KOL_VIP") {
+          console.log("Redirecting KOL/VIP user directly to KOL dashboard");
+          window.location.href = "/kol-dashboard";
+        } else if (userRole === "ADMIN") {
+          console.log("Redirecting admin user");
+          window.location.href = "/admin-dashboard";
+        } else {
+          console.log("Redirecting regular affiliate user");
+          window.location.href = "/dashboard";
+        }
       }
     },
     onError: (error: Error) => {

@@ -84,18 +84,28 @@ export default function ChangePasswordPage() {
           // Đánh dấu không còn yêu cầu đổi mật khẩu
           clearPasswordChangeRequirement();
           
-          // Chuyển hướng đến trang chủ để sử dụng RoleRouter
-          // RoleRouter sẽ tự động quyết định hiển thị dashboard phù hợp
-          console.log("Redirecting to home page to use new RoleRouter");
-          window.location.href = "/";
+          // Lấy vai trò người dùng và chuẩn hóa
+          const userRole = typeof user?.role === 'string' 
+            ? user.role.toUpperCase() 
+            : String(user?.role).toUpperCase();
+          
+          console.log("Change password success: redirecting based on role", userRole);
+          
+          // Chuyển hướng trực tiếp dựa vào vai trò được chuẩn hóa
+          if (userRole === "KOL_VIP") {
+            console.log("Redirecting KOL/VIP user directly to KOL dashboard");
+            window.location.href = "/kol-dashboard";
+          } else if (userRole === "ADMIN") {
+            console.log("Redirecting admin user");
+            window.location.href = "/admin-dashboard";
+          } else {
+            console.log("Redirecting regular affiliate user");
+            window.location.href = "/dashboard";
+          }
         } catch (error) {
           console.error("Error during redirect:", error);
-          // Fallback nếu có lỗi, chuyển hướng trực tiếp dựa trên vai trò hiện tại
-          if (user?.role === "KOL_VIP") {
-            window.location.href = "/kol-dashboard";
-          } else {
-            window.location.href = "/";
-          }
+          // Fallback nếu có lỗi
+          window.location.href = "/";
         }
       }, 2000);
     },
