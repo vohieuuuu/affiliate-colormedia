@@ -468,7 +468,7 @@ const KolDashboard = () => {
                       }}
                       onUpdateContact={handleUpdateContact}
                       onAddContract={handleAddContract}
-                      kolId={kolInfo.id}
+                      kolId={kolInfo.id.toString()}
                     />
                   </CardContent>
                 </Card>
@@ -600,7 +600,7 @@ const KolDashboard = () => {
                     <div className="space-y-4 mt-8">
                       <h3 className="text-lg font-medium">Các tháng trước</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {kpiStats.previous_months.slice(0, 6).map((month, index) => (
+                        {kpiStats.previous_months.slice(0, 6).map((month: MonthlyKpi, index: number) => (
                           <KpiProgressCard
                             key={`${month.year}-${month.month}`}
                             level={kolInfo.level as KolVipLevelType}
