@@ -27,7 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import AddContactModal from "@/components/kol-vip/add-contact-modal";
 import ScanCardModal from "@/components/kol-vip/scan-card-modal";
-import { KolVipAffiliate, KolContact, MonthlyKpi } from "@shared/schema";
+import { KolVipAffiliate, KolContact, MonthlyKpi, KolVipLevel, KolVipLevelType } from "@shared/schema";
 
 const KolDashboard = () => {
   const { toast } = useToast();
@@ -603,7 +603,7 @@ const KolDashboard = () => {
                         {kpiStats.previous_months.slice(0, 6).map((month, index) => (
                           <KpiProgressCard
                             key={`${month.year}-${month.month}`}
-                            level={kolInfo.level}
+                            level={kolInfo.level as KolVipLevelType}
                             monthlyKpi={month}
                             isCurrentMonth={false}
                           />
@@ -623,7 +623,7 @@ const KolDashboard = () => {
             isOpen={showAddContactModal}
             onClose={() => setShowAddContactModal(false)}
             onSubmit={handleAddContact}
-            kolId={kolInfo.id}
+            kolId={kolInfo.id.toString()}
             initialData={extractedContactData || undefined}
           />
         )}
