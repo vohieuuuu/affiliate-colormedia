@@ -80,14 +80,37 @@ export default function ChangePasswordPage() {
       
       // Chuyển hướng về trang dashboard phù hợp với vai trò
       setTimeout(() => {
-        // Tải lại thông tin người dùng trước khi chuyển hướng
-        queryClient.refetchQueries({ queryKey: ["/api/auth/me"] }).then(() => {
-          if (user?.role === "KOL_VIP") {
-            setLocation("/kol-dashboard");
-          } else {
-            setLocation("/");
-          }
-        });
+        try {
+          // Tải lại thông tin người dùng trước khi chuyển hướng
+          queryClient.refetchQueries({ queryKey: ["/api/auth/me"] }).then(() => {
+            // Truy cập trực tiếp vào dữ liệu từ query client để có thông tin mới nhất
+            const userData = queryClient.getQueryData(["/api/auth/me"]);
+            const currentRole = userData && typeof userData === 'object' && 'data' in userData && 
+              userData.data && typeof userData.data === 'object' && 'user' in userData.data
+              ? (userData.data as any).user.role 
+              : user?.role;
+              
+            console.log("Current user role after refetch:", currentRole);
+            
+            if (currentRole === "KOL_VIP") {
+              window.location.href = "/kol-dashboard"; // Sử dụng window.location thay vì setLocation
+            } else {
+              window.location.href = "/";
+            }
+          }).catch(err => {
+            console.error("Error refetching user data:", err);
+            // Fallback nếu refetch thất bại
+            if (user?.role === "KOL_VIP") {
+              window.location.href = "/kol-dashboard";
+            } else {
+              window.location.href = "/";
+            }
+          });
+        } catch (error) {
+          console.error("Error during redirect:", error);
+          // Fallback nếu có lỗi
+          window.location.href = user?.role === "KOL_VIP" ? "/kol-dashboard" : "/";
+        }
       }, 2000);
     },
     onError: (error: Error) => {
