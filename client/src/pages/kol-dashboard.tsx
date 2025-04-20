@@ -27,7 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import AddContactModal from "@/components/kol-vip/add-contact-modal";
 import ScanCardModal from "@/components/kol-vip/scan-card-modal";
-import { KolVipAffiliate, KolContact, MonthlyKpi, KolVipLevel } from "@shared/schema";
+import { KolVipAffiliate, KolContact, MonthlyKpi } from "@shared/schema";
 
 const KolDashboard = () => {
   const { toast } = useToast();
@@ -50,7 +50,7 @@ const KolDashboard = () => {
     enabled: !!user,
   });
 
-  // Lấy danh sách liên hệ
+  // Lấy danh sách liên hệ của KOL
   const {
     data: contacts,
     isLoading: isLoadingContacts,
@@ -64,7 +64,7 @@ const KolDashboard = () => {
     enabled: !!kolInfo?.id,
   });
 
-  // Lấy thống kê KPI
+  // Lấy thông tin KPI stats
   const {
     data: kpiStats,
     isLoading: isLoadingKpiStats,
@@ -73,17 +73,14 @@ const KolDashboard = () => {
     queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/kol/${kolInfo?.id}/kpi-stats`);
-      return await response.json() as {
-        current_month: MonthlyKpi;
-        previous_months: MonthlyKpi[];
-      };
+      return await response.json();
     },
-    enabled: !!kolInfo?.id,
+    enabled: !!kolInfo?.id && activeTab === "kpi",
   });
 
   // Mutation thêm liên hệ mới
   const addContactMutation = useMutation({
-    mutationFn: async (contactData: Omit<KolContact, "id" | "created_at">) => {
+    mutationFn: async (contactData: any) => {
       const response = await apiRequest(
         "POST",
         `/api/kol/${kolInfo?.id}/contacts`,
@@ -92,17 +89,16 @@ const KolDashboard = () => {
       return await response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Thêm liên hệ thành công",
-        description: "Liên hệ mới đã được thêm vào danh sách của bạn",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"] });
       setShowAddContactModal(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
+      toast({
+        title: "Thành công",
+        description: "Đã thêm liên hệ mới vào danh sách",
+      });
     },
     onError: (error: Error) => {
       toast({
-        title: "Không thể thêm liên hệ",
+        title: "Thất bại",
         description: error.message || "Đã xảy ra lỗi khi thêm liên hệ mới",
         variant: "destructive",
       });
@@ -111,13 +107,7 @@ const KolDashboard = () => {
 
   // Mutation cập nhật trạng thái liên hệ
   const updateContactMutation = useMutation({
-    mutationFn: async ({ 
-      contactId, 
-      data 
-    }: { 
-      contactId: number; 
-      data: Partial<KolContact> 
-    }) => {
+    mutationFn: async ({ contactId, data }: { contactId: number; data: Partial<KolContact> }) => {
       const response = await apiRequest(
         "PUT",
         `/api/kol/${kolInfo?.id}/contacts/${contactId}`,
@@ -126,16 +116,16 @@ const KolDashboard = () => {
       return await response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Cập nhật thành công",
-        description: "Thông tin liên hệ đã được cập nhật",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"] });
+      toast({
+        title: "Thành công",
+        description: "Đã cập nhật thông tin liên hệ",
+      });
     },
     onError: (error: Error) => {
       toast({
-        title: "Không thể cập nhật",
+        title: "Thất bại",
         description: error.message || "Đã xảy ra lỗi khi cập nhật liên hệ",
         variant: "destructive",
       });
@@ -144,13 +134,7 @@ const KolDashboard = () => {
 
   // Mutation thêm hợp đồng
   const addContractMutation = useMutation({
-    mutationFn: async ({ 
-      contactId, 
-      data 
-    }: { 
-      contactId: number; 
-      data: { contractValue: number; note: string } 
-    }) => {
+    mutationFn: async ({ contactId, data }: { contactId: number; data: any }) => {
       const response = await apiRequest(
         "POST",
         `/api/kol/${kolInfo?.id}/contacts/${contactId}/contract`,
@@ -159,16 +143,16 @@ const KolDashboard = () => {
       return await response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Thêm hợp đồng thành công",
-        description: "Hợp đồng đã được thêm và liên hệ đã được cập nhật trạng thái",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"] });
+      toast({
+        title: "Thành công",
+        description: "Đã thêm hợp đồng cho liên hệ",
+      });
     },
     onError: (error: Error) => {
       toast({
-        title: "Không thể thêm hợp đồng",
+        title: "Thất bại",
         description: error.message || "Đã xảy ra lỗi khi thêm hợp đồng",
         variant: "destructive",
       });
@@ -177,26 +161,26 @@ const KolDashboard = () => {
 
   // Mutation xử lý ảnh card visit
   const processCardImageMutation = useMutation({
-    mutationFn: async (imageData: { image_base64: string }) => {
+    mutationFn: async (data: { image_base64: string }) => {
       const response = await apiRequest(
         "POST",
         `/api/kol/${kolInfo?.id}/scan-card`,
-        imageData
+        data
       );
-      return await response.json() as Partial<KolContact>;
+      return await response.json();
     },
-    onSuccess: (extractedData) => {
+    onSuccess: (data) => {
+      setShowScanCardModal(false);
+      setExtractedContactData(data.contact_data);
+      setShowAddContactModal(true);
       toast({
-        title: "Xử lý ảnh thành công",
+        title: "Thành công",
         description: "Đã trích xuất thông tin từ card visit",
       });
-      setShowScanCardModal(false);
-      setShowAddContactModal(true); // Mở modal thêm liên hệ với dữ liệu đã trích xuất
-      setExtractedContactData(extractedData);
     },
     onError: (error: Error) => {
       toast({
-        title: "Không thể xử lý ảnh",
+        title: "Thất bại",
         description: error.message || "Đã xảy ra lỗi khi trích xuất thông tin từ card visit",
         variant: "destructive",
       });
@@ -296,328 +280,363 @@ const KolDashboard = () => {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col space-y-6">
-        {/* Thông tin cá nhân KOL */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row justify-between gap-6">
-              <div className="flex gap-4 items-center">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <UserCircle className="h-8 w-8 text-primary" />
+    <div className="bg-gradient-to-b from-slate-50 to-white min-h-screen">
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col space-y-6">
+          {/* Thông tin cá nhân KOL */}
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 z-0"></div>
+            <CardContent className="p-8 relative z-10">
+              <div className="flex flex-col md:flex-row justify-between gap-6">
+                <div className="flex gap-5 items-center">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-primary to-blue-500 text-white shadow-md">
+                    <UserCircle className="h-10 w-10" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">{kolInfo.full_name}</h2>
+                    <div className="flex items-center gap-3 mt-2">
+                      {kolInfo.level === "LEVEL_1" && (
+                        <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 px-3 py-1 text-sm shadow-sm">
+                          KOL/VIP - Fresher
+                        </Badge>
+                      )}
+                      {kolInfo.level === "LEVEL_2" && (
+                        <Badge className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 px-3 py-1 text-sm shadow-sm">
+                          KOL/VIP - Advanced
+                        </Badge>
+                      )}
+                      {kolInfo.level === "LEVEL_3" && (
+                        <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0 px-3 py-1 text-sm shadow-sm">
+                          KOL/VIP - Elite
+                        </Badge>
+                      )}
+                      <span className="text-sm text-muted-foreground flex items-center">
+                        <Mail className="h-3 w-3 mr-1 inline-block" />
+                        {kolInfo.email}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold">{kolInfo.full_name}</h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge
-                      variant="outline"
-                      className="bg-blue-50 text-blue-600 border-blue-200"
-                    >
-                      KOL/VIP - {kolInfo.level === "LEVEL_1" ? "Fresher" : kolInfo.level === "LEVEL_2" ? "Advanced" : "Elite"}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {kolInfo.email}
-                    </span>
+
+                <div className="flex flex-wrap gap-8 items-center bg-white/50 p-4 rounded-lg backdrop-blur-sm">
+                  <div>
+                    <p className="text-muted-foreground text-sm font-medium flex items-center">
+                      <UserCheck className="h-3 w-3 mr-1 inline-block" />
+                      Liên hệ trong tháng
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {contacts ? contacts.length : 0}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">liên hệ</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-sm font-medium flex items-center">
+                      <Building className="h-3 w-3 mr-1 inline-block" />
+                      Hợp đồng đã ký
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {getContactsCountByStatus("Đã chốt hợp đồng")}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">hợp đồng</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-sm font-medium flex items-center">
+                      <Calendar className="h-3 w-3 mr-1 inline-block" />
+                      Tổng giá trị
+                    </p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                      {formatCurrency(getTotalContractValue())}
+                    </p>
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="flex flex-wrap gap-6">
-                <div>
-                  <p className="text-muted-foreground text-sm">Liên hệ trong tháng</p>
-                  <p className="text-2xl font-bold">
-                    {contacts ? contacts.length : 0}
-                    <span className="text-sm font-normal text-muted-foreground ml-1">liên hệ</span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-sm">Hợp đồng đã ký</p>
-                  <p className="text-2xl font-bold">
-                    {getContactsCountByStatus("Đã chốt hợp đồng")}
-                    <span className="text-sm font-normal text-muted-foreground ml-1">hợp đồng</span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-sm">Tổng giá trị</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {formatCurrency(getTotalContractValue())}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Tabs chính */}
+          <Tabs defaultValue="contacts" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full md:w-[400px] grid-cols-2 bg-white/60 backdrop-blur-sm shadow-sm rounded-lg">
+              <TabsTrigger 
+                value="contacts" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/80 data-[state=active]:to-blue-500/80 data-[state=active]:text-white"
+              >
+                Danh sách liên hệ
+              </TabsTrigger>
+              <TabsTrigger 
+                value="kpi" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/80 data-[state=active]:to-blue-500/80 data-[state=active]:text-white"
+              >
+                Theo dõi KPI
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Tabs chính */}
-        <Tabs defaultValue="contacts" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full md:w-[400px] grid-cols-2">
-            <TabsTrigger value="contacts">Danh sách liên hệ</TabsTrigger>
-            <TabsTrigger value="kpi">Theo dõi KPI</TabsTrigger>
-          </TabsList>
-
-          {/* Tab Danh sách liên hệ */}
-          <TabsContent value="contacts" className="space-y-4 mt-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold">Quản lý liên hệ</h2>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => setShowScanCardModal(true)}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <Camera className="h-4 w-4" />
-                  Quét card visit
-                </Button>
-                <Button onClick={() => {
-                  setExtractedContactData(null);
-                  setShowAddContactModal(true);
-                }}>
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Thêm liên hệ mới
-                </Button>
-              </div>
-            </div>
-
-            {contactsError && typeof contactsError === 'object' && 'message' in contactsError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Lỗi</AlertTitle>
-                <AlertDescription>
-                  {(contactsError as Error).message || "Không thể tải danh sách liên hệ. Vui lòng thử lại sau."}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="col-span-1">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <ListFilter className="h-4 w-4" />
-                    Tổng quan liên hệ
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Tổng số:</span>
-                      <Badge variant="outline" className="font-medium">
-                        {contacts ? contacts.length : 0}
-                      </Badge>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Mới nhập:</span>
-                      <Badge variant="outline" className="bg-gray-50 text-gray-600">
-                        {getContactsCountByStatus("Mới nhập")}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Đang tư vấn:</span>
-                      <Badge variant="outline" className="bg-blue-50 text-blue-600">
-                        {getContactsCountByStatus("Đang tư vấn")}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Chờ phản hồi:</span>
-                      <Badge variant="outline" className="bg-amber-50 text-amber-600">
-                        {getContactsCountByStatus("Chờ phản hồi")}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Đã chốt hợp đồng:</span>
-                      <Badge variant="outline" className="bg-green-50 text-green-600">
-                        {getContactsCountByStatus("Đã chốt hợp đồng")}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Không tiềm năng:</span>
-                      <Badge variant="outline" className="bg-red-50 text-red-600">
-                        {getContactsCountByStatus("Không tiềm năng")}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="col-span-1 md:col-span-3">
-                <CardContent className="p-6">
-                  <KolContactsTable
-                    contacts={contacts || []}
-                    isLoading={isLoadingContacts}
-                    onAddContact={() => {
+            {/* Tab Danh sách liên hệ */}
+            <TabsContent value="contacts" className="space-y-4 mt-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h2 className="text-xl font-semibold">Quản lý liên hệ</h2>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => setShowScanCardModal(true)}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Quét card visit
+                  </Button>
+                  <Button 
+                    onClick={() => {
                       setExtractedContactData(null);
                       setShowAddContactModal(true);
                     }}
-                    onUpdateContact={handleUpdateContact}
-                    onAddContract={handleAddContract}
-                    kolId={kolInfo.id}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Tab Theo dõi KPI */}
-          <TabsContent value="kpi" className="space-y-6 mt-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Theo dõi KPI & Hiệu suất</h2>
-            </div>
-
-            {kpiStatsError && typeof kpiStatsError === 'object' && 'message' in kpiStatsError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Lỗi</AlertTitle>
-                <AlertDescription>
-                  {(kpiStatsError as Error).message || "Không thể tải thông tin KPI. Vui lòng thử lại sau."}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {isLoadingKpiStats ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Tháng hiện tại</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <KpiProgressCard
-                      level={kolInfo.level as KolVipLevel}
-                      monthlyKpi={kpiStats?.current_month}
-                      isCurrentMonth={true}
-                    />
-                    <Card className="md:col-span-2">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Thông tin chi tiết</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <p className="text-sm text-muted-foreground">Tháng đánh giá</p>
-                              <p className="font-medium flex items-center gap-1">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                {kpiStats?.current_month ? (
-                                  `Tháng ${kpiStats.current_month.month}/${kpiStats.current_month.year}`
-                                ) : (
-                                  "Chưa có dữ liệu"
-                                )}
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-sm text-muted-foreground">Lương cơ bản</p>
-                              <p className="font-medium text-primary">
-                                {formatCurrency(
-                                  kolInfo.level === "LEVEL_1" 
-                                    ? 5000000 
-                                    : kolInfo.level === "LEVEL_2" 
-                                      ? 10000000 
-                                      : 15000000
-                                )}
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-sm text-muted-foreground">Trạng thái</p>
-                              <div>
-                                {kpiStats?.current_month?.performance === "ACHIEVED" ? (
-                                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                                    Đã đạt KPI
-                                  </Badge>
-                                ) : kpiStats?.current_month?.performance === "NOT_ACHIEVED" ? (
-                                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-                                    Chưa đạt KPI
-                                  </Badge>
-                                ) : (
-                                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-                                    Đang tiến hành
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Liên hệ mới trong tháng</p>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div>
-                                <p className="text-2xl font-bold">
-                                  {kpiStats?.current_month?.total_contacts || 0}
-                                </p>
-                                <p className="text-sm text-muted-foreground">Tổng số liên hệ</p>
-                              </div>
-                              <div>
-                                <p className="text-2xl font-bold">
-                                  {kpiStats?.current_month?.potential_contacts || 0}
-                                </p>
-                                <p className="text-sm text-muted-foreground">Liên hệ tiềm năng</p>
-                              </div>
-                              <div>
-                                <p className="text-2xl font-bold">
-                                  {kpiStats?.current_month?.contracts || 0}
-                                </p>
-                                <p className="text-sm text-muted-foreground">Hợp đồng đã ký</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {kpiStats?.current_month?.note && (
-                            <>
-                              <Separator />
-                              <div className="space-y-2">
-                                <p className="text-sm text-muted-foreground">Ghi chú</p>
-                                <p className="text-sm">{kpiStats.current_month.note}</p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                    className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Thêm liên hệ mới
+                  </Button>
                 </div>
+              </div>
 
-                {kpiStats?.previous_months && kpiStats.previous_months.length > 0 && (
-                  <div className="space-y-4 mt-8">
-                    <h3 className="text-lg font-medium">Các tháng trước</h3>
+              {contactsError && typeof contactsError === 'object' && 'message' in contactsError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Lỗi</AlertTitle>
+                  <AlertDescription>
+                    {(contactsError as Error).message || "Không thể tải danh sách liên hệ. Vui lòng thử lại sau."}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="col-span-1 shadow-md border-0">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <ListFilter className="h-4 w-4" />
+                      Tổng quan liên hệ
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Tổng số:</span>
+                        <Badge variant="outline" className="font-medium">
+                          {contacts ? contacts.length : 0}
+                        </Badge>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Mới nhập:</span>
+                        <Badge variant="outline" className="bg-gray-50 text-gray-600">
+                          {getContactsCountByStatus("Mới nhập")}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Đang tư vấn:</span>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-600">
+                          {getContactsCountByStatus("Đang tư vấn")}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Chờ phản hồi:</span>
+                        <Badge variant="outline" className="bg-amber-50 text-amber-600">
+                          {getContactsCountByStatus("Chờ phản hồi")}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Đã chốt hợp đồng:</span>
+                        <Badge variant="outline" className="bg-green-50 text-green-600">
+                          {getContactsCountByStatus("Đã chốt hợp đồng")}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Không tiềm năng:</span>
+                        <Badge variant="outline" className="bg-red-50 text-red-600">
+                          {getContactsCountByStatus("Không tiềm năng")}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="col-span-1 md:col-span-3 shadow-md border-0">
+                  <CardContent className="p-6">
+                    <KolContactsTable
+                      contacts={contacts || []}
+                      isLoading={isLoadingContacts}
+                      onAddContact={() => {
+                        setExtractedContactData(null);
+                        setShowAddContactModal(true);
+                      }}
+                      onUpdateContact={handleUpdateContact}
+                      onAddContract={handleAddContract}
+                      kolId={kolInfo.id}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Tab Theo dõi KPI */}
+            <TabsContent value="kpi" className="space-y-6 mt-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Theo dõi KPI & Hiệu suất</h2>
+              </div>
+
+              {kpiStatsError && typeof kpiStatsError === 'object' && 'message' in kpiStatsError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Lỗi</AlertTitle>
+                  <AlertDescription>
+                    {(kpiStatsError as Error).message || "Không thể tải thông tin KPI. Vui lòng thử lại sau."}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {isLoadingKpiStats ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Tháng hiện tại</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {kpiStats.previous_months.slice(0, 6).map((month, index) => (
-                        <KpiProgressCard
-                          key={`${month.year}-${month.month}`}
-                          level={kolInfo.level as KolVipLevel}
-                          monthlyKpi={month}
-                          isCurrentMonth={false}
-                        />
-                      ))}
+                      <KpiProgressCard
+                        level={kolInfo.level as KolVipLevelType}
+                        monthlyKpi={kpiStats?.current_month}
+                        isCurrentMonth={true}
+                      />
+                      <Card className="md:col-span-2 shadow-md border-0">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">Thông tin chi tiết</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="space-y-2">
+                                <p className="text-sm text-muted-foreground">Tháng đánh giá</p>
+                                <p className="font-medium flex items-center gap-1">
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                  {kpiStats?.current_month ? (
+                                    `Tháng ${kpiStats.current_month.month}/${kpiStats.current_month.year}`
+                                  ) : (
+                                    "Chưa có dữ liệu"
+                                  )}
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <p className="text-sm text-muted-foreground">Lương cơ bản</p>
+                                <p className="font-medium bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                                  {formatCurrency(
+                                    kolInfo.level === "LEVEL_1" 
+                                      ? 5000000 
+                                      : kolInfo.level === "LEVEL_2" 
+                                        ? 10000000 
+                                        : 15000000
+                                  )}
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <p className="text-sm text-muted-foreground">Trạng thái</p>
+                                <div>
+                                  {kpiStats?.current_month?.performance === "ACHIEVED" ? (
+                                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0">
+                                      Đã đạt KPI
+                                    </Badge>
+                                  ) : kpiStats?.current_month?.performance === "NOT_ACHIEVED" ? (
+                                    <Badge className="bg-gradient-to-r from-red-500 to-pink-600 text-white border-0">
+                                      Chưa đạt KPI
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0">
+                                      Đang tiến hành
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">Liên hệ mới trong tháng</p>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <p className="text-2xl font-bold">
+                                    {kpiStats?.current_month?.total_contacts || 0}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">Tổng số liên hệ</p>
+                                </div>
+                                <div>
+                                  <p className="text-2xl font-bold">
+                                    {kpiStats?.current_month?.potential_contacts || 0}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">Liên hệ tiềm năng</p>
+                                </div>
+                                <div>
+                                  <p className="text-2xl font-bold">
+                                    {kpiStats?.current_month?.contracts || 0}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">Hợp đồng đã ký</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {kpiStats?.current_month?.note && (
+                              <>
+                                <Separator />
+                                <div className="space-y-2">
+                                  <p className="text-sm text-muted-foreground">Ghi chú</p>
+                                  <p className="text-sm">{kpiStats.current_month.note}</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
-                )}
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
+
+                  {kpiStats?.previous_months && kpiStats.previous_months.length > 0 && (
+                    <div className="space-y-4 mt-8">
+                      <h3 className="text-lg font-medium">Các tháng trước</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {kpiStats.previous_months.slice(0, 6).map((month, index) => (
+                          <KpiProgressCard
+                            key={`${month.year}-${month.month}`}
+                            level={kolInfo.level}
+                            monthlyKpi={month}
+                            isCurrentMonth={false}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Modal thêm liên hệ mới */}
+        {showAddContactModal && (
+          <AddContactModal
+            isOpen={showAddContactModal}
+            onClose={() => setShowAddContactModal(false)}
+            onSubmit={handleAddContact}
+            kolId={kolInfo.id}
+            initialData={extractedContactData || undefined}
+          />
+        )}
+
+        {/* Modal quét card visit */}
+        {showScanCardModal && (
+          <ScanCardModal
+            isOpen={showScanCardModal}
+            onClose={() => setShowScanCardModal(false)}
+            onSubmit={handleProcessCardImage}
+          />
+        )}
       </div>
-
-      {/* Modal thêm liên hệ mới */}
-      {showAddContactModal && (
-        <AddContactModal
-          isOpen={showAddContactModal}
-          onClose={() => setShowAddContactModal(false)}
-          onSubmit={handleAddContact}
-          kolId={kolInfo.id}
-          initialData={extractedContactData || undefined}
-        />
-      )}
-
-      {/* Modal quét card visit */}
-      {showScanCardModal && (
-        <ScanCardModal
-          isOpen={showScanCardModal}
-          onClose={() => setShowScanCardModal(false)}
-          onSubmit={handleProcessCardImage}
-        />
-      )}
     </div>
   );
 };
