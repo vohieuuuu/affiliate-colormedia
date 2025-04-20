@@ -601,10 +601,10 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
         });
       }
 
-      const { username, password, affiliate_data } = req.body;
+      const { username, affiliate_data } = req.body;
 
       // Validate dữ liệu
-      if (!username || !password || !affiliate_data) {
+      if (!username || !affiliate_data) {
         return res.status(400).json({
           status: "error",
           error: {
@@ -614,10 +614,11 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
         });
       }
 
-      // Tạo user mới với role KOL_VIP
+      // Tạo user mới với role KOL_VIP và mật khẩu mặc định
+      const defaultPassword = "color1234@";
       const user = await storage.createUser({
         username,
-        password,
+        password: defaultPassword,
         role: "KOL_VIP",
         is_first_login: true
       });
