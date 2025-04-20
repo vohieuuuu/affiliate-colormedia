@@ -27,17 +27,18 @@ export default function Dashboard() {
   // Chuyển hướng người dùng KOL/VIP đến trang KOL dashboard
   useEffect(() => {
     if (user?.role === "KOL_VIP") {
+      console.log("User is KOL/VIP, redirecting to KOL dashboard");
       window.location.href = "/kol-dashboard";
     }
   }, [user]);
-  
+
   // Fetch affiliate data với polling 15 giây để giảm tải cho backend
   const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, error: affiliateError, refetch: refetchAffiliate } = useQuery({
     queryKey: ['/api/affiliate'],
     refetchInterval: 15000, // Polling mỗi 15 giây để giảm tải cho BE
     staleTime: 5000, // Đặt staleTime 5 giây để vẫn có thể invalidate nhưng giảm số lượng requests
     refetchOnMount: "always", // Luôn refetch khi component được mount (quan trọng sau khi rút tiền)
-    enabled: user?.role !== "KOL_VIP", // Chỉ lấy dữ liệu nếu không phải là KOL/VIP
+    enabled: !!(user && user.role !== "KOL_VIP"), // Chỉ lấy dữ liệu nếu user đã load và không phải là KOL/VIP
     refetchOnWindowFocus: true, // Refetch khi cửa sổ được focus
   });
   
@@ -79,12 +80,32 @@ export default function Dashboard() {
     setIsWithdrawalModalOpen(false);
   };
 
-  if (affiliateError) {
+  // Nếu người dùng là KOL/VIP, hiển thị thông báo chuyển hướng
+  if (user?.role === "KOL_VIP") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-primary mb-4">Đang chuyển hướng...</h1>
+          <p className="text-gray-600">Bạn là thành viên KOL/VIP. Đang chuyển đến trang KOL Dashboard.</p>
+          <button 
+            onClick={() => window.location.href = "/kol-dashboard"}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            Đi đến KOL Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Hiển thị lỗi nếu không phải là KOL/VIP và có lỗi khi tải dữ liệu
+  if (affiliateError && user?.role !== "KOL_VIP") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Lỗi tải dữ liệu</h1>
           <p className="text-gray-600">{(affiliateError as Error).message}</p>
+          <p className="mt-2 text-sm text-gray-500">Bạn đang đăng nhập với vai trò: {user?.role}</p>
         </div>
       </div>
     );

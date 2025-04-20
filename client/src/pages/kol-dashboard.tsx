@@ -35,6 +35,14 @@ const KolDashboard = () => {
   const [activeTab, setActiveTab] = useState("contacts");
   const [showAddContactModal, setShowAddContactModal] = useState(false);
   const [showScanCardModal, setShowScanCardModal] = useState(false);
+  
+  // Chuyển hướng affiliate thường về trang dashboard chính
+  useEffect(() => {
+    if (user && user.role !== "KOL_VIP") {
+      console.log("User is not KOL/VIP, redirecting to normal dashboard");
+      window.location.href = "/";
+    }
+  }, [user]);
 
   // Lấy thông tin KOL hiện tại
   const {
@@ -47,7 +55,7 @@ const KolDashboard = () => {
       const response = await apiRequest("GET", "/api/kol/me");
       return await response.json() as KolVipAffiliate;
     },
-    enabled: !!user,
+    enabled: !!(user && user.role === "KOL_VIP"), // Chỉ kích hoạt khi user đã tải và đúng là KOL/VIP
   });
 
   // Lấy danh sách liên hệ của KOL
