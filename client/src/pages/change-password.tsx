@@ -78,9 +78,13 @@ export default function ChangePasswordPage() {
         description: "Mật khẩu của bạn đã được cập nhật, bạn sẽ được chuyển hướng đến trang chính.",
       });
       
-      // Chuyển hướng về trang dashboard
+      // Chuyển hướng về trang dashboard phù hợp với vai trò
       setTimeout(() => {
-        setLocation("/");
+        if (user?.role === "KOL_VIP") {
+          setLocation("/kol-dashboard");
+        } else {
+          setLocation("/");
+        }
       }, 2000);
     },
     onError: (error: Error) => {

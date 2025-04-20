@@ -35,9 +35,14 @@ export default function AuthPage() {
     }
   });
   
-  // Nếu người dùng đã đăng nhập, chuyển hướng đến trang chủ
+  // Nếu người dùng đã đăng nhập, chuyển hướng đến trang phù hợp với vai trò
   if (user) {
-    setLocation("/");
+    // Kiểm tra role và chuyển hướng đến trang dashboard tương ứng
+    if (user.role === "KOL_VIP") {
+      setLocation("/kol-dashboard");
+    } else {
+      setLocation("/");
+    }
     return null;
   }
   
