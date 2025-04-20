@@ -8,6 +8,12 @@ import { LoginSchema, RegisterSchema } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { 
+  isAdminRole, 
+  isKolVipRole, 
+  isAffiliateRole, 
+  getDashboardForRole 
+} from "../middleware/role-middleware";
 
 // Định nghĩa kiểu dữ liệu cho user
 interface User {
@@ -15,6 +21,11 @@ interface User {
   username: string;
   role: string;
   is_first_login?: boolean;
+  // Các thuộc tính bổ sung để xác định vai trò
+  isAdmin?: boolean;
+  isKolVip?: boolean;
+  isAffiliate?: boolean;
+  dashboardRoute?: string;
 }
 
 // Định nghĩa kiểu dữ liệu phản hồi từ API đăng nhập
@@ -66,15 +77,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     storedRequiresPasswordChange === "true"
   );
   
-  // Query để lấy thông tin người dùng hiện tại
+  // Query để lấy thông tin người dùng hiện tại và bổ sung thông tin vai trò
   const {
-    data: user,
+    data: userRaw,
     error,
     isLoading,
   } = useQuery<User | null, Error>({
     queryKey: ["/api/auth/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
+  
+  // Bổ sung thông tin vai trò cho user
+  const user = userRaw ? {
+    ...userRaw,
+    isAdmin: isAdminRole(userRaw),
+    isKolVip: isKolVipRole(userRaw),
+    isAffiliate: isAffiliateRole(userRaw),
+    dashboardRoute: getDashboardForRole(userRaw)
+  } : null;
 
   // Xử lý lỗi xác thực bằng cách kiểm tra error
   useEffect(() => {

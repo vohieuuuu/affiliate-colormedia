@@ -156,6 +156,14 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
       // 1. Kiểm tra nếu token là token admin cố định
       if (token === ADMIN_FIXED_TOKEN) {
         console.log("DEV MODE: Using admin fixed token");
+        // Set admin user object in request
+        req.user = {
+          id: 9999,
+          username: "admin",
+          role: "ADMIN",
+          token: ADMIN_FIXED_TOKEN,
+          created_at: new Date()
+        };
         return next();
       }
       
@@ -483,82 +491,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint to get affiliate data
   app.get("/api/affiliate", authenticateUser, async (req, res) => {
     try {
-      let userId = 0;
+      // Nếu không có người dùng đăng nhập, trả về lỗi
+      if (!req.user) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication required"
+          }
+        });
+      }
+
+      const userId = req.user.id;
+      console.log(`Getting affiliate data for user ID: ${userId}, role: ${req.user.role}, role type: ${typeof req.user.role}`);
       
-      // Kiểm tra user đã được xác thực từ middleware
-      if (req.user) {
-        userId = req.user.id;
-        console.log(`Getting affiliate data for user ID: ${userId}, role: ${req.user.role}, role type: ${typeof req.user.role}`);
+      // Xử lý đặc biệt cho admin và KOL/VIP
+      // Sử dụng hàm trợ giúp để kiểm tra vai trò
+      const isAdmin = isAdminRole(req.user);
+      const isKolVip = isKolVipRole(req.user);
+      
+      console.log("Is user an admin?", isAdmin);
+      console.log("Is user a KOL/VIP?", isKolVip);
+      
+      // Xử lý đặc biệt cho admin - Trả về dữ liệu giả lập
+      if (isAdmin) {
+        console.log("DEV MODE: Admin user is accessing affiliate data - creating dummy affiliate data");
         
-        // Xử lý đặc biệt cho admin và KOL/VIP
-        // Sử dụng hàm trợ giúp để kiểm tra vai trò
-        console.log("Is user an admin?", isAdminRole(req.user));
-        console.log("Is user a KOL/VIP?", isKolVipRole(req.user));
+        const adminAffiliate = {
+          id: 9999,
+          affiliate_id: "ADMIN",
+          user_id: req.user.id,
+          full_name: "Administrator",
+          email: req.user.username,
+          phone: "",
+          bank_name: "Admin Bank",
+          bank_account: "0000000000",
+          total_contracts: 0,
+          total_contacts: 0,
+          contract_value: 0,
+          paid_balance: 0,
+          received_balance: 0,
+          remaining_balance: 0,
+          referred_customers: [],
+          withdrawal_history: [],
+          created_at: new Date()
+        };
         
-        if (isAdminRole(req.user)) {
-          console.log("DEV MODE: Admin user is accessing affiliate data - creating dummy affiliate data");
-          
-          // Trả về dữ liệu giả cho Admin để tránh lỗi
-          const adminAffiliate = {
-            id: 9999,
-            affiliate_id: "ADMIN",
-            user_id: req.user.id,
-            full_name: "Administrator",
-            email: req.user.username,
-            phone: "",
-            bank_name: "Admin Bank",
-            bank_account: "0000000000",
-            total_contracts: 0,
-            total_contacts: 0,
-            contract_value: 0,
-            paid_balance: 0,
-            received_balance: 0,
-            remaining_balance: 0,
-            referred_customers: [],
-            withdrawal_history: [],
-            created_at: new Date()
-          };
-          
-          return res.json({
-            status: "success",
-            data: adminAffiliate
-          });
-        } else if (isKolVipRole(req.user)) {
-          console.log("DEV MODE: KOL/VIP user is accessing affiliate data - creating dummy KOL data");
-          
-          // Trả về dữ liệu giả cho KOL/VIP để tránh lỗi
-          const kolAffiliate = {
-            id: userId,
-            affiliate_id: `KOL${userId}`,
-            user_id: req.user.id,
-            full_name: "KOL VIP User",
-            email: req.user.username,
-            phone: "",
-            bank_name: "Default Bank",
-            bank_account: "0000000000",
-            total_contracts: 0,
-            total_contacts: 0,
-            contract_value: 0,
-            paid_balance: 0,
-            received_balance: 0,
-            remaining_balance: 0,
-            referred_customers: [],
-            withdrawal_history: [],
-            created_at: new Date(),
-            level: 1,
-            monthly_salary: 5000000,
-            kpi_status: "Pending"
-          };
-          
-          return res.json({
-            status: "success",
-            data: kolAffiliate
-          });
-        }
-      } else if (process.env.NODE_ENV === "development") {
-        // Trong môi trường dev, có thể sử dụng default user
-        console.log("Using default user for development");
-        userId = 1; // Admin user
+        return res.json({
+          status: "success",
+          data: adminAffiliate
+        });
+      }
+      
+      // Xử lý đặc biệt cho KOL/VIP - Trả về dữ liệu giả lập
+      if (isKolVip) {
+        console.log("DEV MODE: KOL/VIP user is accessing affiliate data - creating dummy KOL data");
+        
+        const kolAffiliate = {
+          id: userId,
+          affiliate_id: `KOL${userId}`,
+          user_id: req.user.id,
+          full_name: "KOL VIP User",
+          email: req.user.username,
+          phone: "",
+          bank_name: "Default Bank",
+          bank_account: "0000000000",
+          total_contracts: 0,
+          total_contacts: 0,
+          contract_value: 0,
+          paid_balance: 0,
+          received_balance: 0,
+          remaining_balance: 0,
+          referred_customers: [],
+          withdrawal_history: [],
+          created_at: new Date(),
+          level: 1,
+          monthly_salary: 5000000,
+          kpi_status: "Pending"
+        };
+        
+        return res.json({
+          status: "success",
+          data: kolAffiliate
+        });
       }
       
       // Sử dụng cache cho dữ liệu affiliate nếu có thể
@@ -579,9 +594,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         return affiliate;
       };
-      
-      // KHÔNG sử dụng cache cho dữ liệu affiliate để luôn lấy dữ liệu mới nhất
-      // const affiliate = await statsCache.get(`affiliate:${userId}`, getAffiliateData);
       
       // Luôn lấy dữ liệu mới từ storage
       const affiliate = await getAffiliateData();
@@ -607,13 +619,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sanitizedData = sanitizeAffiliateData(affiliate);
       
       // Trả về dữ liệu affiliate đã được bảo vệ
-      res.json({
+      return res.json({
         status: "success",
         data: sanitizedData
       });
     } catch (error) {
       console.error("Error getting affiliate data:", error);
-      res.status(500).json({ 
+      return res.status(500).json({ 
         status: "error",
         error: {
           code: "SERVER_ERROR",
@@ -685,7 +697,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API để lấy danh sách khách hàng 
   app.get("/api/customers", authenticateUser, async (req, res) => {
     try {
-      console.log("Getting customers list for user:", req.user?.id, req.user?.username);
+      if (!req.user) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication required"
+          }
+        });
+      }
+      
+      console.log("Getting customers list for user:", req.user.id, req.user.username);
       
       // Kiểm tra xem có affiliateId được chỉ định không (cho phép admin xem khách hàng của affiliate cụ thể)
       const affiliateId = req.query.affiliate_id as string;
@@ -693,10 +715,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let affiliate = null;
       
       // Nếu có affiliateId và user là admin, lấy thông tin affiliate đó
-      if (affiliateId && (req.user?.role === "ADMIN" || req.user?.role === "admin")) {
+      if (affiliateId && isAdminRole(req.user)) {
         console.log(`Admin requesting customers for specific affiliate: ${affiliateId}`);
         affiliate = await storage.getAffiliateByAffiliateId(affiliateId);
-      } else if (req.user) {
+      } else {
         // Lấy affiliate của user đăng nhập
         affiliate = await storage.getAffiliateByUserId(req.user.id);
         
@@ -768,7 +790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Xử lý đặc biệt cho admin
-      if (req.user && (req.user.role === "ADMIN" || req.user.role === "admin")) {
+      if (isAdminRole(req.user)) {
         // Trả về dữ liệu mẫu cho admin
         return res.json({
           status: "success",
@@ -911,7 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Xử lý đặc biệt cho admin
-      if (req.user && (req.user.role === "ADMIN" || req.user.role === "admin")) {
+      if (isAdminRole(req.user)) {
         // Trả về dữ liệu mẫu cho admin
         return res.json({
           status: "success",
