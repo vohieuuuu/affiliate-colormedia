@@ -476,12 +476,16 @@ Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ad
 **Request Body**:
 ```json
 {
-  "full_name": "Lê Quang I",
-  "email": "kol3@colormedia.vn",
-  "phone": "0927890123",
-  "level": "LEVEL_1",
-  "bank_account": "1234567890",
-  "bank_name": "VietinBank"
+  "username": "kol3@colormedia.vn",
+  "password": "color1234@",
+  "affiliate_data": {
+    "full_name": "Lê Quang I",
+    "email": "kol3@colormedia.vn",
+    "phone": "0927890123",
+    "level": "LEVEL_1",
+    "bank_account": "1234567890",
+    "bank_name": "VietinBank"
+  }
 }
 ```
 
