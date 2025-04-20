@@ -13,7 +13,7 @@ Tất cả API trả về phản hồi ở định dạng JSON với header `Con
 Xác thực người dùng sử dụng token Bearer JWT. Trừ các endpoint dành riêng cho việc đăng nhập và đăng ký, tất cả các API khác đều yêu cầu xác thực.
 
 ### Đăng nhập lần đầu
-Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu mặc định `color1234@`. API sẽ trả về mã lỗi `CHANGE_PASSWORD_REQUIRED` nếu người dùng cần đổi mật khẩu.
+Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu mặc định `color1234@`. API sẽ trả về thông tin `requires_password_change: true` nếu người dùng cần đổi mật khẩu.
 
 ## API Xác thực
 
@@ -477,7 +477,6 @@ Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ad
 ```json
 {
   "username": "kol3@colormedia.vn",
-  "password": "color1234@",
   "affiliate_data": {
     "full_name": "Lê Quang I",
     "email": "kol3@colormedia.vn",
@@ -488,6 +487,8 @@ Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ad
   }
 }
 ```
+
+**Lưu ý**: Hệ thống sẽ tự động đặt mật khẩu mặc định là "color1234@". Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu.
 
 **Phản hồi thành công**:
 ```json

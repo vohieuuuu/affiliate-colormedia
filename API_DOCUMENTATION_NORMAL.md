@@ -13,7 +13,7 @@ Tất cả API trả về phản hồi ở định dạng JSON với header `Con
 Xác thực người dùng sử dụng token Bearer JWT. Trừ các endpoint dành riêng cho việc đăng nhập và đăng ký, tất cả các API khác đều yêu cầu xác thực.
 
 ### Đăng nhập lần đầu
-Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu mặc định `color1234@`. API sẽ trả về mã lỗi `CHANGE_PASSWORD_REQUIRED` nếu người dùng cần đổi mật khẩu.
+Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu mặc định `color1234@`. API sẽ trả về thông tin `requires_password_change: true` nếu người dùng cần đổi mật khẩu.
 
 ## API Xác thực
 
