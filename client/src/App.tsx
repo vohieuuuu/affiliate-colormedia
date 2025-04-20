@@ -16,9 +16,13 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/change-password" component={ChangePasswordPage} />
+      <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
+      
+      {/* Vì đã có RoleBasedRoute để điều hướng, nên đặt trang KOL Dashboard lên trước
+          để đảm bảo người dùng KOL/VIP không bị điều hướng đến trang Dashboard thông thường */}
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
       <ProtectedRoute path="/" component={Dashboard} />
-      <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
+      
       <Route component={NotFound} />
     </Switch>
   );

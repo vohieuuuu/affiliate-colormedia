@@ -24,7 +24,15 @@ export default function Dashboard() {
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<ReferredCustomer | null>(null);
   
-  // Đã sử dụng RoleBasedRoute để xử lý chuyển hướng dựa trên vai trò
+  // Đảm bảo người dùng KOL/VIP không thể xem trang Dashboard thông thường
+  useEffect(() => {
+    // Kiểm tra trong useEffect để tránh xung đột với server-side rendering
+    if (user && user.role === "KOL_VIP") {
+      console.log("Dashboard: User is KOL/VIP, redirecting to KOL Dashboard");
+      window.location.href = "/kol-dashboard";
+      return;
+    }
+  }, [user]);
 
   // Fetch affiliate data với polling 15 giây để giảm tải cho backend
   const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, error: affiliateError, refetch: refetchAffiliate } = useQuery({
@@ -74,15 +82,9 @@ export default function Dashboard() {
     setIsWithdrawalModalOpen(false);
   };
 
-  // Nếu người dùng là KOL/VIP, hiển thị thông báo chuyển hướng
-  useEffect(() => {
-    if (user?.role === "KOL_VIP") {
-      console.log("Dashboard detected KOL/VIP user, redirecting to KOL dashboard");
-      window.location.href = "/kol-dashboard";
-    }
-  }, [user]);
-  
+  // Hiển thị thông báo chuyển hướng nếu vẫn tải được trang mặc dù đã có useEffect
   if (user?.role === "KOL_VIP") {
+    console.log("Dashboard rendering KOL/VIP redirect message");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

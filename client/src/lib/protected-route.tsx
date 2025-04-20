@@ -16,17 +16,27 @@ export function ProtectedRoute({
   // Kiểm tra và điều hướng dựa trên vai trò
   useEffect(() => {
     if (user && !isLoading && !requiresPasswordChange) {
+      console.log("ProtectedRoute: checking role-based redirection", {
+        userRole: user.role,
+        path,
+        currentPath: window.location.pathname
+      });
+      
       // Chuyển hướng KOL/VIP đến trang KOL dashboard từ trang chính
       if (user.role === "KOL_VIP" && path === "/" && window.location.pathname === "/") {
-        setLocation("/kol-dashboard");
+        console.log("Redirecting KOL/VIP from normal dashboard to KOL dashboard");
+        window.location.href = "/kol-dashboard";
+        return;
       }
       
       // Chuyển hướng affiliate thường đến trang dashboard từ trang KOL
       if (user.role !== "KOL_VIP" && path === "/kol-dashboard" && window.location.pathname === "/kol-dashboard") {
-        setLocation("/");
+        console.log("Redirecting normal user from KOL dashboard to normal dashboard");
+        window.location.href = "/";
+        return;
       }
     }
-  }, [user, isLoading, requiresPasswordChange, path, setLocation]);
+  }, [user, isLoading, requiresPasswordChange, path]);
 
   // Hiển thị trạng thái đang tải trong quá trình kiểm tra xác thực
   if (isLoading) {
