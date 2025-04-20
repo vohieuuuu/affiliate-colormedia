@@ -195,7 +195,7 @@ const KolDashboard = () => {
     if (kolInfo?.id) {
       addContactMutation.mutate({
         ...contactData,
-        kol_id: kolInfo.id,
+        kol_id: typeof kolInfo.id === 'string' ? kolInfo.id : kolInfo.id.toString(),
       });
     }
   };
@@ -468,7 +468,7 @@ const KolDashboard = () => {
                       }}
                       onUpdateContact={handleUpdateContact}
                       onAddContract={handleAddContract}
-                      kolId={kolInfo.id.toString()}
+                      kolId={typeof kolInfo.id === 'string' ? kolInfo.id : kolInfo.id.toString()}
                     />
                   </CardContent>
                 </Card>
@@ -623,7 +623,7 @@ const KolDashboard = () => {
             isOpen={showAddContactModal}
             onClose={() => setShowAddContactModal(false)}
             onSubmit={handleAddContact}
-            kolId={kolInfo.id.toString()}
+            kolId={typeof kolInfo.id === 'string' ? kolInfo.id : kolInfo.id.toString()}
             initialData={extractedContactData || undefined}
           />
         )}
