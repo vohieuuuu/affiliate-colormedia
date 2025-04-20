@@ -84,10 +84,10 @@ export default function ChangePasswordPage() {
           // Đánh dấu không còn yêu cầu đổi mật khẩu
           clearPasswordChangeRequirement();
           
-          // Chuyển hướng đến trang phân quyền vai trò với tham số refresh
-          // để làm mới dữ liệu người dùng trước khi chuyển hướng
-          console.log("Redirecting to role-redirect with refresh parameter");
-          window.location.href = "/role-redirect/refresh";
+          // Chuyển hướng đến trang chủ để sử dụng RoleRouter
+          // RoleRouter sẽ tự động quyết định hiển thị dashboard phù hợp
+          console.log("Redirecting to home page to use new RoleRouter");
+          window.location.href = "/";
         } catch (error) {
           console.error("Error during redirect:", error);
           // Fallback nếu có lỗi, chuyển hướng trực tiếp dựa trên vai trò hiện tại

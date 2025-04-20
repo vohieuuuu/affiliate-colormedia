@@ -122,13 +122,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Chào mừng quay trở lại, ${response.user.username}!`,
       });
       
-      // Chuyển hướng đến trang dựa vào vai trò
+      // Chuyển hướng đến trang dựa vào trạng thái đổi mật khẩu
       if (needsPasswordChange) {
         // Nếu cần đổi mật khẩu, chuyển đến trang đổi mật khẩu trước
+        console.log("Login success: redirecting to change-password page");
         window.location.href = "/change-password";
       } else {
-        // Nếu không cần đổi mật khẩu, chuyển đến trang phân quyền vai trò
-        window.location.href = "/role-redirect";
+        // Nếu không cần đổi mật khẩu, chuyển đến trang chủ sử dụng RoleRouter mới
+        console.log("Login success: redirecting to home page with RoleRouter");
+        window.location.href = "/";
       }
     },
     onError: (error: Error) => {
