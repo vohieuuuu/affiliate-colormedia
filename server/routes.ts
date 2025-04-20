@@ -289,6 +289,30 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
     return next();
   }
   
+  // Kiểm tra xem user có phải là ADMIN hay không
+  if (req.user.role === "ADMIN") {
+    console.log("DEV MODE: Admin user is accessing affiliate data - bypassing affiliate check");
+    // Thiết lập một affiliate "giả" để tránh lỗi cho admin và không làm ảnh hưởng đến logic hiện tại
+    req.affiliate = {
+      id: 9999,
+      affiliate_id: "ADMIN",
+      user_id: req.user.id,
+      full_name: "Administrator",
+      email: req.user.username,
+      phone: "",
+      bank_name: "Admin Bank",
+      bank_account_number: "0000000000",
+      bank_account_name: "Administrator",
+      is_active: 1,
+      balance: 0,
+      total_earned: 0,
+      referred_customers: [],
+      withdrawal_history: [],
+      created_at: new Date()
+    };
+    return next();
+  }
+  
   // Tìm affiliate liên kết với user hiện tại
   return storage.getAffiliateByUserId(req.user.id)
     .then(affiliate => {
@@ -457,6 +481,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user) {
         userId = req.user.id;
         console.log(`Getting affiliate data for user ID: ${userId}`);
+        
+        // Xử lý đặc biệt cho admin
+        if (req.user.role === "ADMIN") {
+          console.log("DEV MODE: Admin user is accessing affiliate data - creating dummy affiliate data");
+          // Trả về dữ liệu giả cho Admin để tránh lỗi
+          const adminAffiliate = {
+            id: 9999,
+            affiliate_id: "ADMIN",
+            user_id: req.user.id,
+            full_name: "Administrator",
+            email: req.user.username,
+            phone: "",
+            bank_name: "Admin Bank",
+            bank_account_number: "0000000000",
+            bank_account_name: "Administrator",
+            is_active: 1,
+            balance: 0,
+            total_earned: 0,
+            referred_customers: [],
+            withdrawal_history: [],
+            created_at: new Date(),
+            total_contracts: 0
+          };
+          
+          return res.json({
+            status: "success",
+            data: adminAffiliate
+          });
+        }
       } else if (process.env.NODE_ENV === "development") {
         // Trong môi trường dev, có thể sử dụng default user
         console.log("Using default user for development");

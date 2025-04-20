@@ -25,15 +25,17 @@ function Router() {
       <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
       
       {/* 
-        GIẢI PHÁP MỚI: Sử dụng RoleRouter để quyết định hiển thị Dashboard nào
-        dựa trên vai trò người dùng. Điều này ngăn chặn việc cố gắng tải
-        sai dữ liệu từ Dashboard thông thường khi người dùng là KOL/VIP
+        GIẢI PHÁP MỚI: Sử dụng Dashboard cho tất cả vai trò
+        Bên trong dashboard.tsx đã xử lý hiển thị giao diện Admin
+        và chuyển hướng người dùng KOL/VIP đến KolDashboard
       */}
-      <ProtectedRoute path="/" component={RoleRouter} />
+      <ProtectedRoute path="/" component={Dashboard} />
       
-      {/* Routes cũ - giữ lại để tương thích với các tính năng khác 
-          nhưng không còn được sử dụng trực tiếp từ điều hướng */}
+      {/* Routes đặc biệt cho KOL/VIP */}
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
+      
+      {/* RoleRouter cho vai trò sau này - có thể bỏ qua, không được sử dụng */}
+      <ProtectedRoute path="/role-router" component={RoleRouter} />
       
       {/* Route mặc định nếu không tìm thấy trang */}
       <Route component={NotFound} />

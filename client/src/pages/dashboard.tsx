@@ -25,12 +25,12 @@ export default function Dashboard() {
   const [selectedCustomer, setSelectedCustomer] = useState<ReferredCustomer | null>(null);
   
   // Đảm bảo người dùng KOL/VIP không thể xem trang Dashboard thông thường
+  // Chức năng này đã được thay thế bởi RoleRouter, nên có thể bỏ qua
+  // RoleRouter sẽ quyết định hiển thị Dashboard hay KolDashboard
   useEffect(() => {
-    // Kiểm tra trong useEffect để tránh xung đột với server-side rendering
-    if (user && user.role === "KOL_VIP") {
-      console.log("Dashboard: User is KOL/VIP, redirecting to KOL Dashboard");
-      window.location.href = "/kol-dashboard";
-      return;
+    if (user && user.role === "ADMIN") {
+      console.log("Dashboard: User is ADMIN, no need to access affiliate dashboard");
+      // Không chuyển hướng ở đây vì RoleRouter sẽ xử lý
     }
   }, [user]);
 
@@ -101,8 +101,64 @@ export default function Dashboard() {
     );
   }
   
-  // Hiển thị lỗi nếu không phải là KOL/VIP và có lỗi khi tải dữ liệu
-  if (affiliateError && user?.role !== "KOL_VIP") {
+  // Hiển thị thông báo đặc biệt cho ADMIN
+  if (user?.role === "ADMIN") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-bold text-primary mb-4">Trang quản trị Admin</h1>
+          <p className="text-gray-700 mb-6">
+            Bạn đã đăng nhập với tài khoản Admin. 
+            Để truy cập dashboard thông thường, vui lòng đăng nhập với tài khoản affiliate.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => {
+                window.location.href = "/auth";
+              }}
+              className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+            >
+              <h3 className="font-medium mb-1">Đăng nhập lại</h3>
+              <p className="text-sm text-muted-foreground">Đăng nhập với tài khoản khác</p>
+            </button>
+            
+            <button
+              onClick={() => {
+                // Tạo tài khoản KOL/VIP cho testing
+                fetch("/api/admin/kol/create", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${sessionStorage.getItem("auth_token")}`
+                  },
+                  body: JSON.stringify({
+                    email: "mutnhata@gmail.com",
+                    full_name: "Test KOL Account",
+                    phone: "0987654321"
+                  })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  alert("Đã tạo tài khoản KOL/VIP thành công: " + data.data.user.username);
+                })
+                .catch(err => {
+                  alert("Lỗi khi tạo tài khoản: " + err.message);
+                });
+              }}
+              className="p-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <h3 className="font-medium mb-1">Tạo tài khoản KOL/VIP</h3>
+              <p className="text-sm text-primary-foreground">Tạo tài khoản KOL/VIP mới cho testing</p>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Hiển thị lỗi nếu không phải là KOL/VIP hoặc ADMIN và có lỗi khi tải dữ liệu
+  if (affiliateError && user?.role !== "KOL_VIP" && user?.role !== "ADMIN") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

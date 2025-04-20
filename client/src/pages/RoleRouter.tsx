@@ -67,7 +67,61 @@ export default function RoleRouter() {
   // Render dashboard tương ứng với vai trò
   console.log("RoleRouter: Rendering dashboard for role:", user.role);
   
-  if (user.role === "KOL_VIP") {
+  if (user.role === "ADMIN") {
+    // Hiển thị một trang quản trị hoặc một thông báo cho admin
+    return (
+      <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-bold text-primary mb-4">Trang quản trị Admin</h1>
+          <p className="text-gray-700 mb-6">
+            Bạn đã đăng nhập với tài khoản Admin. 
+            Sử dụng các API Admin để quản lý hệ thống.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => {
+                window.location.href = "/auth";
+              }}
+              className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+            >
+              <h3 className="font-medium mb-1">Đăng nhập lại</h3>
+              <p className="text-sm text-muted-foreground">Đăng nhập với tài khoản khác</p>
+            </button>
+            
+            <button
+              onClick={() => {
+                // Tạo tài khoản KOL/VIP cho testing
+                fetch("/api/admin/kol/create", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${sessionStorage.getItem("auth_token")}`
+                  },
+                  body: JSON.stringify({
+                    email: "mutnhata@gmail.com",
+                    full_name: "Test KOL Account",
+                    phone: "0987654321"
+                  })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  alert("Đã tạo tài khoản KOL/VIP thành công: " + data.data.user.username);
+                })
+                .catch(err => {
+                  alert("Lỗi khi tạo tài khoản: " + err.message);
+                });
+              }}
+              className="p-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <h3 className="font-medium mb-1">Tạo tài khoản KOL/VIP</h3>
+              <p className="text-sm text-primary-foreground">Tạo tài khoản KOL/VIP mới cho testing</p>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (user.role === "KOL_VIP") {
     return <KolDashboard />;
   } else {
     return <Dashboard />;

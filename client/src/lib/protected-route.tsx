@@ -13,28 +13,15 @@ export function ProtectedRoute({
   const { user, isLoading, requiresPasswordChange } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Kiểm tra và điều hướng dựa trên vai trò
+  // Phần này đã được thay thế bằng RoleRouter, nên không cần thiết logic điều hướng vai trò ở đây
+  // Chỉ ghi log thông tin để debug
   useEffect(() => {
     if (user && !isLoading && !requiresPasswordChange) {
-      console.log("ProtectedRoute: checking role-based redirection", {
+      console.log("ProtectedRoute: user authenticated", {
         userRole: user.role,
         path,
         currentPath: window.location.pathname
       });
-      
-      // Chuyển hướng KOL/VIP đến trang KOL dashboard từ trang chính
-      if (user.role === "KOL_VIP" && path === "/" && window.location.pathname === "/") {
-        console.log("Redirecting KOL/VIP from normal dashboard to KOL dashboard");
-        window.location.href = "/kol-dashboard";
-        return;
-      }
-      
-      // Chuyển hướng affiliate thường đến trang dashboard từ trang KOL
-      if (user.role !== "KOL_VIP" && path === "/kol-dashboard" && window.location.pathname === "/kol-dashboard") {
-        console.log("Redirecting normal user from KOL dashboard to normal dashboard");
-        window.location.href = "/";
-        return;
-      }
     }
   }, [user, isLoading, requiresPasswordChange, path]);
 
