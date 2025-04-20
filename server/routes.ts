@@ -290,7 +290,7 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
   }
   
   // Kiểm tra xem user có phải là ADMIN hay không
-  if (req.user.role === "ADMIN") {
+  if (req.user && req.user.role === "ADMIN") {
     console.log("DEV MODE: Admin user is accessing affiliate data - bypassing affiliate check");
     // Thiết lập một affiliate "giả" để tránh lỗi cho admin và không làm ảnh hưởng đến logic hiện tại
     req.affiliate = {
@@ -301,13 +301,14 @@ function ensureAffiliateMatchesUser(req: Request, res: Response, next: NextFunct
       email: req.user.username,
       phone: "",
       bank_name: "Admin Bank",
-      bank_account_number: "0000000000",
+      bank_account: "0000000000",  // Đảm bảo sử dụng đúng tên thuộc tính
       bank_account_name: "Administrator",
       is_active: 1,
       balance: 0,
       total_earned: 0,
       referred_customers: [],
       withdrawal_history: [],
+      total_contracts: 0,
       created_at: new Date()
     };
     return next();
@@ -480,11 +481,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Kiểm tra user đã được xác thực từ middleware
       if (req.user) {
         userId = req.user.id;
-        console.log(`Getting affiliate data for user ID: ${userId}`);
+        console.log(`Getting affiliate data for user ID: ${userId}, role: ${req.user.role}`);
         
         // Xử lý đặc biệt cho admin
         if (req.user.role === "ADMIN") {
           console.log("DEV MODE: Admin user is accessing affiliate data - creating dummy affiliate data");
+          
           // Trả về dữ liệu giả cho Admin để tránh lỗi
           const adminAffiliate = {
             id: 9999,
@@ -494,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: req.user.username,
             phone: "",
             bank_name: "Admin Bank",
-            bank_account_number: "0000000000",
+            bank_account: "0000000000",  // Đảm bảo tên thuộc tính đúng theo schema
             bank_account_name: "Administrator",
             is_active: 1,
             balance: 0,
