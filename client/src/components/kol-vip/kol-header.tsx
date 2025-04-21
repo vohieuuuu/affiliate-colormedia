@@ -37,28 +37,28 @@ export default function KolHeader() {
   };
 
   return (
-    <header className="bg-white border-b sticky top-0 z-10">
+    <header className="bg-gradient-to-r from-[#07ADB8]/10 to-[#FFC919]/5 border-b sticky top-0 z-10">
       <div className="container mx-auto flex justify-between items-center py-3">
         <Link href="/">
           <a className="flex items-center gap-2">
             <img src="/logo-color.png" alt="ColorMedia" className="h-8" />
-            <span className="text-lg font-bold text-primary">KOL/VIP Dashboard</span>
+            <span className="text-lg font-bold bg-gradient-to-r from-[#07ADB8] to-[#FFC919] bg-clip-text text-transparent">KOL/VIP Dashboard</span>
           </a>
         </Link>
         
         <div className="flex items-center gap-4">
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/kol-dashboard">
-              <a className="text-sm font-medium hover:text-primary transition-colors">Tổng quan</a>
+              <a className="text-sm font-medium hover:text-[#07ADB8] transition-colors">Tổng quan</a>
             </Link>
             <Link href="/kol-dashboard/withdrawal">
-              <a className="text-sm font-medium hover:text-primary transition-colors">Rút tiền</a>
+              <a className="text-sm font-medium hover:text-[#07ADB8] transition-colors">Rút tiền</a>
             </Link>
           </nav>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2 border-[#07ADB8] hover:bg-[#07ADB8]/10 text-[#07ADB8]">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline-block">{user?.username}</span>
                 <ChevronDown className="h-4 w-4" />

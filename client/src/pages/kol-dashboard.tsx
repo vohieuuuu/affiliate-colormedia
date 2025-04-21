@@ -388,29 +388,29 @@ const KolDashboard = () => {
       <div className="p-6 max-w-7xl mx-auto">
         <div className="flex flex-col space-y-6">
           {/* Thông tin cá nhân KOL */}
-          <Card className="border-0 shadow-lg overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5" style={{ zIndex: 0 }}></div>
+          <Card className="border-0 shadow-lg overflow-hidden bg-white">
+            <div className="absolute inset-0 bg-gradient-to-r from-[#07ADB8]/10 to-[#FFC919]/5" style={{ zIndex: 0 }}></div>
             <CardContent className="p-8 relative" style={{ zIndex: 10 }}>
               <div className="flex flex-col md:flex-row justify-between gap-6">
                 <div className="flex gap-5 items-center">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-primary to-blue-500 text-white shadow-md">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-[#07ADB8] to-[#FFC919] text-white shadow-md">
                     <UserCircle className="h-10 w-10" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">{kolInfo.full_name}</h2>
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-[#07ADB8] to-[#FFC919] bg-clip-text text-transparent">{kolInfo.full_name}</h2>
                     <div className="flex items-center gap-3 mt-2">
                       {kolInfo.level === "LEVEL_1" && (
-                        <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 px-3 py-1 text-sm shadow-sm">
+                        <Badge className="bg-gradient-to-r from-[#07ADB8] to-[#07ADB8]/80 text-white border-0 px-3 py-1 text-sm shadow-sm">
                           KOL/VIP - Fresher
                         </Badge>
                       )}
                       {kolInfo.level === "LEVEL_2" && (
-                        <Badge className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 px-3 py-1 text-sm shadow-sm">
+                        <Badge className="bg-gradient-to-r from-[#07ADB8] to-[#FFC919]/80 text-white border-0 px-3 py-1 text-sm shadow-sm">
                           KOL/VIP - Advanced
                         </Badge>
                       )}
                       {kolInfo.level === "LEVEL_3" && (
-                        <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0 px-3 py-1 text-sm shadow-sm">
+                        <Badge className="bg-gradient-to-r from-[#FFC919] to-[#FFC919]/80 text-white border-0 px-3 py-1 text-sm shadow-sm">
                           KOL/VIP - Elite
                         </Badge>
                       )}
@@ -448,7 +448,7 @@ const KolDashboard = () => {
                       <Calendar className="h-3 w-3 mr-1 inline-block" />
                       Tổng giá trị
                     </p>
-                    <p className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                    <p className="text-2xl font-bold bg-gradient-to-r from-[#07ADB8] to-[#FFC919] bg-clip-text text-transparent">
                       {formatCurrency(getTotalContractValue())}
                     </p>
                   </div>
@@ -462,14 +462,14 @@ const KolDashboard = () => {
             <TabsList className="grid w-full md:w-[400px] grid-cols-2 bg-white/60 backdrop-blur-sm shadow-sm rounded-lg relative" style={{ zIndex: 20 }}>
               <TabsTrigger 
                 value="contacts" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/80 data-[state=active]:to-blue-500/80 data-[state=active]:text-white pointer-events-auto"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#07ADB8] data-[state=active]:to-[#FFC919] data-[state=active]:text-white pointer-events-auto"
                 style={{ pointerEvents: 'auto' }}
               >
                 Danh sách liên hệ
               </TabsTrigger>
               <TabsTrigger 
                 value="kpi" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/80 data-[state=active]:to-blue-500/80 data-[state=active]:text-white pointer-events-auto"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#07ADB8] data-[state=active]:to-[#FFC919] data-[state=active]:text-white pointer-events-auto"
                 style={{ pointerEvents: 'auto' }}
               >
                 Theo dõi KPI
@@ -484,7 +484,7 @@ const KolDashboard = () => {
                   <Button
                     variant="outline"
                     onClick={() => setShowScanCardModal(true)}
-                    className="flex items-center gap-2 pointer-events-auto"
+                    className="flex items-center gap-2 pointer-events-auto border-[#07ADB8] hover:bg-[#07ADB8]/10 text-[#07ADB8]"
                     style={{ pointerEvents: 'auto' }}
                     type="button"
                   >
@@ -496,7 +496,7 @@ const KolDashboard = () => {
                       setExtractedContactData(null);
                       setShowAddContactModal(true);
                     }}
-                    className="flex items-center gap-2 pointer-events-auto"
+                    className="flex items-center gap-2 pointer-events-auto bg-gradient-to-r from-[#07ADB8] to-[#FFC919] hover:from-[#07ADB8]/90 hover:to-[#FFC919]/90"
                     style={{ pointerEvents: 'auto' }}
                     type="button"
                   >
@@ -635,7 +635,7 @@ const KolDashboard = () => {
                               </div>
                               <div className="space-y-2">
                                 <p className="text-sm text-muted-foreground">Lương cơ bản</p>
-                                <p className="font-medium bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                                <p className="font-medium bg-gradient-to-r from-[#07ADB8] to-[#FFC919] bg-clip-text text-transparent">
                                   {formatCurrency(
                                     kolInfo.level === "LEVEL_1" 
                                       ? 5000000 
@@ -649,15 +649,15 @@ const KolDashboard = () => {
                                 <p className="text-sm text-muted-foreground">Trạng thái</p>
                                 <div>
                                   {kpiStats?.current_month?.performance === "ACHIEVED" ? (
-                                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0">
+                                    <Badge className="bg-gradient-to-r from-[#07ADB8] to-[#07ADB8]/80 text-white border-0">
                                       Đã đạt KPI
                                     </Badge>
                                   ) : kpiStats?.current_month?.performance === "NOT_ACHIEVED" ? (
-                                    <Badge className="bg-gradient-to-r from-red-500 to-pink-600 text-white border-0">
+                                    <Badge className="bg-gradient-to-r from-[#FFC919] to-[#FFC919]/80 text-white border-0">
                                       Chưa đạt KPI
                                     </Badge>
                                   ) : (
-                                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0">
+                                    <Badge className="bg-gradient-to-r from-[#07ADB8]/60 to-[#FFC919]/60 text-white border-0">
                                       Đang tiến hành
                                     </Badge>
                                   )}
