@@ -603,6 +603,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const affiliate = await getAffiliateData();
       
       if (!affiliate) {
+        // Nếu người dùng là affiliate thường, tạo dữ liệu affiliate mặc định
+        if (isAffiliateRole(req.user)) {
+          console.log(`Creating default affiliate data for user ${userId} (${req.user.username})`);
+          
+          // Tạo một ID affiliate mới với định dạng AF + 4 chữ số
+          const affiliateId = `AF${String(userId).padStart(4, '0')}`;
+          
+          // Tạo dữ liệu affiliate mặc định
+          const newAffiliate = await storage.createAffiliate({
+            affiliate_id: affiliateId,
+            user_id: userId,
+            full_name: req.user.username.split('@')[0] || `Affiliate ${userId}`,
+            email: req.user.username,
+            phone: "0987654321",
+            bank_name: "VietcomBank",
+            bank_account: `1234567890`,
+            total_contracts: 0,
+            total_contacts: 0,
+            contract_value: 0,
+            received_balance: 0,
+            remaining_balance: 0,
+            paid_balance: 0,
+            referred_customers: [],
+            created_at: new Date().toISOString()
+          });
+          
+          return res.json({
+            status: "success",
+            data: sanitizeAffiliateData(newAffiliate)
+          });
+        }
+        
         return res.status(404).json({ 
           status: "error",
           error: {
