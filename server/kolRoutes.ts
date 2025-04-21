@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import type { IStorage } from "./storage";
-import { authenticateUser, detectSuspiciousWithdrawal } from "./routes";
+import { authenticateUser } from "./routes";
 import { KolContact, KolVipAffiliate, KolVipLevelType, MonthlyKpi, kolContacts, kolVipAffiliates, WithdrawalStatusType } from "@shared/schema";
 import { hashPassword, generateToken } from "./auth";
 import { db } from "./db";
@@ -887,6 +887,523 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Lỗi khi cập nhật level KOL/VIP"
+        }
+      });
+    }
+  });
+
+  // Middleware để phát hiện giao dịch rút tiền đáng ngờ cho KOL/VIP
+  const detectSuspiciousKolVipWithdrawal = (req: Request, res: Response, next: NextFunction) => {
+    const { amount } = req.body;
+    const userIP = req.ip;
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    // Kiểm tra xem có kolVip trong request không (phải được xác thực trước)
+    if (!req.kolVip) {
+      return next();
+    }
+    
+    const kolVip = req.kolVip;
+    
+    // Tính toán các yếu tố rủi ro
+    const amountValue = parseFloat(amount);
+    const isUnusualAmount = amountValue > 10000000; // 10 triệu VND
+    const isHighRatio = amountValue > kolVip.remaining_balance * 0.7; // Rút hơn 70% số dư
+    
+    // Lưu trữ thông tin kiểm tra
+    req.withdrawalRiskFactors = {
+      isUnusualAmount,
+      isHighRatio,
+      requireStrictVerification: isUnusualAmount || isHighRatio
+    };
+    
+    console.log(`KOL/VIP Withdrawal risk analysis for ${kolVip.affiliate_id}:`, req.withdrawalRiskFactors);
+    next();
+  };
+
+  // API endpoint to request withdrawal OTP for KOL/VIP
+  app.post("/api/kol/withdrawal-request/send-otp", authenticateUser, requireKolVip, detectSuspiciousKolVipWithdrawal, async (req: Request, res: Response) => {
+    try {
+      const { amount, note, tax_id } = req.body;
+      
+      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({ 
+          status: "error",
+          error: {
+            code: "INVALID_AMOUNT",
+            message: "Số tiền không hợp lệ"
+          }
+        });
+      }
+      
+      // Sử dụng kolVip từ middleware requireKolVip
+      if (!req.kolVip) {
+        return res.status(404).json({ 
+          status: "error",
+          error: {
+            code: "KOL_VIP_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP"
+          }
+        });
+      }
+      
+      // Tạo biến kolVip từ req.kolVip để tránh lỗi TypeScript
+      const kolVip = req.kolVip;
+      
+      if (parseFloat(amount) > kolVip.remaining_balance) {
+        return res.status(400).json({ 
+          status: "error",
+          error: {
+            code: "INSUFFICIENT_BALANCE",
+            message: `Số tiền rút vượt quá số dư hiện có: ${kolVip.remaining_balance.toLocaleString()} VND`
+          }
+        });
+      }
+      
+      // Kiểm tra giới hạn rút tiền trong ngày (được đặt lại vào 9:00 sáng mỗi ngày)
+      const amountValue = parseFloat(amount);
+      const dailyLimitCheck = await storage.checkDailyWithdrawalLimit(kolVip.affiliate_id, amountValue);
+      
+      if (dailyLimitCheck.exceeds) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "DAILY_LIMIT_EXCEEDED",
+            message: `Vượt quá giới hạn rút tiền trong ngày. Bạn đã rút ${dailyLimitCheck.totalWithdrawn.toLocaleString()} VND từ 9:00 sáng hôm nay. Số tiền còn có thể rút: ${dailyLimitCheck.remainingLimit.toLocaleString()} VND. Giới hạn sẽ được đặt lại vào 9:00 sáng ngày mai.`
+          }
+        });
+      }
+      
+      // Tính thuế TNCN 10% cho các khoản rút tiền trên 2 triệu VND
+      const originalAmount = parseFloat(amount);
+      let taxAmount = 0;
+      let netAmount = originalAmount;
+      let hasTax = false;
+      
+      const INCOME_TAX_THRESHOLD = 2000000; // 2 triệu VND
+      const INCOME_TAX_RATE = 0.1; // 10%
+      
+      if (originalAmount > INCOME_TAX_THRESHOLD) {
+        taxAmount = originalAmount * INCOME_TAX_RATE;
+        netAmount = originalAmount - taxAmount;
+        hasTax = true;
+      }
+      
+      // Lưu thông tin request tạm thời vào session hoặc cache
+      const withdrawalData = {
+        user_id: kolVip.affiliate_id,
+        full_name: kolVip.full_name,
+        email: kolVip.email,
+        phone: kolVip.phone,
+        bank_account: kolVip.bank_account,
+        bank_name: kolVip.bank_name,
+        tax_id: tax_id || "", // Thêm MST cá nhân (nếu có)
+        amount_requested: originalAmount,
+        amount_after_tax: netAmount,
+        tax_amount: taxAmount,
+        has_tax: hasTax,
+        tax_rate: INCOME_TAX_RATE,
+        note: note || "",
+        request_time: new Date().toISOString()
+      };
+      
+      // Khởi tạo OTP
+      if (!req.user) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Phiên đăng nhập của bạn đã hết hạn"
+          }
+        });
+      }
+      
+      // Tạo OTP cho user
+      const otpCode = await storage.createOtp(req.user.id, "withdrawal");
+      
+      // Gửi email OTP
+      try {
+        await sendOtpVerificationEmail(kolVip.email, kolVip.full_name, otpCode, req.user.id);
+        console.log(`OTP sent to ${kolVip.email} for withdrawal verification`);
+      } catch (emailError) {
+        console.error("Failed to send OTP email:", emailError);
+        return res.status(500).json({
+          status: "error",
+          error: {
+            code: "EMAIL_SEND_FAILED",
+            message: "Không thể gửi email xác thực OTP"
+          }
+        });
+      }
+      
+      // Lưu thông tin withdrawal_data vào cache hoặc session
+      // (ở đây ta giả định dữ liệu được lưu giữ ở server qua OTP)
+      
+      res.status(200).json({
+        status: "success",
+        data: {
+          message: "Mã OTP đã được gửi đến email của bạn",
+          withdrawal_info: {
+            amount: originalAmount,
+            tax_amount: taxAmount,
+            amount_after_tax: netAmount,
+            has_tax: hasTax,
+            bank_account: kolVip.bank_account,
+            bank_name: kolVip.bank_name
+          },
+          expires_in: "5 minutes" // OTP hết hạn sau 5 phút
+        }
+      });
+    } catch (error) {
+      console.error("Error requesting withdrawal OTP for KOL/VIP:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi xử lý yêu cầu rút tiền"
+        }
+      });
+    }
+  });
+  
+  // API endpoint to verify OTP and process withdrawal for KOL/VIP
+  app.post("/api/kol/withdrawal-request/verify", authenticateUser, requireKolVip, async (req: Request, res: Response) => {
+    try {
+      const { otp, amount, note, tax_id } = req.body;
+      
+      if (!otp || !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_INPUT",
+            message: "Mã OTP và số tiền rút là bắt buộc"
+          }
+        });
+      }
+      
+      // Kiểm tra KOL/VIP
+      if (!req.kolVip) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "KOL_VIP_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP"
+          }
+        });
+      }
+      
+      const kolVip = req.kolVip;
+      
+      // Xác thực OTP
+      if (!req.user) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Phiên đăng nhập của bạn đã hết hạn"
+          }
+        });
+      }
+      
+      const otpValid = await storage.verifyOtp(req.user.id, otp, "withdrawal");
+      
+      if (!otpValid) {
+        // Tăng số lần thử OTP
+        const attempts = await storage.increaseOtpAttempt(req.user.id, otp);
+        
+        // Nếu sai quá 5 lần, vô hiệu hóa OTP
+        if (attempts >= 5) {
+          await storage.invalidateOtp(req.user.id, otp);
+          return res.status(400).json({
+            status: "error",
+            error: {
+              code: "OTP_ATTEMPTS_EXCEEDED",
+              message: "Bạn đã nhập sai OTP quá nhiều lần. Vui lòng yêu cầu mã OTP mới."
+            }
+          });
+        }
+        
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_OTP",
+            message: `Mã OTP không hợp lệ. Bạn còn ${5 - attempts} lần thử.`
+          }
+        });
+      }
+      
+      // Tính thuế TNCN 10% cho các khoản rút tiền trên 2 triệu VND
+      const originalAmount = parseFloat(amount);
+      let taxAmount = 0;
+      let netAmount = originalAmount;
+      let hasTax = false;
+      
+      const INCOME_TAX_THRESHOLD = 2000000; // 2 triệu VND
+      const INCOME_TAX_RATE = 0.1; // 10%
+      
+      if (originalAmount > INCOME_TAX_THRESHOLD) {
+        taxAmount = originalAmount * INCOME_TAX_RATE;
+        netAmount = originalAmount - taxAmount;
+        hasTax = true;
+      }
+      
+      // Tạo dữ liệu yêu cầu rút tiền
+      const withdrawalRequest = {
+        user_id: kolVip.affiliate_id,
+        full_name: kolVip.full_name,
+        email: kolVip.email,
+        phone: kolVip.phone,
+        bank_account: kolVip.bank_account,
+        bank_name: kolVip.bank_name,
+        tax_id: tax_id || "", // Thêm MST cá nhân (nếu có)
+        amount_requested: originalAmount,
+        amount_after_tax: netAmount,
+        tax_amount: taxAmount,
+        has_tax: hasTax,
+        tax_rate: INCOME_TAX_RATE,
+        note: note || "",
+        request_time: new Date().toISOString()
+      };
+      
+      // Xử lý yêu cầu rút tiền trong database
+      await storage.addWithdrawalRequest({
+        ...withdrawalRequest,
+        user_type: "KOL_VIP" // Thêm trường user_type để phân biệt
+      });
+      
+      // Vô hiệu hóa OTP đã sử dụng
+      await storage.invalidateOtp(req.user.id, otp);
+      
+      // Lấy thông tin KOL/VIP mới nhất sau khi xử lý
+      const updatedKolVip = await storage.getKolVipAffiliateByAffiliateId(kolVip.affiliate_id);
+      
+      if (!updatedKolVip) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "KOL_VIP_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP sau khi xử lý"
+          }
+        });
+      }
+      
+      // Webhook gửi thông báo rút tiền (nếu cần)
+      try {
+        const webhookUrls = [
+          "https://auto.autogptvn.com/webhook-test/yeu-cau-thanh-toan-affilate",
+          "https://auto.autogptvn.com/webhook/yeu-cau-thanh-toan-affilate"
+        ];
+        
+        // Chuẩn bị payload webhook
+        const webhookPayload = {
+          affiliate_id: kolVip.affiliate_id,
+          full_name: kolVip.full_name,
+          email: kolVip.email,
+          phone: kolVip.phone,
+          bank_account: kolVip.bank_account,
+          bank_name: kolVip.bank_name,
+          tax_id: tax_id || "",
+          amount_requested: originalAmount,
+          amount_after_tax: netAmount,
+          tax_amount: taxAmount,
+          has_tax: hasTax,
+          note: note || "",
+          request_time: withdrawalRequest.request_time,
+          type: "KOL_VIP"
+        };
+        
+        // Gửi webhook không đồng bộ
+        Promise.all(webhookUrls.map(url => 
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(webhookPayload),
+          })
+          .then(response => {
+            console.log(`Webhook sent to ${url}, status: ${response.status}`);
+            return response;
+          })
+          .catch(error => {
+            console.error(`Error sending webhook to ${url}:`, error);
+            return null;
+          })
+        )).then(results => {
+          const successCount = results.filter(res => res && res.ok).length;
+          console.log(`Successfully sent webhooks to ${successCount}/${webhookUrls.length} endpoints`);
+        });
+      } catch (webhookError) {
+        console.error("Failed to send withdrawal webhook:", webhookError);
+      }
+      
+      // Trả về kết quả thành công
+      res.status(200).json({
+        status: "success",
+        data: {
+          message: "Yêu cầu rút tiền đã được xử lý thành công",
+          withdrawal_request: {
+            affiliate_id: kolVip.affiliate_id,
+            amount: originalAmount,
+            tax_amount: taxAmount,
+            amount_after_tax: netAmount,
+            has_tax: hasTax,
+            request_time: withdrawalRequest.request_time,
+            status: "Pending"
+          },
+          kolVip: updatedKolVip
+        }
+      });
+    } catch (error) {
+      console.error("Error processing KOL/VIP withdrawal:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Lỗi khi xử lý yêu cầu rút tiền"
+        }
+      });
+    }
+  });
+  
+  // API endpoint to update withdrawal status (Admin only)
+  app.post("/api/admin/kol/:affiliateId/withdrawal/:requestTime/status", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      // Kiểm tra quyền admin
+      if (!req.user || req.user.role !== "ADMIN") {
+        return res.status(403).json({
+          status: "error",
+          error: {
+            code: "FORBIDDEN",
+            message: "Bạn không có quyền cập nhật trạng thái yêu cầu rút tiền"
+          }
+        });
+      }
+      
+      const { affiliateId, requestTime } = req.params;
+      const { status, note } = req.body;
+      
+      if (!affiliateId || !requestTime || !status) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_INPUT",
+            message: "Thiếu thông tin cần thiết để cập nhật trạng thái"
+          }
+        });
+      }
+      
+      // Xác thực trạng thái hợp lệ
+      const validStatuses: WithdrawalStatusType[] = ["Pending", "Processing", "Completed", "Rejected", "Cancelled"];
+      if (!validStatuses.includes(status as WithdrawalStatusType)) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_STATUS",
+            message: "Trạng thái không hợp lệ"
+          }
+        });
+      }
+      
+      // Cập nhật trạng thái yêu cầu rút tiền
+      const updatedWithdrawal = await storage.updateWithdrawalStatus(
+        affiliateId,
+        requestTime,
+        status as WithdrawalStatusType
+      );
+      
+      if (!updatedWithdrawal) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "WITHDRAWAL_NOT_FOUND",
+            message: "Không tìm thấy yêu cầu rút tiền"
+          }
+        });
+      }
+      
+      // Gửi webhook khi cập nhật trạng thái (nếu cần)
+      try {
+        const webhookUrls = [
+          "https://auto.autogptvn.com/webhook-test/cap-nhat-trang-thai-rut-tien",
+          "https://auto.autogptvn.com/webhook/cap-nhat-trang-thai-rut-tien"
+        ];
+        
+        // Tìm KOL/VIP để lấy thông tin đầy đủ
+        const kolVipData = await storage.getKolVipAffiliateByAffiliateId(affiliateId);
+        
+        const webhookPayload = {
+          affiliate_id: affiliateId,
+          full_name: kolVipData?.full_name || "Unknown",
+          email: kolVipData?.email || "Unknown",
+          amount_requested: updatedWithdrawal.amount,
+          request_time: requestTime,
+          previous_status: req.body.previous_status || "Pending",
+          new_status: status,
+          updated_by: req.user?.username || "admin",
+          updated_at: new Date().toISOString(),
+          note: note || "",
+          type: "KOL_VIP"
+        };
+        
+        // Gửi webhook không đồng bộ tới tất cả các URL
+        Promise.all(webhookUrls.map(url => 
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(webhookPayload),
+          })
+          .then(webhookRes => {
+            console.log(`Status update webhook sent to ${url}, status:`, webhookRes.status);
+            return webhookRes;
+          })
+          .catch(webhookErr => {
+            console.error(`Error sending status update webhook to ${url}:`, webhookErr);
+            return null;
+          })
+        )).then(results => {
+          const successCount = results.filter(res => res && res.ok).length;
+          console.log(`Successfully sent status update webhooks to ${successCount}/${webhookUrls.length} endpoints`);
+        });
+      } catch (webhookError) {
+        console.error("Failed to send status update webhook for KOL/VIP:", webhookError);
+      }
+      
+      // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
+      const kolVipData = await storage.getKolVipAffiliateByAffiliateId(affiliateId);
+      
+      res.status(200).json({
+        status: "success",
+        data: {
+          message: `Trạng thái yêu cầu rút tiền đã được cập nhật thành ${status}`,
+          withdrawal: {
+            affiliate_id: affiliateId,
+            full_name: kolVipData?.full_name || "Unknown",
+            amount: updatedWithdrawal.amount,
+            request_time: requestTime,
+            status: updatedWithdrawal.status,
+            updated_at: new Date().toISOString()
+          },
+          // Thêm thông tin cập nhật về số dư để frontend biết
+          balance_update: {
+            remaining_balance: kolVipData?.remaining_balance || 0,
+            received_balance: kolVipData?.received_balance || 0,
+            paid_balance: kolVipData?.paid_balance || 0
+          },
+          // Thêm trạng thái mới của KOL/VIP để frontend có thể cập nhật toàn bộ dữ liệu nếu cần
+          kolVip: kolVipData
+        }
+      });
+    } catch (error) {
+      console.error("Error updating KOL/VIP withdrawal status:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi cập nhật trạng thái yêu cầu rút tiền",
+          details: error instanceof Error ? error.message : "Unknown error"
         }
       });
     }
