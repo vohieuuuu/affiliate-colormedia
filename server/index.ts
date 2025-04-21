@@ -90,7 +90,7 @@ app.use((req, res, next) => {
       // Import các module cần thiết cho xác thực với database
       const authModule = await import("./auth");
       const dbModule = await import("./db");
-      log("Using database authentication in production");
+      log("Using database authentication in production mode");
       authModule.setupAuthRoutes(app, dbModule.db);
     } catch (error) {
       console.error("Failed to set up database authentication routes:", error);
