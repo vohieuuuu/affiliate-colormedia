@@ -477,13 +477,13 @@ export function setupAuthRoutes(app: any, db: any) {
       }
 
       // Log token cho mục đích debug
-      console.log(`Checking token (first 10 chars): ${token.substring(0, 10)}...`);
+      console.log("Checking token: [SECURED]");
       
       // Tìm người dùng theo token
       const [user] = await db.select().from(users).where(eq(users.token, token));
 
       if (!user) {
-        console.log(`Invalid token: ${token.substring(0, 10)}...`);
+        console.log("Invalid token: [SECURED]");
         return res.status(401).json({
           status: "error",
           error: {
