@@ -81,14 +81,22 @@ export async function createUserForAffiliate(
   fullName: string,
   role = "AFFILIATE"
 ): Promise<{ user: User; password: string }> {
+  // Thêm người dùng mới vào cơ sở dữ liệu
+  const { insertUserSchema, users } = await import("@shared/schema");
+  const { eq } = await import("drizzle-orm");
+
+  // Kiểm tra xem email đã tồn tại chưa
+  const [existingUser] = await db.select().from(users).where(eq(users.username, email));
+  
+  if (existingUser) {
+    throw new Error(`User with email ${email} already exists`);
+  }
+  
   // Mã hóa mật khẩu mặc định
   const hashedPassword = await hashPassword(DEFAULT_PASSWORD);
 
   // Tạo token xác thực ngẫu nhiên
   const token = generateToken();
-
-  // Thêm người dùng mới vào cơ sở dữ liệu
-  const { insertUserSchema, users } = await import("@shared/schema");
 
   const userData = insertUserSchema.parse({
     username: email,
