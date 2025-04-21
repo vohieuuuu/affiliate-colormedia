@@ -55,7 +55,7 @@ function AuthenticatedRoutes() {
   }
   
   // 2. Kiểm tra nếu người dùng chưa đăng nhập và đang cố truy cập route yêu cầu xác thực
-  // Chuyển hướng ngay lập tức đến trang đăng nhập nếu chưa xác thực
+  // Ưu tiên cao nhất: Nếu chưa đăng nhập, luôn chuyển hướng về trang đăng nhập
   if (!user && !publicRoutes.includes(location)) {
     console.log("AuthenticatedRoutes: No user and trying to access protected route, redirecting to /auth");
     return <Redirect to="/auth" />;
@@ -67,11 +67,17 @@ function AuthenticatedRoutes() {
     return <Redirect to="/change-password" />;
   }
   
-  // 4. Kiểm tra nếu đã đăng nhập nhưng chưa chọn chế độ và đang cố truy cập trang chính
-  // Chỉ áp dụng cho trang chủ (/) vì các trang khác sẽ được bảo vệ bởi các ProtectedRoute
-  const isRootPath = location === "/";
+  // 4. Nếu đã đăng nhập nhưng chưa chọn chế độ, chuyển đến trang chọn chế độ
+  // Lưu ý: Áp dụng cho tất cả các trang NGOẠI TRỪ các trang đặc biệt không cần chọn chế độ
+  const skipModeCheckRoutes = [
+    "/select-mode", 
+    "/auth", 
+    "/change-password", 
+    "/unauthorized",
+    ...specialRoutes
+  ];
   
-  if (user && !requiresPasswordChange && !selectedMode && isRootPath) {
+  if (user && !requiresPasswordChange && !selectedMode && !skipModeCheckRoutes.includes(location)) {
     console.log("AuthenticatedRoutes: Mode selection required, redirecting to /select-mode");
     return <Redirect to="/select-mode" />;
   }

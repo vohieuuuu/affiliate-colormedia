@@ -10,7 +10,7 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { user, isLoading, requiresPasswordChange } = useAuth();
+  const { user, isLoading, requiresPasswordChange, selectedMode } = useAuth();
   const [, setLocation] = useLocation();
 
   // Phần này đã được thay thế bằng RoleRouter, nên không cần thiết logic điều hướng vai trò ở đây
@@ -20,10 +20,11 @@ export function ProtectedRoute({
       console.log("ProtectedRoute: user authenticated", {
         userRole: user.role,
         path,
-        currentPath: window.location.pathname
+        currentPath: window.location.pathname,
+        mode: selectedMode
       });
     }
-  }, [user, isLoading, requiresPasswordChange, path]);
+  }, [user, isLoading, requiresPasswordChange, path, selectedMode]);
 
   // Hiển thị trạng thái đang tải trong quá trình kiểm tra xác thực
   if (isLoading) {
@@ -37,7 +38,7 @@ export function ProtectedRoute({
     );
   }
 
-  // Nếu người dùng không được xác thực, chuyển hướng đến trang đăng nhập
+  // Ưu tiên #1: Nếu người dùng không được xác thực, chuyển hướng đến trang đăng nhập
   if (!user) {
     console.log("ProtectedRoute: User not authenticated, redirecting to auth for path:", path);
     return (
@@ -47,12 +48,24 @@ export function ProtectedRoute({
     );
   }
 
-  // Nếu người dùng cần đổi mật khẩu và đang không ở trang đổi mật khẩu, 
+  // Ưu tiên #2: Nếu người dùng cần đổi mật khẩu và đang không ở trang đổi mật khẩu, 
   // chuyển hướng đến trang đổi mật khẩu
   if (requiresPasswordChange && path !== "/change-password") {
     return (
       <Route path={path}>
         <Redirect to="/change-password" />
+      </Route>
+    );
+  }
+  
+  // Ưu tiên #3: Nếu người dùng chưa chọn chế độ và không phải đang ở các trang đặc biệt,
+  // chuyển hướng đến trang chọn chế độ
+  const skipModeCheckRoutes = ["/select-mode", "/change-password", "/unauthorized"];
+  if (!requiresPasswordChange && !selectedMode && !skipModeCheckRoutes.includes(path)) {
+    console.log("ProtectedRoute: Mode selection required for path:", path);
+    return (
+      <Route path={path}>
+        <Redirect to="/select-mode" />
       </Route>
     );
   }
