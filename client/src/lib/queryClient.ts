@@ -21,9 +21,21 @@ export async function apiRequest(
   // Sử dụng token từ session storage hoặc localStorage nếu có, nếu không sử dụng API_TOKEN mặc định
   let authToken = API_TOKEN;
   if (typeof window !== 'undefined') {
-    authToken = sessionStorage.getItem("auth_token") || 
-                localStorage.getItem("auth_token") || 
-                API_TOKEN;
+    const sessionToken = sessionStorage.getItem("auth_token");
+    const localToken = localStorage.getItem("auth_token");
+    
+    // Log thông tin token để debug - giới hạn thông tin để tránh log quá nhiều
+    if (url.includes("/auth")) {
+      console.log("Token status in apiRequest:", { 
+        hasSessionToken: !!sessionToken, 
+        hasLocalToken: !!localToken,
+        method,
+        url
+      });
+    }
+    
+    // Ưu tiên sử dụng token từ sessionStorage trước
+    authToken = sessionToken || localToken || API_TOKEN;
   }
   
   headers["Authorization"] = `Bearer ${authToken}`;
@@ -37,6 +49,10 @@ export async function apiRequest(
   const fullUrl = API_URL ? `${API_URL}${url}` : url;
   
   console.log(`API Request: ${method} ${url} with token: ${authToken ? "Present" : "Missing"}`);
+  // Thêm log chi tiết về token để debug
+  if (authToken) {
+    console.log(`Token (first 10 chars): ${authToken.substring(0, 10)}...`);
+  }
   
   try {
     const res = await fetch(fullUrl, {
@@ -68,14 +84,26 @@ export const getQueryFn: <T>(options: {
     // Sử dụng token từ session storage hoặc localStorage nếu có, nếu không sử dụng API_TOKEN mặc định
     let authToken = API_TOKEN;
     if (typeof window !== 'undefined') {
-      authToken = sessionStorage.getItem("auth_token") || 
-                  localStorage.getItem("auth_token") || 
-                  API_TOKEN;
+      const sessionToken = sessionStorage.getItem("auth_token");
+      const localToken = localStorage.getItem("auth_token");
+      
+      // Log thông tin token để debug
+      console.log("Token status in getQueryFn:", { 
+        hasSessionToken: !!sessionToken, 
+        hasLocalToken: !!localToken,
+        url: queryKey[0]
+      });
+      
+      // Ưu tiên sử dụng token từ sessionStorage trước
+      authToken = sessionToken || localToken || API_TOKEN;
     }
     
     // Cần chuyển đổi URL cho môi trường production
     const url = queryKey[0] as string;
     const fullUrl = API_URL ? `${API_URL}${url}` : url;
+    
+    // Thêm log chi tiết về token được sử dụng trong query
+    console.log(`Query - ${url}: Using token (first 10 chars): ${authToken.substring(0, 10)}...`);
     
     const res = await fetch(fullUrl, {
       credentials: "include",
