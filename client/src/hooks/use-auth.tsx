@@ -18,17 +18,27 @@ import {
 // Định nghĩa kiểu dữ liệu cho chế độ được chọn
 export type SelectedMode = 'normal' | 'kol' | null;
 
-// Định nghĩa kiểu dữ liệu cho user
-interface User {
+// Định nghĩa kiểu dữ liệu cho API response
+interface ApiResponse<T> {
+  status: string;
+  data: T;
+}
+
+// Định nghĩa kiểu dữ liệu cho user từ API
+interface ApiUser {
   id: number;
   username: string;
   role: string;
   is_first_login?: boolean;
+}
+
+// Định nghĩa kiểu dữ liệu cho user với thông tin bổ sung
+interface User extends ApiUser {
   // Các thuộc tính bổ sung để xác định vai trò
-  isAdmin?: boolean;
-  isKolVip?: boolean;
-  isAffiliate?: boolean;
-  dashboardRoute?: string;
+  isAdmin: boolean;
+  isKolVip: boolean;
+  isAffiliate: boolean;
+  dashboardRoute: string;
 }
 
 // Định nghĩa kiểu dữ liệu phản hồi từ API đăng nhập
@@ -93,32 +103,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     data: userRaw,
     error,
     isLoading,
-  } = useQuery<User | null, Error>({
+  } = useQuery<ApiResponse<{user: ApiUser}> | ApiUser | null, Error>({
     queryKey: ["/api/auth/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
   // Xử lý cấu trúc phản hồi từ API
-  const userData = userRaw && userRaw.status === "success" && userRaw.data?.user 
-    ? userRaw.data.user 
-    : userRaw;
+  let apiUser: ApiUser | null = null;
+  
+  if (userRaw) {
+    if (typeof userRaw === 'object' && 'status' in userRaw && userRaw.status === "success" 
+      && 'data' in userRaw && userRaw.data && typeof userRaw.data === 'object' && 'user' in userRaw.data) {
+      // Nếu là cấu trúc phản hồi API
+      apiUser = userRaw.data.user;
+    } else if ('id' in userRaw && 'username' in userRaw && 'role' in userRaw) {
+      // Nếu là trực tiếp thông tin user
+      apiUser = userRaw as ApiUser;
+    }
+  }
   
   // Bổ sung thông tin vai trò cho user
-  const user = userData ? {
-    ...userData,
+  const user = apiUser ? {
+    ...apiUser,
     // Sử dụng includes trực tiếp thay vì gọi các hàm để đảm bảo tính nhất quán
-    isAdmin: userData.role ? String(userData.role).toUpperCase().includes("ADMIN") : false,
-    isKolVip: userData.role ? String(userData.role).toUpperCase().includes("KOL") : false,
-    isAffiliate: userData.role ? String(userData.role).toUpperCase().includes("AFFILIATE") : false,
-    dashboardRoute: getDashboardForRole(userData)
+    isAdmin: apiUser.role ? String(apiUser.role).toUpperCase().includes("ADMIN") : false,
+    isKolVip: apiUser.role ? String(apiUser.role).toUpperCase().includes("KOL") : false,
+    isAffiliate: apiUser.role ? String(apiUser.role).toUpperCase().includes("AFFILIATE") : false,
+    dashboardRoute: getDashboardForRole(apiUser)
   } : null;
   
   // Log thông tin vai trò để debug
-  if (userData) {
+  if (apiUser) {
     console.log("useAuth: User role processing", {
-      userData: userData,
-      rawRole: userData.role,
-      normalizedRole: userData.role ? String(userData.role).toUpperCase() : "",
+      userData: apiUser,
+      rawRole: apiUser.role,
+      normalizedRole: apiUser.role ? String(apiUser.role).toUpperCase() : "",
       isAdmin: user?.isAdmin,
       isKolVip: user?.isKolVip,
       isAffiliate: user?.isAffiliate

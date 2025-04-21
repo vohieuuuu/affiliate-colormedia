@@ -53,7 +53,7 @@ const ROLE_ROUTES = {
  * @param user Thông tin người dùng
  * @returns true nếu là admin, ngược lại false
  */
-export function isAdminRole(user?: User | null): boolean {
+export function isAdminRole(user?: any | null): boolean {
   if (!user) return false;
   
   // Chuẩn hóa cả role người dùng và giá trị ADMIN_ROLE thành cùng một định dạng
@@ -77,7 +77,7 @@ export function isAdminRole(user?: User | null): boolean {
  * @param user Thông tin người dùng
  * @returns true nếu là KOL/VIP, ngược lại false
  */
-export function isKolVipRole(user?: User | null): boolean {
+export function isKolVipRole(user?: any | null): boolean {
   if (!user) return false;
   
   // Chuẩn hóa cả role người dùng và giá trị KOL_VIP_ROLE thành cùng một định dạng
@@ -101,7 +101,7 @@ export function isKolVipRole(user?: User | null): boolean {
  * @param user Thông tin người dùng
  * @returns true nếu là Affiliate, ngược lại false
  */
-export function isAffiliateRole(user?: User | null): boolean {
+export function isAffiliateRole(user?: any | null): boolean {
   if (!user) return false;
   
   // Chuẩn hóa cả role người dùng và giá trị AFFILIATE_ROLE thành cùng một định dạng
@@ -126,7 +126,7 @@ export function isAffiliateRole(user?: User | null): boolean {
  * @param apiType Loại API cần lấy
  * @returns API endpoint tương ứng hoặc undefined nếu không tìm thấy
  */
-export function getApiForRole(user: User | null, apiType: string): string | undefined {
+export function getApiForRole(user: any | null, apiType: string): string | undefined {
   if (!user) return undefined;
   
   // Chuẩn hóa role thành chữ hoa
@@ -155,7 +155,7 @@ export function getApiForRole(user: User | null, apiType: string): string | unde
  * @param user Thông tin người dùng
  * @returns Route tương ứng hoặc '/dashboard' nếu không tìm thấy
  */
-export function getDashboardForRole(user: User | null): string {
+export function getDashboardForRole(user: any | null): string {
   if (!user) return '/auth';
   
   // Chuẩn hóa role thành chữ hoa
@@ -185,7 +185,7 @@ export function getDashboardForRole(user: User | null): string {
  * @param user Thông tin người dùng
  * @returns Thông tin người dùng với dữ liệu liên quan đến vai trò
  */
-export function prepareUserWithRoleData(user: User | null) {
+export function prepareUserWithRoleData(user: any | null) {
   if (!user) return null;
   
   // Chuẩn bị thông tin API endpoints và route dựa trên vai trò

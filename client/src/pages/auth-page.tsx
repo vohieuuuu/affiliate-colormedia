@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,11 +37,12 @@ export default function AuthPage() {
   });
   
   // Nếu người dùng đã đăng nhập, chuyển hướng đến trang phân quyền vai trò
-  if (user) {
-    // Sử dụng trang role-redirect để tự động chuyển hướng đúng vai trò
-    setLocation("/role-redirect");
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      // Sử dụng trang role-redirect để tự động chuyển hướng đúng vai trò
+      setLocation("/role-redirect");
+    }
+  }, [user, setLocation]);
   
   // Xử lý đăng nhập
   const handleLogin = (values: z.infer<typeof loginSchema>) => {
