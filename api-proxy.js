@@ -47,13 +47,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Enable CORS với cấu hình nghiêm ngặt
+// Enable CORS với cấu hình phù hợp
 app.use(cors({
+  // Trong môi trường development, chấp nhận tất cả nguồn
+  // Trong môi trường production, chỉ chấp nhận từ domain chính thức
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://affclm.replit.app'] 
-    : ['http://localhost:5000'],
+    : true,  // Chấp nhận tất cả các origin trong môi trường phát triển
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  credentials: true  // Quan trọng: cho phép cookies trong cross-origin requests
 }));
 
 // Khởi tạo cookie-parser để đọc cookies
@@ -83,18 +85,31 @@ app.get('/api/check', (req, res) => {
 
 // Middleware để xử lý Cookie và token
 const extractToken = (req, res, next) => {
-  // Lấy token từ Authorization header hoặc cookie
+  // Lấy token từ cookie (ưu tiên) hoặc Authorization header
   let token = null;
   
-  // 1. Kiểm tra header Authorization
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.substring(7);
+  // 1. Kiểm tra cookies (Ưu tiên sử dụng cookies đầu tiên)
+  if (req.cookies && req.cookies.auth_token) {
+    token = req.cookies.auth_token;
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Authenticating with token from cookie");
+    }
   }
   
-  // 2. Kiểm tra cookie
-  if (!token && req.cookies && req.cookies.auth_token) {
-    token = req.cookies.auth_token;
+  // 2. Nếu không có cookie, kiểm tra header Authorization (legacy)
+  const authHeader = req.headers.authorization;
+  if (!token && authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Authenticating with token from Authorization header");
+    }
+  }
+  
+  // Debug log
+  if (process.env.NODE_ENV === 'development' && req.url.includes('/api/auth') && !req.url.includes('/login')) {
+    console.log(`Request to ${req.url}: token ${token ? 'present' : 'not present'}`);
   }
   
   // Thêm token vào request object (không lộ token trong logs)
@@ -142,20 +157,82 @@ app.all('/api/*', async (req, res) => {
     });
     
     // Thiết lập Cookie HttpOnly cho token nếu là response đăng nhập thành công
-    if (req.url.includes('/api/auth/login') && response.status === 200 && response.data?.data?.token) {
+    if (req.url.includes('/api/auth/login') && response.status === 200) {
       // Lưu trữ token trong HttpOnly cookie
-      const token = response.data.data.token;
+      let token = null;
       
-      // Xóa token khỏi response data để không gửi về client
-      delete response.data.data.token;
+      // Kiểm tra và lấy token từ response (dựa vào cấu trúc data của API)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Login response structure:', JSON.stringify(response.data, null, 2));
+      }
       
-      // Thiết lập cookie chỉ có thể truy cập bởi server, không thể truy cập bởi JavaScript
-      res.cookie('auth_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000, // 1 ngày
-        sameSite: 'strict'
-      });
+      if (response.data?.data?.token) {
+        token = response.data.data.token;
+        // Xóa token khỏi response data để không gửi về client
+        delete response.data.data.token;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Found token in response.data.data.token');
+        }
+      } else if (response.data?.token) {
+        token = response.data.token;
+        // Xóa token khỏi response data để không gửi về client
+        delete response.data.token;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Found token in response.data.token');
+        }
+      } else if (typeof response.data === 'object' && response.data !== null) {
+        // Tìm kiếm token trong response object ở bất kỳ cấp độ nào
+        const findAndRemoveToken = (obj) => {
+          if (!obj || typeof obj !== 'object') return null;
+          
+          if (obj.token) {
+            const token = obj.token;
+            delete obj.token;
+            return token;
+          }
+          
+          for (const key in obj) {
+            if (obj[key] && typeof obj[key] === 'object') {
+              const found = findAndRemoveToken(obj[key]);
+              if (found) return found;
+            }
+          }
+          
+          return null;
+        };
+        
+        token = findAndRemoveToken(response.data);
+        
+        if (token && process.env.NODE_ENV === 'development') {
+          console.log('Found token in nested object');
+        }
+      }
+      
+      if (token) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Setting auth_token cookie after successful login');
+        }
+        
+        // Thiết lập cookie với các tùy chọn phù hợp cho môi trường phát triển
+        const cookieOptions = {
+          httpOnly: true,                                        // Bảo mật: JavaScript không thể đọc cookie
+          secure: process.env.NODE_ENV === 'production',         // Chỉ gửi qua HTTPS trong production
+          maxAge: 24 * 60 * 60 * 1000,                           // 1 ngày
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Lax là cần thiết cho dev
+          path: '/'                                              // Cookie sẽ được gửi cho mọi request
+        };
+        
+        res.cookie('auth_token', token, cookieOptions);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Cookie options:', cookieOptions);
+        }
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('Login response success but no token found in the response');
+        console.warn('Response structure:', JSON.stringify(response.data, null, 2));
+      }
     }
     
     // Xử lý đăng xuất: xóa cookie auth_token khi đăng xuất thành công
