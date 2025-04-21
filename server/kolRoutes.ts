@@ -1467,7 +1467,15 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
   app.post("/api/kol/:kolId/scan-card", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
     try {
       const { kolId } = req.params;
-      const { image_base64 } = req.body;
+      const { 
+        image_base64, 
+        contact_name, 
+        company, 
+        position, 
+        phone, 
+        email, 
+        note 
+      } = req.body;
 
       // Validate dữ liệu
       if (!image_base64) {
@@ -1480,28 +1488,59 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
 
-      // TODO: Tích hợp với OpenAI Vision API để nhận dạng thông tin từ card visit
-      
-      // Trả về kết quả giả lập trước mắt
-      const scannedData = {
-        contact_name: "Tên từ card visit",
-        company: "Tên công ty",
-        position: "Chức vụ",
-        phone: "0123456789",
-        email: "email@example.com"
+      // Nếu có dữ liệu từ form (trường hợp người dùng nhập thủ công)
+      if (contact_name && phone) {
+        // Tạo một liên hệ mới từ dữ liệu người dùng nhập
+        const contactData = {
+          kol_id: kolId,
+          contact_name,
+          company: company || null,
+          position: position || null,
+          phone,
+          email: email || null,
+          status: "Mới nhập" as CustomerStatusType,
+          note: note || null,
+          // Lưu ảnh card visit nếu có
+          image_url: image_base64 ? `data:image/jpeg;base64,${image_base64}` : null
+        };
+
+        // Thêm liên hệ mới vào cơ sở dữ liệu
+        const newContact = await storage.addKolVipContact(kolId, contactData);
+        console.log("Trực tiếp thêm contact mới cho KOL/VIP", kolId, "với dữ liệu:", contactData);
+
+        return res.status(201).json({
+          status: "success",
+          data: {
+            message: "Đã thêm liên hệ mới thành công",
+            contact: newContact
+          }
+        });
+      }
+
+      // Nếu chỉ có ảnh và không có dữ liệu từ form, trả về một kết quả trống để hiện form nhập thủ công
+      const emptyContactData = {
+        contact_name: "",
+        company: "",
+        position: "",
+        phone: "",
+        email: ""
       };
 
+      // Trả về dữ liệu trống để người dùng điền vào form
       res.status(200).json({
         status: "success",
-        data: scannedData
+        data: {
+          contact_data: emptyContactData,
+          message: "Vui lòng nhập thông tin liên hệ từ card visit"
+        }
       });
     } catch (error) {
-      console.error("Error scanning business card:", error);
+      console.error("Error processing business card:", error);
       res.status(500).json({
         status: "error",
         error: {
           code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi khi quét card visit"
+          message: "Lỗi khi xử lý card visit"
         }
       });
     }
