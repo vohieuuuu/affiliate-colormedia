@@ -165,22 +165,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  // Xử lý lỗi xác thực bằng cách kiểm tra error
+  // Xử lý lỗi xác thực và kiểm tra lỗi token
   useEffect(() => {
+    // Kiểm tra bất kỳ lỗi nào trong quá trình xác thực
     if (error) {
       console.error("Error fetching user data:", error);
       // Xóa bỏ thông tin token đã lưu nếu lỗi 401 hoặc lỗi khác
       if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
         console.log("Auth error detected, clearing session data");
-        if (typeof window !== 'undefined') {
-          sessionStorage.removeItem("auth_token");
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("selected_mode");
-          // Không tự động chuyển hướng để tránh vòng lặp
-        }
+        clearAuthData();
       }
     }
-  }, [error]);
+    
+    // Kiểm tra nếu quá trình tải hoàn tất mà không có user
+    if (!isLoading && !userRaw) {
+      console.log("Authentication check completed: No user found, clearing any stale tokens");
+      clearAuthData();
+    }
+  }, [error, isLoading, userRaw]);
+  
+  // Hàm xóa tất cả dữ liệu xác thực
+  const clearAuthData = () => {
+    if (typeof window !== 'undefined') {
+      console.log("Clearing all auth data");
+      sessionStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("selected_mode");
+      sessionStorage.removeItem("requires_password_change");
+    }
+  };
 
   // Mutation đăng nhập
   const loginMutation = useMutation<LoginResponse, Error, LoginData>({

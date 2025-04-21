@@ -44,7 +44,20 @@ function AuthenticatedRoutes() {
   // Tạo danh sách các routes đặc biệt
   const specialRoutes = ["/role-redirect"];
   
-  // 1. Đang tải dữ liệu: hiển thị trạng thái loading
+  // LUÔN KIỂM TRA XÁC THỰC TRƯỚC - quan trọng: ngay cả khi isLoading=true 
+  // Ưu tiên cao nhất: Nếu chưa đăng nhập, luôn chuyển hướng về trang đăng nhập
+  const isAuthenticated = !!user;
+  const isPublicRoute = publicRoutes.includes(location);
+  
+  console.log("Authentication check:", { isAuthenticated, isPublicRoute, isLoading, location });
+  
+  if (!isAuthenticated && !isPublicRoute) {
+    console.log("AuthenticatedRoutes: No user and trying to access protected route, redirecting to /auth");
+    return <Redirect to="/auth" />;
+  }
+  
+  // Nếu đang kiểm tra xác thực và route hiện tại không phải là route công khai,
+  // hiển thị trạng thái loading
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
@@ -52,13 +65,6 @@ function AuthenticatedRoutes() {
         <p className="text-muted-foreground">Đang tải thông tin...</p>
       </div>
     );
-  }
-  
-  // 2. Kiểm tra nếu người dùng chưa đăng nhập và đang cố truy cập route yêu cầu xác thực
-  // Ưu tiên cao nhất: Nếu chưa đăng nhập, luôn chuyển hướng về trang đăng nhập
-  if (!user && !publicRoutes.includes(location)) {
-    console.log("AuthenticatedRoutes: No user and trying to access protected route, redirecting to /auth");
-    return <Redirect to="/auth" />;
   }
   
   // 3. Kiểm tra nếu cần đổi mật khẩu
