@@ -58,9 +58,11 @@ function AuthenticatedRoutes() {
     return <Redirect to="/change-password" />;
   }
   
-  // 4. Nếu đã đăng nhập và không cần đổi mật khẩu nhưng chưa chọn chế độ và không đang ở trang chọn chế độ, chuyển đến trang chọn chế độ
-  if (user && !requiresPasswordChange && !selectedMode && location !== "/select-mode" && location !== "/auth") {
-    console.log("AuthenticatedRoutes: Mode selection required, redirecting");
+  // 4. Nếu đã đăng nhập và không cần đổi mật khẩu nhưng chưa chọn chế độ và không đang ở trang chọn chế độ
+  // hoặc trong các routes được bảo vệ
+  const protectedRoutes = ["/select-mode", "/auth", "/change-password", "/role-redirect"];
+  if (user && !requiresPasswordChange && !selectedMode && !protectedRoutes.includes(location)) {
+    console.log("AuthenticatedRoutes: Mode selection required, redirecting to select-mode");
     return <Redirect to="/select-mode" />;
   }
   

@@ -17,34 +17,17 @@ export default function SelectModePage() {
   const [, navigate] = useLocation();
   const { user, isLoading, selectedMode, selectMode } = useAuth();
 
-  // Kiểm tra xem người dùng đã đăng nhập chưa
+  // Kiểm tra xem người dùng đã đăng nhập chưa - sửa lại để tránh vòng lặp vô hạn
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Lấy token từ localStorage hoặc sessionStorage
-        const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
-        
-        if (!token) {
-          console.log("SelectModePage: No token found, redirecting to auth");
-          navigate("/auth", { replace: true });
-          return;
-        }
-        
-        // Nếu không có user và không đang tải dữ liệu, đồng nghĩa với việc token không hợp lệ
-        if (!isLoading && !user) {
-          console.log("SelectModePage: User not logged in, redirecting to auth");
-          // Xóa token không hợp lệ
-          localStorage.removeItem("auth_token");
-          sessionStorage.removeItem("auth_token");
-          navigate("/auth", { replace: true });
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
+    // Chỉ kiểm tra khi không còn đang tải dữ liệu
+    if (!isLoading) {
+      if (!user) {
+        console.log("SelectModePage: User not logged in after loading, redirecting to auth");
         navigate("/auth", { replace: true });
+      } else {
+        console.log("SelectModePage: User logged in successfully:", user.username);
       }
-    };
-    
-    checkAuth();
+    }
   }, [user, isLoading, navigate]);
 
   // Nếu đang tải dữ liệu HOẶC không có user, hiển thị loading

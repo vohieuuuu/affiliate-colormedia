@@ -36,13 +36,16 @@ export default function AuthPage() {
     }
   });
   
-  // Nếu người dùng đã đăng nhập, chuyển hướng đến trang phân quyền vai trò
-  useEffect(() => {
-    if (user) {
-      // Sử dụng trang role-redirect để tự động chuyển hướng đúng vai trò
-      setLocation("/role-redirect");
-    }
-  }, [user, setLocation]);
+  // Tạm thời bỏ qua chuyển hướng tự động để tránh vòng lặp vô hạn
+  // useEffect(() => {
+  //   if (user && location === "/auth") {
+  //     console.log("AuthPage: Redirecting authenticated user to role-redirect");
+  //     // Đặt timeout để tránh vòng lặp vô hạn
+  //     setTimeout(() => {
+  //       window.location.href = "/role-redirect";
+  //     }, 100);
+  //   }
+  // }, [user, location]);
   
   // Xử lý đăng nhập
   const handleLogin = (values: z.infer<typeof loginSchema>) => {
