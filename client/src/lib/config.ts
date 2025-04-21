@@ -10,5 +10,6 @@ export const API_URL = isProd
   ? 'https://affclm.replit.app' // URL production đã deployed
   : ''; // URL trống để sử dụng URL tương đối (base URL) trong môi trường development
 
-// Sử dụng token admin đúng cho môi trường phát triển
-export const DEFAULT_API_TOKEN = "1ee19664de4bcbd354400cfe0000078cac0618835772f112858183e5ec9b94dc";
+// Token mặc định khi chưa đăng nhập - được thiết lập thành chuỗi rỗng
+// API token sẽ hoàn toàn được quản lý qua cookies HttpOnly từ server
+export const DEFAULT_API_TOKEN = "";
