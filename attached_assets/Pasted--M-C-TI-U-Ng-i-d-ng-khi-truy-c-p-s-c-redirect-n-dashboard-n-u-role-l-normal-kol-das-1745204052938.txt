@@ -1,0 +1,110 @@
+🎯 MỤC TIÊU
+Người dùng khi truy cập / sẽ được redirect đến:
+
+/dashboard nếu role là normal
+
+/kol-dashboard nếu role là KOL hoặc VIP
+
+Không được redirect sớm khi dữ liệu user chưa sẵn sàng
+
+Đảm bảo user.role luôn cập nhật đúng, đặc biệt sau khi tạo tài khoản hoặc cập nhật
+
+🛠️ CẤU TRÚC TỔNG QUAN
+App.tsx: định nghĩa route / chuyển về RoleRouter
+
+RoleRouter.tsx: quyết định hướng đi dựa vào role
+
+use-auth.ts: hook dùng để lấy thông tin người dùng
+
+🧱 1. KHẮC PHỤC: RoleRouter.tsx (chi tiết từng dòng)
+tsx
+Copy
+Edit
+import { useEffect } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import LoadingSpinner from "@/components/ui/loading-spinner"; // Hiển thị loading trong lúc chờ user load
+
+export default function RoleRouter() {
+  const [, navigate] = useLocation();
+  const { user, isLoading } = useAuth(); // Nhận user và loading state
+
+  useEffect(() => {
+    // ✅ Nếu dữ liệu user chưa load xong, không redirect
+    if (isLoading) return;
+
+    // ❌ Nếu user null => chưa đăng nhập => chuyển về login
+    if (!user) {
+      navigate("/auth", { replace: true });
+    }
+
+    // ✅ Nếu role là kol/vip, chuyển về kol-dashboard
+    else if (user.role === "kol" || user.role === "vip") {
+      navigate("/kol-dashboard", { replace: true });
+    }
+
+    // ✅ Nếu là role bình thường, chuyển về dashboard
+    else {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  return <LoadingSpinner />; // Tránh hiển thị trắng trang khi đang load
+}
+📦 2. KHẮC PHỤC: use-auth.ts phải đảm bảo user luôn được cập nhật
+Nếu bạn dùng React Query:
+ts
+Copy
+Edit
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+
+export function useAuth() {
+  const {
+    data: user,
+    isLoading,
+    refetch,
+  } = useQuery(["current-user"], async () => {
+    const res = await axios.get("/api/me"); // API trả thông tin người dùng
+    return res.data;
+  }, {
+    staleTime: 0, // Luôn luôn fetch mới (hoặc bạn có thể đặt 1 phút)
+  });
+
+  return { user, isLoading, refetch };
+}
+✅ Quan trọng: Sau khi tạo user hoặc cập nhật role => bạn phải gọi refetch() để đảm bảo hook nhận được user mới với role mới.
+
+🧪 3. KHẮC PHỤC: Sau khi đăng ký hoặc tạo role KOL
+Ví dụ bạn tạo một user KOL/VIP xong:
+
+tsx
+Copy
+Edit
+const { refetch } = useAuth();
+
+await axios.post("/api/create-user", { name, role: "kol" });
+// Sau khi tạo, bạn cần cập nhật lại user đang đăng nhập
+await refetch(); // 🚨 Quan trọng: cập nhật lại thông tin user
+navigate("/"); // → Gọi lại RoleRouter → tự redirect đúng dashboard
+🧹 4. ĐẢM BẢO App.tsx ROUTING ĐÚNG ƯU TIÊN
+Cấu trúc App.tsx bạn hiện có là đúng rồi:
+
+tsx
+Copy
+Edit
+<ProtectedRoute path="/" component={RoleRouter} />
+<ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
+<ProtectedRoute path="/dashboard" component={Dashboard} />
+Đặt / trước các dashboard khác để RoleRouter bắt đầu điều hướng
+
+ProtectedRoute đảm bảo chỉ user đăng nhập mới vào được
+
+📋 Checklist debug:
+
+✅ Việc cần kiểm tra	Cách xử lý
+User role có đúng không?	console.log(user.role) trong RoleRouter
+Role bị cũ sau khi tạo user?	Gọi refetch() sau khi tạo xong
+Redirect sai lúc chưa có user?	Check isLoading === false mới xử lý
+Người dùng vẫn về /dashboard?	Kiểm tra role có phải "kol" hay "vip" (so sánh string đúng)
+Lỗi quay lại / rồi redirect lại?	Dùng replace: true để tránh lặp
