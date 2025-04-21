@@ -40,59 +40,98 @@ const KolDashboard = () => {
 
   // Lấy thông tin KOL hiện tại
   const {
-    data: kolInfo,
+    data: kolInfoResponse,
     isLoading: isLoadingKolInfo,
     error: kolInfoError,
   } = useQuery({
     queryKey: ["/api/kol/me"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/kol/me");
-      return await response.json() as KolVipAffiliate;
+      try {
+        console.log("Fetching KOL data from /api/kol/me");
+        const response = await apiRequest("GET", "/api/kol/me");
+        const data = await response.json();
+        console.log("Received KOL data:", data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching KOL data:", error);
+        // Nếu API /api/kol/me lỗi, thử lấy dữ liệu từ /api/affiliate
+        console.log("Fallback: Fetching affiliate data for KOL");
+        const affiliateResponse = await apiRequest("GET", "/api/affiliate");
+        const affiliateData = await affiliateResponse.json();
+        console.log("Received affiliate data for KOL:", affiliateData);
+        return { status: "success", data: affiliateData };
+      }
     },
-    enabled: !!(user && user.role === "KOL_VIP"), // Chỉ kích hoạt khi user đã tải và đúng là KOL/VIP
+    enabled: !!(user), // Bật cho mọi người dùng đã đăng nhập
   });
+  
+  // Xử lý dữ liệu KOL từ response
+  const kolInfo = kolInfoResponse?.status === "success" ? kolInfoResponse.data : kolInfoResponse;
 
-  // Lấy danh sách liên hệ của KOL
+  // Lấy danh sách liên hệ của KOL - sử dụng affiliate_id thay vì id
   const {
     data: contacts,
     isLoading: isLoadingContacts,
     error: contactsError,
   } = useQuery({
-    queryKey: ["/api/kol", kolInfo?.id, "contacts"],
+    queryKey: ["/api/kol", kolInfo?.affiliate_id, "contacts"],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/kol/${kolInfo?.id}/contacts`);
-      return await response.json() as KolContact[];
+      try {
+        console.log("Fetching contacts for KOL with affiliate_id:", kolInfo?.affiliate_id);
+        const response = await apiRequest("GET", `/api/kol/${kolInfo?.affiliate_id}/contacts`);
+        const data = await response.json();
+        console.log("Received contacts data:", data);
+        if (data.status === "success") {
+          return data.data;
+        }
+        return data;
+      } catch (error) {
+        console.error("Error fetching KOL contacts:", error);
+        return [];
+      }
     },
-    enabled: !!kolInfo?.id,
+    enabled: !!kolInfo?.affiliate_id,
   });
 
-  // Lấy thông tin KPI stats
+  // Lấy thông tin KPI stats - sử dụng affiliate_id thay vì id
   const {
     data: kpiStats,
     isLoading: isLoadingKpiStats,
     error: kpiStatsError,
   } = useQuery({
-    queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"],
+    queryKey: ["/api/kol", kolInfo?.affiliate_id, "kpi-stats"],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/kol/${kolInfo?.id}/kpi-stats`);
-      return await response.json();
+      try {
+        console.log("Fetching KPI stats for KOL with affiliate_id:", kolInfo?.affiliate_id);
+        const response = await apiRequest("GET", `/api/kol/${kolInfo?.affiliate_id}/kpi-stats`);
+        const data = await response.json();
+        console.log("Received KPI stats:", data);
+        if (data.status === "success") {
+          return data.data;
+        }
+        return data;
+      } catch (error) {
+        console.error("Error fetching KOL KPI stats:", error);
+        return { current_month: {}, previous_months: [] };
+      }
     },
-    enabled: !!kolInfo?.id && activeTab === "kpi",
+    enabled: !!kolInfo?.affiliate_id && activeTab === "kpi",
   });
 
-  // Mutation thêm liên hệ mới
+  // Mutation thêm liên hệ mới - sử dụng affiliate_id
   const addContactMutation = useMutation({
     mutationFn: async (contactData: any) => {
+      console.log("Adding contact for KOL with affiliate_id:", kolInfo?.affiliate_id);
       const response = await apiRequest(
         "POST",
-        `/api/kol/${kolInfo?.id}/contacts`,
+        `/api/kol/${kolInfo?.affiliate_id}/contacts`,
         contactData
       );
       return await response.json();
     },
     onSuccess: () => {
       setShowAddContactModal(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.affiliate_id, "contacts"] });
       toast({
         title: "Thành công",
         description: "Đã thêm liên hệ mới vào danh sách",
@@ -107,19 +146,20 @@ const KolDashboard = () => {
     },
   });
 
-  // Mutation cập nhật trạng thái liên hệ
+  // Mutation cập nhật trạng thái liên hệ - sử dụng affiliate_id
   const updateContactMutation = useMutation({
     mutationFn: async ({ contactId, data }: { contactId: number; data: Partial<KolContact> }) => {
+      console.log("Updating contact for KOL with affiliate_id:", kolInfo?.affiliate_id);
       const response = await apiRequest(
         "PUT",
-        `/api/kol/${kolInfo?.id}/contacts/${contactId}`,
+        `/api/kol/${kolInfo?.affiliate_id}/contacts/${contactId}`,
         data
       );
       return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.affiliate_id, "contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.affiliate_id, "kpi-stats"] });
       toast({
         title: "Thành công",
         description: "Đã cập nhật thông tin liên hệ",
@@ -134,19 +174,20 @@ const KolDashboard = () => {
     },
   });
 
-  // Mutation thêm hợp đồng
+  // Mutation thêm hợp đồng - sử dụng affiliate_id
   const addContractMutation = useMutation({
     mutationFn: async ({ contactId, data }: { contactId: number; data: any }) => {
+      console.log("Adding contract for KOL with affiliate_id:", kolInfo?.affiliate_id);
       const response = await apiRequest(
         "POST",
-        `/api/kol/${kolInfo?.id}/contacts/${contactId}/contract`,
+        `/api/kol/${kolInfo?.affiliate_id}/contacts/${contactId}/contract`,
         data
       );
       return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "contacts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.id, "kpi-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.affiliate_id, "contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.affiliate_id, "kpi-stats"] });
       toast({
         title: "Thành công",
         description: "Đã thêm hợp đồng cho liên hệ",
@@ -161,12 +202,13 @@ const KolDashboard = () => {
     },
   });
 
-  // Mutation xử lý ảnh card visit
+  // Mutation xử lý ảnh card visit - sử dụng affiliate_id
   const processCardImageMutation = useMutation({
     mutationFn: async (data: { image_base64: string }) => {
+      console.log("Processing card for KOL with affiliate_id:", kolInfo?.affiliate_id);
       const response = await apiRequest(
         "POST",
-        `/api/kol/${kolInfo?.id}/scan-card`,
+        `/api/kol/${kolInfo?.affiliate_id}/scan-card`,
         data
       );
       return await response.json();
@@ -192,40 +234,68 @@ const KolDashboard = () => {
   // State lưu dữ liệu trích xuất từ card visit
   const [extractedContactData, setExtractedContactData] = useState<Partial<KolContact> | null>(null);
 
-  // Xử lý thêm liên hệ
+  // Xử lý thêm liên hệ - sử dụng affiliate_id thay vì id
   const handleAddContact = (contactData: any) => {
-    if (kolInfo?.id) {
+    if (kolInfo?.affiliate_id) {
       addContactMutation.mutate({
         ...contactData,
-        kol_id: typeof kolInfo.id === 'string' ? kolInfo.id : kolInfo.id.toString(),
+        kol_id: kolInfo.affiliate_id,
+      });
+    } else {
+      console.error("Không thể thêm liên hệ: Thiếu affiliate_id");
+      toast({
+        title: "Lỗi",
+        description: "Không thể thêm liên hệ do thiếu thông tin KOL",
+        variant: "destructive",
       });
     }
   };
 
-  // Xử lý cập nhật trạng thái liên hệ
+  // Xử lý cập nhật trạng thái liên hệ - sử dụng affiliate_id thay vì id
   const handleUpdateContact = (contactId: number, data: Partial<KolContact>) => {
-    if (kolInfo?.id) {
+    if (kolInfo?.affiliate_id) {
       updateContactMutation.mutate({
         contactId,
         data,
       });
-    }
-  };
-
-  // Xử lý thêm hợp đồng
-  const handleAddContract = (contactId: number, data: { contractValue: number; note: string }) => {
-    if (kolInfo?.id) {
-      addContractMutation.mutate({
-        contactId,
-        data,
+    } else {
+      console.error("Không thể cập nhật liên hệ: Thiếu affiliate_id");
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật liên hệ do thiếu thông tin KOL",
+        variant: "destructive",
       });
     }
   };
 
-  // Xử lý xử lý ảnh card visit
+  // Xử lý thêm hợp đồng - sử dụng affiliate_id thay vì id
+  const handleAddContract = (contactId: number, data: { contractValue: number; note: string }) => {
+    if (kolInfo?.affiliate_id) {
+      addContractMutation.mutate({
+        contactId,
+        data,
+      });
+    } else {
+      console.error("Không thể thêm hợp đồng: Thiếu affiliate_id");
+      toast({
+        title: "Lỗi",
+        description: "Không thể thêm hợp đồng do thiếu thông tin KOL",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Xử lý xử lý ảnh card visit - sử dụng affiliate_id thay vì id
   const handleProcessCardImage = (data: { image_base64: string }) => {
-    if (kolInfo?.id) {
+    if (kolInfo?.affiliate_id) {
       processCardImageMutation.mutate(data);
+    } else {
+      console.error("Không thể xử lý ảnh card: Thiếu affiliate_id");
+      toast({
+        title: "Lỗi",
+        description: "Không thể xử lý ảnh card do thiếu thông tin KOL",
+        variant: "destructive",
+      });
     }
   };
 
