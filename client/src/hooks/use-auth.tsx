@@ -100,6 +100,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const storedMode = typeof window !== 'undefined' ? localStorage.getItem("selected_mode") as SelectedMode : null;
   const [selectedMode, setSelectedMode] = useState<SelectedMode>(storedMode);
   
+  // Xử lý việc clear token và thông tin xác thực khi không có session
+  useEffect(() => {
+    // Kiểm tra token trong localStorage và sessionStorage
+    const localToken = localStorage.getItem("auth_token");
+    const sessionToken = sessionStorage.getItem("auth_token");
+    
+    // Nếu không có token nào, đảm bảo thông tin người dùng được xóa
+    if (!localToken && !sessionToken) {
+      console.log("No auth token found, clearing user data");
+      localStorage.removeItem("selected_mode");
+      sessionStorage.removeItem("requires_password_change");
+    }
+  }, []);
+  
   // Query để lấy thông tin người dùng hiện tại và bổ sung thông tin vai trò
   const {
     data: userRaw,

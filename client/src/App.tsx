@@ -55,6 +55,7 @@ function AuthenticatedRoutes() {
   }
   
   // 2. Kiểm tra nếu người dùng chưa đăng nhập và đang cố truy cập route yêu cầu xác thực
+  // Chuyển hướng ngay lập tức đến trang đăng nhập nếu chưa xác thực
   if (!user && !publicRoutes.includes(location)) {
     console.log("AuthenticatedRoutes: No user and trying to access protected route, redirecting to /auth");
     return <Redirect to="/auth" />;
