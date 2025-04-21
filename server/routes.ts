@@ -3192,7 +3192,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupVideoRoutes(app);
   
   // Thiết lập routes quản lý KOL/VIP
-  setupKolVipRoutes(app, storage);
+  try {
+    // Sử dụng cùng một loại storage cho tất cả các module để đảm bảo tính nhất quán
+    console.log("Setting up KOL/VIP routes with", process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production" ? "DatabaseStorage" : "MemStorage");
+    setupKolVipRoutes(app, storage);
+  } catch (error) {
+    console.error("Error setting up KOL/VIP routes:", error);
+  }
 
   const httpServer = createServer(app);
 
