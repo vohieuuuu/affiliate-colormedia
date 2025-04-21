@@ -13,8 +13,58 @@ import RoleRouter from "@/pages/RoleRouter";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { RoleBasedRoute } from "@/lib/role-based-route";
+import { useAuth } from "@/hooks/use-auth";
+import { Redirect, useLocation } from "wouter";
+import { useEffect } from "react";
 
-function Router() {
+// Thêm một component mới để xử lý điều hướng một cách thông minh
+// Component này sẽ giúp điều hướng người dùng đúng cách dựa trên trạng thái hiện tại
+function AuthenticatedRoutes() {
+  const { user, isLoading, requiresPasswordChange, selectedMode } = useAuth();
+  const [location, setLocation] = useLocation();
+  
+  // Log trạng thái hiện tại cho mục đích debug
+  useEffect(() => {
+    console.log("AuthenticatedRoutes: Current state", { 
+      user,
+      isLoading,
+      requiresPasswordChange,
+      selectedMode,
+      location
+    });
+  }, [user, isLoading, requiresPasswordChange, selectedMode, location]);
+  
+  // Thêm việc xử lý các trường hợp đặc biệt
+  
+  // 1. Nếu đang tải dữ liệu, hiển thị trạng thái loading thay vì chuyển hướng
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        <p className="text-muted-foreground">Đang tải thông tin...</p>
+      </div>
+    );
+  }
+  
+  // 2. Nếu không có user (chưa đăng nhập) và không phải ở trang đăng nhập, chuyển hướng đến trang đăng nhập
+  if (!user && location !== "/auth") {
+    console.log("AuthenticatedRoutes: No user, redirecting to auth page");
+    return <Redirect to="/auth" />;
+  }
+  
+  // 3. Nếu yêu cầu đổi mật khẩu và không đang ở trang đổi mật khẩu, chuyển hướng đến trang đổi mật khẩu
+  if (user && requiresPasswordChange && location !== "/change-password") {
+    console.log("AuthenticatedRoutes: Password change required, redirecting");
+    return <Redirect to="/change-password" />;
+  }
+  
+  // 4. Nếu đã đăng nhập và không cần đổi mật khẩu nhưng chưa chọn chế độ và không đang ở trang chọn chế độ, chuyển đến trang chọn chế độ
+  if (user && !requiresPasswordChange && !selectedMode && location !== "/select-mode" && location !== "/auth") {
+    console.log("AuthenticatedRoutes: Mode selection required, redirecting");
+    return <Redirect to="/select-mode" />;
+  }
+  
+  // Khi đã vượt qua tất cả các điều kiện, hiển thị Switch bình thường với các routes
   return (
     <Switch>
       {/* Những route không cần xác thực */}
@@ -48,6 +98,10 @@ function Router() {
       <Route component={NotFound} />
     </Switch>
   );
+}
+
+function Router() {
+  return <AuthenticatedRoutes />;
 }
 
 function App() {

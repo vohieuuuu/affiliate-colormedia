@@ -86,8 +86,20 @@ export const getQueryFn: <T>(options: {
       }
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    if (res.status === 401) {
+      console.log("401 Unauthorized response in query", { url, unauthorizedBehavior });
+      
+      // Xóa token không hợp lệ từ cả localStorage và sessionStorage
+      if (typeof window !== 'undefined') {
+        console.log("Clearing invalid tokens due to 401 error");
+        localStorage.removeItem("auth_token");
+        sessionStorage.removeItem("auth_token");
+        localStorage.removeItem("selected_mode");
+      }
+      
+      if (unauthorizedBehavior === "returnNull") {
+        return null;
+      }
     }
 
     await throwIfResNotOk(res);
