@@ -473,38 +473,65 @@ Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ad
 Authorization: Bearer 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60
 ```
 
-**Request Body**:
+**Request Body (Định dạng mới - Đề xuất):**
+```json
+{
+  "affiliate_id": "KOL003",  // Tùy chọn - Sẽ tự động tạo nếu không cung cấp
+  "full_name": "Lê Quang I",
+  "email": "kol3@colormedia.vn",
+  "phone": "0927890123",
+  "level": "LEVEL_1", // Tùy chọn - Mặc định là LEVEL_1
+  "bank_account": "1234567890",
+  "bank_name": "VietinBank"
+}
+```
+
+**Request Body (Định dạng cũ - Được hỗ trợ cho tương thích ngược):**
 ```json
 {
   "username": "kol3@colormedia.vn",
   "affiliate_data": {
+    "affiliate_id": "KOL003", // Tùy chọn - Sẽ tự động tạo nếu không cung cấp
     "full_name": "Lê Quang I",
     "email": "kol3@colormedia.vn",
     "phone": "0927890123",
-    "level": "LEVEL_1",
+    "level": "LEVEL_1", // Tùy chọn - Mặc định là LEVEL_1
     "bank_account": "1234567890",
     "bank_name": "VietinBank"
   }
 }
 ```
 
-**Lưu ý**: Hệ thống sẽ tự động đặt mật khẩu mặc định là "color1234@". Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu.
+**Lưu ý**: 
+- Hệ thống sẽ tự động đặt mật khẩu mặc định là "color1234@". Khi đăng nhập lần đầu, người dùng sẽ được yêu cầu đổi mật khẩu.
+- Với định dạng mới, trường `email` sẽ được sử dụng làm `username` cho tài khoản KOL/VIP.
+- Trường `affiliate_id` là tùy chọn. Nếu không cung cấp, hệ thống sẽ tự động tạo với định dạng "KOLxxx" (3 chữ số), ví dụ: KOL001, KOL002, KOL003.
+- Cả hai định dạng đều được hỗ trợ đầy đủ, bạn có thể sử dụng định dạng nào thuận tiện hơn.
+- Định dạng mới giống format API của affiliate thường, giúp việc tích hợp dễ dàng hơn.
 
 **Phản hồi thành công**:
 ```json
 {
   "status": "success",
   "data": {
-    "id": "KOL103",
-    "user_id": 7,
-    "full_name": "Lê Quang I",
-    "email": "kol3@colormedia.vn",
-    "phone": "0927890123",
-    "level": "LEVEL_1",
-    "join_date": "2024-04-20T00:00:00Z",
-    "bank_account": "1234567890",
-    "bank_name": "VietinBank",
-    "message": "KOL/VIP mới đã được tạo thành công. Email kích hoạt đã được gửi."
+    "user": {
+      "id": 7,
+      "username": "kol3@colormedia.vn",
+      "role": "KOL_VIP"
+    },
+    "kolVip": {
+      "id": 1,
+      "user_id": 7,
+      "affiliate_id": "KOL003",
+      "full_name": "Lê Quang I",
+      "email": "kol3@colormedia.vn",
+      "phone": "0927890123",
+      "level": "LEVEL_1",
+      "current_base_salary": 5000000,
+      "join_date": "2024-04-20T00:00:00Z",
+      "bank_account": "1234567890",
+      "bank_name": "VietinBank"
+    }
   }
 }
 ```

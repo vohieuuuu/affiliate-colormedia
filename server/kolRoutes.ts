@@ -643,15 +643,36 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
         });
       }
 
-      const { username, affiliate_data } = req.body;
+      // Hỗ trợ cả hai định dạng body - format cũ và format mới giống affiliate thường
+      let username, affiliateData;
+
+      if (req.body.username) {
+        // Format cũ: { username, affiliate_data }
+        username = req.body.username;
+        affiliateData = req.body.affiliate_data || {};
+      } else {
+        // Format mới: giống affiliate thường, chỉ gửi thông tin affiliate
+        username = req.body.email; // Sử dụng email làm username 
+        affiliateData = { ...req.body };
+      }
 
       // Validate dữ liệu
-      if (!username || !affiliate_data) {
+      if (!username || !affiliateData) {
         return res.status(400).json({
           status: "error",
           error: {
             code: "INVALID_DATA",
-            message: "Thiếu thông tin cần thiết"
+            message: "Thiếu thông tin cần thiết (email/username)"
+          }
+        });
+      }
+
+      if (!affiliateData.full_name || !affiliateData.email) {
+        return res.status(400).json({
+          status: "error", 
+          error: {
+            code: "INVALID_DATA",
+            message: "Thiếu thông tin họ tên hoặc email"
           }
         });
       }
@@ -668,17 +689,26 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
       });
 
       // Tạo KOL/VIP affiliate
-      // Tạo mã affiliate_id nếu chưa có
+      // Cho phép người dùng chỉ định rõ affiliate_id giống như ở affiliate thường
       const kolVipData = {
         user_id: user.id,
-        ...affiliate_data,
-        // Đảm bảo có affiliate_id, nếu không tạo mới với format "KOL" + user.id
-        affiliate_id: affiliate_data.affiliate_id || `KOL${user.id}`,
-        level: affiliate_data.level || "LEVEL_1",
-        current_base_salary: affiliate_data.level === "LEVEL_3" ? 15000000 : 
-                            affiliate_data.level === "LEVEL_2" ? 10000000 : 5000000
+        ...affiliateData,
+        // Đảm bảo có affiliate_id, nếu không tạo mới với format "KOLxxx" (3 chữ số)
+        affiliate_id: affiliateData.affiliate_id || `KOL${String(user.id).padStart(3, '0')}`,
+        level: affiliateData.level || "LEVEL_1",
+        current_base_salary: 
+          affiliateData.level === "LEVEL_3" ? 15000000 : 
+          affiliateData.level === "LEVEL_2" ? 10000000 : 5000000
       };
+      
+      console.log(`Tạo KOL/VIP với affiliate_id: ${kolVipData.affiliate_id}, cấp độ: ${kolVipData.level}`);
 
+      // Đảm bảo email được lưu
+      if (!kolVipData.email && req.body.email) {
+        kolVipData.email = req.body.email;
+      }
+
+      console.log("Creating KOL/VIP with data:", kolVipData);
       const kolVip = await storage.createKolVipAffiliate(kolVipData);
 
       res.status(201).json({
