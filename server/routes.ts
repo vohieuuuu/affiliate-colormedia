@@ -115,11 +115,17 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
 
 // Middleware xác thực người dùng dựa trên token
 export async function authenticateUser(req: Request, res: Response, next: NextFunction) {
-  // Lấy token từ header hoặc cookie
-  let token = req.headers['authorization']?.split(' ')[1];
+  // Lấy token từ các nguồn khác nhau theo thứ tự ưu tiên
+  let token = null;
   
-  // Nếu không có token trong header, kiểm tra cookies
-  if (!token && req.headers.cookie) {
+  // 1. Kiểm tra cookie trực tiếp
+  if (req.cookies && req.cookies.auth_token) {
+    token = req.cookies.auth_token;
+    console.log("Middleware: Found token in cookies object");
+  }
+  
+  // 2. Kiểm tra ký hiệu cookie thủ công
+  else if (!token && req.headers.cookie) {
     const cookies = req.headers.cookie.split(';').reduce((acc, cookie) => {
       const [key, value] = cookie.trim().split('=');
       acc[key] = value;
@@ -128,14 +134,26 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
     
     if (cookies.auth_token) {
       token = cookies.auth_token;
-      console.log("Middleware: Found token in cookies");
+      console.log("Middleware: Found token in cookie header");
     }
   }
   
-  // Nếu request có token từ proxy
-  if (!token && (req as any).authToken) {
+  // 3. Kiểm tra token trong header Authorization
+  else if (!token && req.headers['authorization'] && req.headers['authorization'].startsWith('Bearer ')) {
+    token = req.headers['authorization'].split(' ')[1];
+    console.log("Middleware: Found token in Authorization header");
+  }
+  
+  // 4. Nếu request có token từ proxy
+  else if (!token && (req as any).authToken) {
     token = (req as any).authToken;
     console.log("Middleware: Using token from proxy request object");
+  }
+  
+  // 5. Kiểm tra token trong body request
+  else if (!token && req.body && req.body.token) {
+    token = req.body.token;
+    console.log("Middleware: Found token in request body");
   }
 
   // Kiểm tra nếu không có token

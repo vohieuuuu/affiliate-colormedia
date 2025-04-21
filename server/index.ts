@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import cookieParser from 'cookie-parser';
 
 // Đọc biến môi trường từ file .env
 dotenv.config();
@@ -12,9 +13,14 @@ const app = express();
 // Cấu hình trust proxy - cần thiết cho rate limit khi chạy phía sau proxy
 app.set('trust proxy', 1);
 // Đảm bảo tất cả API response đều có Content-Type: application/json
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+  exposedHeaders: ['Set-Cookie']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser(process.env.COOKIE_SECRET || 'colormedia-affiliate-system-secret'));
 
 // Thiết lập rate limiter để hạn chế số lượng request đến API
 const apiLimiter = rateLimit({
@@ -63,6 +69,13 @@ app.use((req, res, next) => {
     capturedJsonResponse = bodyJson;
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
+
+  // Log cookies và header quan trọng cho auth API
+  if (path.includes("/api/auth")) {
+    log(`AUTH API REQUEST: ${req.method} ${path}`);
+    log(`Cookies: ${JSON.stringify(req.cookies || {})}`);
+    log(`Headers: authorization=${!!req.headers.authorization}, cookie=${!!req.headers.cookie}`);
+  }
 
   res.on("finish", () => {
     const duration = Date.now() - start;

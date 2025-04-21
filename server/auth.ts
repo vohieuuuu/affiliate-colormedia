@@ -464,12 +464,17 @@ export function setupAuthRoutes(app: any, db: any) {
   // API lấy thông tin người dùng hiện tại
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
-      // Lấy token từ header hoặc cookie
-      let token = req.headers.authorization?.split(" ")[1];
+      // Lấy token từ các nguồn khác nhau theo thứ tự ưu tiên
+      let token = null;
       
-      // Nếu không có token trong header, kiểm tra cookies
-      // Lưu ý: cookies phải được truyền từ proxy nếu dùng HttpOnly cookie
-      if (!token && req.headers.cookie) {
+      // 1. Kiểm tra cookie trực tiếp
+      if (req.cookies && req.cookies.auth_token) {
+        token = req.cookies.auth_token;
+        console.log("API: Found token in cookies object");
+      }
+      
+      // 2. Kiểm tra ký hiệu cookie thủ công
+      else if (!token && req.headers.cookie) {
         const cookies = req.headers.cookie.split(';').reduce((acc, cookie) => {
           const [key, value] = cookie.trim().split('=');
           acc[key] = value;
@@ -478,14 +483,26 @@ export function setupAuthRoutes(app: any, db: any) {
         
         if (cookies.auth_token) {
           token = cookies.auth_token;
-          console.log("Found token in cookies");
+          console.log("API: Found token in cookie header");
         }
       }
       
-      // Nếu request có token từ proxy
-      if (!token && (req as any).authToken) {
+      // 3. Kiểm tra token trong header Authorization
+      else if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        token = req.headers.authorization.split(' ')[1];
+        console.log("API: Found token in Authorization header");
+      }
+      
+      // 4. Nếu request có token từ proxy
+      else if (!token && (req as any).authToken) {
         token = (req as any).authToken;
-        console.log("Using token from proxy request object");
+        console.log("API: Using token from proxy request object");
+      }
+      
+      // 5. Kiểm tra token trong body request
+      else if (!token && req.body && req.body.token) {
+        token = req.body.token;
+        console.log("API: Found token in request body");
       }
 
       if (!token) {
