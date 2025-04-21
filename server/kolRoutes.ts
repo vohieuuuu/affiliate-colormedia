@@ -1600,20 +1600,30 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
 
 // Hàm phụ trợ để trích xuất thông tin từ văn bản OCR
 function extractNameFromText(text: string): string | null {
-  // Tìm kiếm dòng có thể là tên người (thường là dòng ngắn ở đầu card)
-  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  // Chuẩn hóa văn bản trước khi xử lý
+  const cleanText = text.replace(/\r/g, '').trim();
+  const lines = cleanText.split('\n').filter(line => line.trim().length > 0);
   
-  // Ưu tiên 2-3 dòng đầu tiên và tìm dòng có thể là tên người
-  for (let i = 0; i < Math.min(3, lines.length); i++) {
+  // Tên thường nằm ở dòng đầu tiên của danh thiếp
+  // Ưu tiên 3-4 dòng đầu tiên và tìm dòng có thể là tên người 
+  for (let i = 0; i < Math.min(4, lines.length); i++) {
     const line = lines[i].trim();
     
-    // Tên người thường ngắn gọn và không chứa ký tự đặc biệt
-    if (line.length > 2 && line.length < 30 && 
+    // Tên người thường ngắn gọn và không chứa các ký tự đặc biệt
+    if (line.length > 2 && line.length < 40 && 
         !line.includes('@') && 
-        !line.match(/\d{5,}/) && // Không chứa nhiều số liền nhau
+        !line.match(/\d{4,}/) && // Không chứa nhiều số liền nhau
         !line.includes('http') &&
-        !line.toLowerCase().includes('company')) {
-      return line;
+        !line.includes('/') &&
+        !line.toLowerCase().includes('company') &&
+        !line.toLowerCase().includes('công ty') &&
+        !line.toLowerCase().includes('corporation') &&
+        !line.match(/www\./i) &&
+        !line.match(/tel:/i) &&
+        !line.match(/fax:/i)) {
+      
+      // Xóa các chức danh có thể lẫn vào tên (sẽ được trích xuất riêng)
+      return line.replace(/(CEO|Director|Manager|Giám đốc|Trưởng phòng|Phó phòng|Leader|Chuyên viên|Staff|Nhân viên)$/i, '').trim();
     }
   }
   
@@ -1621,41 +1631,96 @@ function extractNameFromText(text: string): string | null {
 }
 
 function extractPhoneFromText(text: string): string | null {
-  // Tìm kiếm số điện thoại
-  const phoneRegex = /(\+?84|0)[-\s.]?(\d{2,3})[-\s.]?(\d{3,4})[-\s.]?(\d{3,4})/g;
-  const phoneMatches = text.match(phoneRegex);
+  // Chuẩn hóa văn bản
+  const cleanText = text.replace(/\s+/g, ' ').trim();
   
-  return phoneMatches ? phoneMatches[0].replace(/[-\s.]/g, '') : null;
+  // Các mẫu phổ biến của số điện thoại Việt Nam
+  const phonePatterns = [
+    // Số di động Việt Nam: 10 chữ số, bắt đầu bằng 0
+    /(?:Tel|Phone|Đt|ĐT|Điện thoại|T)?\s*(?::|\.|\-|\:)?\s*(0\d{9})/i,
+    
+    // Số di động có dấu cách
+    /(?:Tel|Phone|Đt|ĐT|Điện thoại|T)?\s*(?::|\.|\-|\:)?\s*(0\d{2}[ .-]?\d{3}[ .-]?\d{4})/i,
+    
+    // Số di động Việt Nam với mã quốc tế +84
+    /(?:Tel|Phone|Đt|ĐT|Điện thoại|T)?\s*(?::|\.|\-|\:)?\s*(?:\+84|84)[ .-]?(\d{2,3}[ .-]?\d{3,4}[ .-]?\d{3,4})/i,
+    
+    // Bắt chuỗi số có 9-11 chữ số, có thể có dấu cách hoặc gạch ngang
+    /\D(0?\d{2,3}[ .-]?\d{3,4}[ .-]?\d{3,4})\D/
+  ];
+  
+  for (const pattern of phonePatterns) {
+    const match = cleanText.match(pattern);
+    if (match && match[1]) {
+      // Chuẩn hóa số điện thoại: loại bỏ tất cả các ký tự không phải số
+      return match[1].replace(/[^\d]/g, '');
+    }
+  }
+  
+  // Tìm chuỗi có dạng số điện thoại nếu không tìm thấy theo mẫu
+  const fallbackRegex = /(\+?84|0)[-\s.]?(\d{2,3})[-\s.]?(\d{3,4})[-\s.]?(\d{3,4})/g;
+  const fallbackMatches = text.match(fallbackRegex);
+  
+  return fallbackMatches ? fallbackMatches[0].replace(/[^\d]/g, '') : null;
 }
 
 function extractEmailFromText(text: string): string | null {
-  // Tìm kiếm địa chỉ email
-  const emailRegex = /[\w.-]+@[\w.-]+\.\w+/g;
-  const emailMatches = text.match(emailRegex);
+  // Chuẩn hóa văn bản
+  const cleanText = text.toLowerCase().replace(/\s+/g, ' ');
   
-  return emailMatches ? emailMatches[0] : null;
+  // Tìm kiếm địa chỉ email với mẫu chi tiết hơn
+  const emailRegex = /[\w.-]+@[\w.-]+\.[a-z]{2,}/gi;
+  const emailMatches = cleanText.match(emailRegex);
+  
+  // Lọc kết quả để đảm bảo đúng định dạng email
+  if (emailMatches && emailMatches.length > 0) {
+    const validEmails = emailMatches.filter(email => {
+      // Email hợp lệ phải có @ và ít nhất một dấu chấm trong phần domain
+      return email.includes('@') && email.split('@')[1].includes('.');
+    });
+    
+    return validEmails.length > 0 ? validEmails[0] : null;
+  }
+  
+  return null;
 }
 
 function extractCompanyFromText(text: string): string | null {
-  // Tìm kiếm tên công ty
-  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  // Chuẩn hóa văn bản
+  const cleanText = text.replace(/\r/g, '').trim();
+  const lines = cleanText.split('\n').filter(line => line.trim().length > 0);
+  
+  // Từ khóa chỉ tên công ty
+  const companyKeywords = [
+    'company', 'co.', 'co', 'ltd', 'inc', 'corporation', 'jsc', 'group', 
+    'cty', 'công ty', 'enterprises', 'service', 'dịch vụ', 'tnhh', 'corp'
+  ];
   
   // Tìm dòng có thể chứa tên công ty
   for (const line of lines) {
     const lowercaseLine = line.toLowerCase();
-    if (
-      (lowercaseLine.includes('company') || 
-       lowercaseLine.includes('co.') || 
-       lowercaseLine.includes('ltd') || 
-       lowercaseLine.includes('inc') || 
-       lowercaseLine.includes('corporation') ||
-       lowercaseLine.includes('jsc') ||
-       lowercaseLine.includes('group') ||
-       lowercaseLine.includes('cty') ||
-       lowercaseLine.includes('công ty')) && 
-      line.length > 5
-    ) {
-      return line;
+    
+    for (const keyword of companyKeywords) {
+      if (lowercaseLine.includes(keyword) && line.length > 5 && !lowercaseLine.includes('www.')) {
+        // Đảm bảo không phải là thành phần khác (email, website)
+        if (!lowercaseLine.includes('@') && !lowercaseLine.match(/^(http|www)/)) {
+          return line.trim();
+        }
+      }
+    }
+  }
+  
+  // Tìm dòng dài có thể là tên công ty (sau tên người, trước chức vụ)
+  if (lines.length > 2) {
+    for (let i = 1; i < Math.min(5, lines.length); i++) {
+      const line = lines[i].trim();
+      // Dòng dài, không phải email, số điện thoại, hoặc địa chỉ web
+      if (line.length > 8 && line.length < 50 && 
+          !line.includes('@') && 
+          !line.match(/\d{5,}/) &&
+          !line.match(/^(tel|fax|www|http)/i)) {
+        return line;
+      }
     }
   }
   
@@ -1663,20 +1728,43 @@ function extractCompanyFromText(text: string): string | null {
 }
 
 function extractPositionFromText(text: string): string | null {
-  // Tìm kiếm vị trí công việc
+  // Chuẩn hóa văn bản
+  const cleanText = text.replace(/\r/g, '').trim();
+  const lines = cleanText.split('\n').filter(line => line.trim().length > 0);
+  
+  // Từ khóa chỉ vị trí công việc (Việt và Anh)
   const positionKeywords = [
     'ceo', 'director', 'manager', 'giám đốc', 'trưởng phòng', 
-    'phó phòng', 'leader', 'chuyên viên', 'staff', 'nhân viên'
+    'phó phòng', 'leader', 'chuyên viên', 'staff', 'nhân viên',
+    'phó giám đốc', 'deputy', 'head of', 'trưởng', 'phó',
+    'chủ tịch', 'president', 'kế toán', 'marketing', 'sales',
+    'kinh doanh', 'kỹ thuật', 'technical', 'supervisor', 'quản lý'
   ];
   
-  const lines = text.split('\n').filter(line => line.trim().length > 0);
-  
+  // Tìm dòng chứa từ khóa vị trí và không quá dài
   for (const line of lines) {
     const lowercaseLine = line.toLowerCase();
+    
     for (const keyword of positionKeywords) {
       if (lowercaseLine.includes(keyword) && line.length < 50) {
-        return line;
+        // Đảm bảo không phải phần khác (email, địa chỉ)
+        if (!lowercaseLine.includes('@') && !lowercaseLine.match(/^(http|www|tel|fax)/i)) {
+          return line.trim();
+        }
       }
+    }
+  }
+  
+  // Nếu không tìm thấy theo từ khóa, thử tìm dòng ngắn có thể là chức vụ
+  // (thường nằm ngay sau tên và trước thông tin công ty)
+  if (lines.length > 2) {
+    const possiblePositionLine = lines[1].trim();
+    if (possiblePositionLine.length > 2 && possiblePositionLine.length < 30 &&
+        !possiblePositionLine.includes('@') && 
+        !possiblePositionLine.match(/\d{5,}/) && 
+        !possiblePositionLine.toLowerCase().includes('company') &&
+        !possiblePositionLine.toLowerCase().includes('công ty')) {
+      return possiblePositionLine;
     }
   }
   
