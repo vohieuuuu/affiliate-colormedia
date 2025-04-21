@@ -46,6 +46,18 @@ const KolDashboard = () => {
     normalizedRole: user?.role ? String(user.role).toUpperCase() : 'unknown'
   });
   
+  // Kiểm tra quyền truy cập - chỉ cho phép KOL_VIP hoặc ADMIN
+  useEffect(() => {
+    const isKolVip = user?.isKolVip || false;
+    const isAdmin = user?.isAdmin || false;
+    
+    if (user && !isKolVip && !isAdmin) {
+      console.log("KolDashboard: User doesn't have KOL_VIP role, redirecting to /unauthorized");
+      // Chuyển hướng đến trang unauthorized
+      window.location.href = "/unauthorized";
+    }
+  }, [user]);
+  
   // Đã sử dụng RoleBasedRoute để xử lý chuyển hướng dựa trên vai trò
 
   // Lấy thông tin KOL hiện tại
