@@ -402,9 +402,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Thiết lập xác thực cho ứng dụng
-  // Sử dụng các route xác thực đơn giản cho cả development và production
-  // để tránh các vấn đề với dynamic import
-  setupDevAuthRoutes(app, storage);
+  // Chỉ sử dụng setupDevAuthRoutes khi không kích hoạt database
+  if (process.env.USE_DATABASE !== "true" && process.env.NODE_ENV !== "production") {
+    console.log("Setup dev auth routes from routes.ts for in-memory storage");
+    setupDevAuthRoutes(app, storage);
+  } else {
+    console.log("Skip setting up dev auth routes from routes.ts as database auth is enabled");
+  }
 
   // Áp dụng middleware xác thực cho các API endpoints
   const secureApiEndpoints = [
