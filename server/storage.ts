@@ -359,6 +359,154 @@ export class MemStorage implements IStorage {
     return true;
   }
   
+  /**
+   * Thêm yêu cầu rút tiền cho KOL/VIP
+   * @param request Thông tin yêu cầu rút tiền
+   */
+  async addKolVipWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void> {
+    console.log(`Creating withdrawal request for KOL/VIP ${request.user_id}`);
+    
+    // Tìm KOL/VIP dựa trên user_id
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(request.user_id);
+    if (!kolVip) {
+      throw new Error("KOL/VIP không tìm thấy");
+    }
+    
+    // Kiểm tra số dư tích lũy
+    if (kolVip.remaining_balance <= 0) {
+      throw new Error("Không thể tạo yêu cầu rút tiền khi số dư hoa hồng tích lũy bằng 0");
+    }
+    
+    // Kiểm tra giới hạn rút tiền theo ngày
+    const dailyLimitCheck = await this.checkKolVipDailyWithdrawalLimit(request.user_id, request.amount_requested);
+    if (dailyLimitCheck.exceeds) {
+      throw new Error(`Vượt quá giới hạn rút tiền trong ngày. Hạn mức còn lại: ${dailyLimitCheck.remainingLimit.toLocaleString()} VND`);
+    }
+    
+    // Kiểm tra số dư
+    if (kolVip.remaining_balance < request.amount_requested) {
+      throw new Error(`Số tiền yêu cầu vượt quá số dư khả dụng: ${kolVip.remaining_balance.toLocaleString()} VND`);
+    }
+    
+    // Thêm vào lịch sử rút tiền của KOL/VIP
+    const history = kolVip.withdrawal_history || [];
+    history.unshift({
+      request_date: request.request_time,
+      amount: request.amount_requested,
+      tax_amount: request.tax_amount || 0,
+      amount_after_tax: request.amount_after_tax || request.amount_requested,
+      has_tax: request.has_tax || false,
+      tax_rate: request.tax_rate || 0,
+      note: request.note || "",
+      status: "Pending"
+    });
+    
+    // Trừ số dư trực tiếp ở trạng thái Pending
+    kolVip.remaining_balance -= request.amount_requested;
+    kolVip.paid_balance = (kolVip.paid_balance || 0) + request.amount_requested;
+    
+    console.log(`KOL/VIP withdrawal request created with amount ${request.amount_requested}, remaining balance: ${kolVip.remaining_balance}`);
+  }
+  
+  /**
+   * Cập nhật trạng thái yêu cầu rút tiền của KOL/VIP
+   * @param affiliateId ID của KOL/VIP
+   * @param requestTime Thời gian yêu cầu
+   * @param newStatus Trạng thái mới
+   * @returns Thông tin yêu cầu đã cập nhật hoặc undefined nếu không tìm thấy
+   */
+  async updateKolVipWithdrawalStatus(affiliateId: string, requestTime: string, newStatus: WithdrawalStatusType): Promise<WithdrawalHistory | undefined> {
+    console.log(`Updating KOL/VIP withdrawal status for ${affiliateId}, time: ${requestTime}, new status: ${newStatus}`);
+    
+    // Tìm KOL/VIP
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(affiliateId);
+    if (!kolVip) {
+      console.error(`Không tìm thấy KOL/VIP với ID: ${affiliateId}`);
+      return undefined;
+    }
+    
+    // Tìm yêu cầu rút tiền dựa trên thời gian yêu cầu
+    const history = kolVip.withdrawal_history || [];
+    const withdrawalIdx = history.findIndex(wh => wh.request_date === requestTime);
+    
+    if (withdrawalIdx === -1) {
+      console.error(`Không tìm thấy yêu cầu rút tiền với thời gian ${requestTime} cho KOL/VIP ${affiliateId}`);
+      return undefined;
+    }
+    
+    // Lấy trạng thái hiện tại và số tiền yêu cầu
+    const oldStatus = history[withdrawalIdx].status;
+    const withdrawalAmount = history[withdrawalIdx].amount;
+    
+    console.log(`Cập nhật trạng thái yêu cầu rút tiền của KOL/VIP từ ${oldStatus} thành ${newStatus}`);
+    
+    // Cập nhật trạng thái
+    history[withdrawalIdx].status = newStatus;
+    
+    // Nếu trạng thái mới là "Rejected" hoặc "Cancelled", hoàn lại tiền
+    if ((newStatus === "Rejected" || newStatus === "Cancelled") && oldStatus !== "Rejected" && oldStatus !== "Cancelled") {
+      // Hoàn lại tiền
+      kolVip.remaining_balance += withdrawalAmount;
+      kolVip.paid_balance = Math.max(0, (kolVip.paid_balance || 0) - withdrawalAmount);
+      
+      console.log(`Yêu cầu rút tiền của KOL/VIP bị ${newStatus}, hoàn lại ${withdrawalAmount} vào số dư. Số dư mới: ${kolVip.remaining_balance}`);
+    }
+    
+    return history[withdrawalIdx];
+  }
+  
+  /**
+   * Kiểm tra giới hạn rút tiền trong ngày cho KOL/VIP
+   * @param affiliateId ID của KOL/VIP
+   * @param amount Số tiền muốn rút
+   * @returns Kết quả kiểm tra giới hạn
+   */
+  async checkKolVipDailyWithdrawalLimit(affiliateId: string, amount: number): Promise<{exceeds: boolean, totalWithdrawn: number, remainingLimit: number}> {
+    console.log(`Checking daily withdrawal limit for KOL/VIP ${affiliateId}, amount: ${amount}`);
+    
+    // Tìm KOL/VIP
+    const kolVip = await this.getKolVipAffiliateByAffiliateId(affiliateId);
+    if (!kolVip) {
+      return { exceeds: true, totalWithdrawn: 0, remainingLimit: 0 };
+    }
+    
+    // Tính ngày hiện tại
+    const today = new Date();
+    const startOfToday = new Date(today);
+    startOfToday.setHours(9, 0, 0, 0); // Giới hạn reset vào 9h sáng mỗi ngày
+    
+    // Nếu hiện tại < 9h sáng, lấy từ 9h hôm trước
+    if (today.getHours() < 9) {
+      startOfToday.setDate(startOfToday.getDate() - 1);
+    }
+    
+    // Lọc các giao dịch rút tiền trong ngày hiện tại (sau 9h sáng)
+    const todaysWithdrawals = (kolVip.withdrawal_history || [])
+      .filter(w => {
+        const wDate = new Date(w.request_date);
+        return wDate >= startOfToday && 
+               (w.status === "Pending" || w.status === "Processing" || w.status === "Completed");
+      });
+    
+    // Tính tổng đã rút trong ngày
+    const totalWithdrawnToday = todaysWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+    
+    // Giới hạn rút tiền mỗi ngày: 20 triệu
+    const DAILY_LIMIT = 20000000;
+    const remainingLimit = DAILY_LIMIT - totalWithdrawnToday;
+    
+    // Kiểm tra có vượt quá giới hạn không
+    const exceeds = amount > remainingLimit;
+    
+    console.log(`KOL/VIP ${affiliateId} daily withdrawal stats: withdrawn=${totalWithdrawnToday}, remaining=${remainingLimit}, exceeds=${exceeds}`);
+    
+    return {
+      exceeds,
+      totalWithdrawn: totalWithdrawnToday,
+      remainingLimit
+    };
+  }
+  
   async addKolVipContact(kolId: string, contactData: KolContact): Promise<KolContact> {
     console.log(`Adding new contact for KOL/VIP ${kolId}`);
     
