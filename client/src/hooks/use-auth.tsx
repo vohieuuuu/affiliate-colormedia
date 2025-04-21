@@ -155,9 +155,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         console.log("Login success: redirecting based on role", userRole);
         
+        // Thêm một kiểm tra rõ ràng cho vai trò KOL_VIP
         if (userRole === "KOL_VIP") {
           console.log("Redirecting KOL/VIP user directly to KOL dashboard");
-          window.location.href = "/kol-dashboard";
+          // Thêm log để debug
+          console.log("DEBUG - KOL/VIP redirect: ", {
+            role: response.user.role,
+            normalizedRole: userRole,
+            dashboard: "/kol-dashboard",
+            comparison: userRole === "KOL_VIP"
+          });
+          
+          // Chuyển hướng sử dụng setTimeout để đảm bảo mọi thứ đã xử lý xong
+          setTimeout(() => {
+            window.location.href = "/kol-dashboard";
+          }, 100);
         } else if (userRole === "ADMIN") {
           console.log("Redirecting admin user");
           window.location.href = "/admin-dashboard";
