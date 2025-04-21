@@ -19,13 +19,11 @@ export function RoleBasedRoute() {
   const params = useParams();
   const shouldRefresh = params.refresh === "refresh";
   
+  // Chỉ log thông tin cần thiết, không log dữ liệu nhạy cảm
   console.log("RoleBasedRoute: Checking user for redirection", { 
     userExists: !!user, 
-    userRole: user?.role,
-    isKolVip: user?.isKolVip,
-    isAdmin: user?.isAdmin,
-    isAffiliate: user?.isAffiliate,
-    selectedMode,
+    hasRole: !!user?.role,
+    mode: selectedMode,
     isLoading,
     requiresPasswordChange,
     shouldRefresh

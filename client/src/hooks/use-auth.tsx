@@ -152,16 +152,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dashboardRoute: getDashboardForRole(apiUser)
   } : null;
   
-  // Log thông tin vai trò để debug
-  if (apiUser) {
-    console.log("useAuth: User role processing", {
-      userData: apiUser,
-      rawRole: apiUser.role,
-      normalizedRole: apiUser.role ? String(apiUser.role).toUpperCase() : "",
+  // Log thông tin vai trò để debug (chỉ log thông tin vai trò, không log dữ liệu nhạy cảm)
+  if (apiUser && process.env.NODE_ENV === 'development') {
+    console.log("useAuth: User role information", {
+      roleType: typeof apiUser.role,
+      hasRole: !!apiUser.role,
+      hasAffiliateId: !!apiUser.affiliate_id,
       isAdmin: user?.isAdmin,
       isKolVip: user?.isKolVip,
-      isAffiliate: user?.isAffiliate,
-      affiliate_id: apiUser.affiliate_id || 'unknown' // Log affiliate_id để debug
+      isAffiliate: user?.isAffiliate
     });
   }
 

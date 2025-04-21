@@ -49,10 +49,7 @@ export async function apiRequest(
   const fullUrl = API_URL ? `${API_URL}${url}` : url;
   
   console.log(`API Request: ${method} ${url} with token: ${authToken ? "Present" : "Missing"}`);
-  // Thêm log chi tiết về token để debug
-  if (authToken) {
-    console.log(`Token (first 10 chars): ${authToken.substring(0, 10)}...`);
-  }
+  // Không log giá trị token để đảm bảo bảo mật
   
   try {
     const res = await fetch(fullUrl, {
@@ -102,8 +99,8 @@ export const getQueryFn: <T>(options: {
     const url = queryKey[0] as string;
     const fullUrl = API_URL ? `${API_URL}${url}` : url;
     
-    // Thêm log chi tiết về token được sử dụng trong query
-    console.log(`Query - ${url}: Using token (first 10 chars): ${authToken.substring(0, 10)}...`);
+    // Không log chi tiết token để đảm bảo bảo mật
+    console.log(`Query - ${url}: Using token: [SECURED]`);
     
     const res = await fetch(fullUrl, {
       credentials: "include",
