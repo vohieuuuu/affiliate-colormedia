@@ -1467,11 +1467,29 @@ export class MemStorage implements IStorage {
   async createUser(userData: { username: string; password: string; role: UserRoleType; is_first_login?: boolean }): Promise<User> {
     const newId = this.users.length > 0 ? Math.max(...this.users.map(u => u.id)) + 1 : 1;
     
+    // Đảm bảo role là một trong các giá trị hợp lệ được định nghĩa trong UserRole
+    // Xử lý role nhất quán, loại bỏ ký tự đặc biệt/khoảng trắng và chuyển về chữ hoa
+    let normalizedRole = String(userData.role).trim().toUpperCase();
+    
+    // Kiểm tra và chuẩn hóa role
+    if (normalizedRole === "KOL_VIP" || normalizedRole === "KOLVIP" || normalizedRole.includes("KOL")) {
+      normalizedRole = "KOL_VIP";
+    } else if (normalizedRole === "ADMIN") {
+      normalizedRole = "ADMIN";
+    } else if (normalizedRole === "MANAGER") {
+      normalizedRole = "MANAGER";
+    } else {
+      // Mặc định là AFFILIATE nếu không thuộc các role trên
+      normalizedRole = "AFFILIATE";
+    }
+    
+    console.log(`Role normalization: Original="${userData.role}", Normalized="${normalizedRole}"`);
+    
     const newUser: User = {
       id: newId,
       username: userData.username,
       password: userData.password,
-      role: userData.role,
+      role: normalizedRole as UserRoleType, // Sử dụng role đã chuẩn hóa
       is_active: 1,
       is_first_login: userData.is_first_login ? 1 : 0,
       last_login: null,
@@ -1480,7 +1498,7 @@ export class MemStorage implements IStorage {
     };
     
     this.users.push(newUser);
-    console.log(`DEV MODE: Created new user "${userData.username}" with role "${userData.role}"`);
+    console.log(`DEV MODE: Created new user "${userData.username}" with role "${normalizedRole}" (original: "${userData.role}")`);
     
     return newUser;
   }
