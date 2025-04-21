@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import type { IStorage } from "./storage";
 import { authenticateUser } from "./routes";
 import { KolContact, KolVipAffiliate, KolVipLevelType, MonthlyKpi } from "@shared/schema";
@@ -9,7 +9,7 @@ import { hashPassword } from "./auth";
  * @param app Express app
  * @param storage Storage instance
  */
-export function setupKolVipRoutes(app: Router, storage: IStorage) {
+export function setupKolVipRoutes(app: Express, storage: IStorage) {
   // Middleware kiểm tra quyền KOL/VIP
   const requireKolVip = async (req: Request, res: Response, next: NextFunction) => {
     // Đảm bảo user đã đăng nhập
