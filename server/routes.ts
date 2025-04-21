@@ -115,32 +115,7 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  // Trường hợp đặc biệt cho API dành cho admin hoặc KOL - kiểm tra token cố định
-  if (req.path.startsWith("/api/admin/") || req.path.startsWith("/api/kol/")) {
-    
-    // Kiểm tra token cố định
-    if (token === ADMIN_FIXED_TOKEN || token === "admin-token" || token === "admin") {
-      console.log("DEV MODE: Using admin token for path:", req.path);
-      // Tạo thông tin người dùng admin tạm thời
-      req.user = {
-        id: 1,
-        username: "admin@colormedia.vn",
-        password: "$2b$10$SsFtXWNGw9pLlJT4s2F9G.qO0BpI5wG6jFYrWgvYcP5o6w8gvlGT.", // admin@123
-        role: "ADMIN",
-        is_active: 1,
-        is_first_login: 0,
-        last_login: null,
-        token: ADMIN_FIXED_TOKEN,
-        created_at: new Date()
-      };
-      return next();
-    } else {
-      // Nếu không phải token cố định, tiếp tục với xác thực bình thường
-      // KHÔNG trả về lỗi ngay lập tức
-      console.log("Token không phải là token cố định, tiếp tục với xác thực thông thường");
-    }
-  }
-
+  // Kiểm tra nếu không có token
   if (token == null) {
     return res.status(401).json({
       status: "error",
@@ -152,84 +127,35 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
   }
 
   try {
-    // Sử dụng database trong môi trường production và khi được cấu hình
-    if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
-      console.log("Using database authentication in production/configured environment");
-      
-      // Kiểm tra token admin cố định (hỗ trợ cả database mode)
-      if (token === ADMIN_FIXED_TOKEN) {
-        console.log("Using admin fixed token in database mode");
-        // Set admin user object in request
-        req.user = {
-          id: 1,
-          username: "admin",
-          role: "ADMIN"
-        };
-        return next();
-      }
-      
-      // Trong môi trường database, tìm kiếm user theo token
-      // Import từ Drizzle và schema
-      const { eq } = await import("drizzle-orm");
-      const { db } = await import("./db");
-      const { users } = await import("../shared/schema");
-      
-      // Tìm user dựa trên token
-      console.log(`Authenticating with token in database mode: ${token.substring(0, 10)}...`);
-      const [user] = await db.select().from(users).where(eq(users.token, token));
-      
-      if (!user) {
-        return res.status(401).json({
-          status: "error",
-          error: {
-            code: "INVALID_TOKEN",
-            message: "Invalid or expired token"
-          }
-        });
-      }
-      
-      console.log(`User authenticated in database mode: ${user.username}, role: ${user.role}`);
+    // Trường hợp đặc biệt cho API dành cho admin hoặc KOL - kiểm tra token cố định
+    if ((req.path.startsWith("/api/admin/") || req.path.startsWith("/api/kol/")) && 
+        (token === ADMIN_FIXED_TOKEN || token === "admin-token" || token === "admin")) {
+      console.log("Using admin token for path:", req.path);
+      // Tạo thông tin người dùng admin tạm thời
       req.user = {
-        id: user.id,
-        username: user.username,
-        role: user.role
+        id: 1,
+        username: "admin@colormedia.vn",
+        role: "ADMIN"
       };
       return next();
-    } else {
-      // Kiểm tra token trong môi trường phát triển
-      // 1. Kiểm tra nếu token là token admin cố định
-      if (token === ADMIN_FIXED_TOKEN) {
-        console.log("DEV MODE: Using admin fixed token");
-        // Set admin user object in request
-        req.user = {
-          id: 9999,
-          username: "admin",
-          role: "ADMIN",
-          token: ADMIN_FIXED_TOKEN,
-          created_at: new Date()
-        };
-        return next();
-      }
-      
-      // 2. Kiểm tra token trong database
-      console.log("DEV MODE: Checking user auth with token");
-      try {
-        const result = await db.select().from(users).where(eq(users.token, token));
-        const user = result[0];
-        
-        if (user) {
-          console.log(`DEV MODE: User authenticated: ${user.username}`);
-          req.user = {
-            id: user.id,
-            username: user.username,
-            role: user.role
-          };
-          return next();
-        }
-      } catch (error) {
-        console.error("Error checking token in database:", error);
-      }
-      
+    }
+    
+    // Kiểm tra token admin cố định cho các API khác
+    if (token === ADMIN_FIXED_TOKEN) {
+      console.log("Using admin fixed token");
+      req.user = {
+        id: 1,
+        username: "admin",
+        role: "ADMIN"
+      };
+      return next();
+    }
+    
+    // Tìm kiếm user trong database theo token
+    console.log(`Authenticating with token: ${token.substring(0, 10)}...`);
+    const [user] = await db.select().from(users).where(eq(users.token, token));
+    
+    if (!user) {
       return res.status(401).json({
         status: "error",
         error: {
@@ -238,6 +164,14 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
         }
       });
     }
+    
+    console.log(`User authenticated: ${user.username}, role: ${user.role}`);
+    req.user = {
+      id: user.id,
+      username: user.username,
+      role: user.role
+    };
+    return next();
   } catch (error) {
     console.error("Authentication error:", error);
     return res.status(500).json({
