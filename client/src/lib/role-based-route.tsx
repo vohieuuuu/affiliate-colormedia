@@ -80,7 +80,8 @@ export function RoleBasedRoute() {
   
   console.log("RoleBasedRoute: Role check results", {
     isKolVip,
-    isAffiliate
+    isAffiliate,
+    isAdmin
   });
   
   // Kiểm tra chế độ đã chọn
@@ -90,24 +91,22 @@ export function RoleBasedRoute() {
   }
   
   // Kiểm tra quyền truy cập vào chế độ đã chọn
-  if (selectedMode === 'kol' && !isKolVip && !isAdmin) {
+  if (selectedMode === 'kol' && !isKolVip) {
     console.log("User does not have access to KOL mode, redirecting to unauthorized");
     return <Redirect to="/unauthorized" />;
   }
   
-  if (selectedMode === 'normal' && !isAffiliate && !isAdmin) {
+  if (selectedMode === 'normal' && !isAffiliate) {
     console.log("User does not have access to Normal Affiliate mode, redirecting to unauthorized");
     return <Redirect to="/unauthorized" />;
   }
   
-  // Chuyển hướng dựa trên chế độ đã chọn
+  // Đơn giản hóa chuyển hướng theo yêu cầu - chỉ tập trung vào chế độ Normal và KOL
   if (selectedMode === 'kol') {
     console.log("Selected mode is KOL, redirecting to KOL dashboard");
     return <Redirect to="/kol-dashboard" />;
-  } else if (selectedMode === 'normal' && isAdmin) {
-    console.log("Selected mode is Normal and user is Admin, redirecting to Admin dashboard");
-    return <Redirect to="/admin-dashboard" />;
   } else {
+    // Mọi người dùng đều chuyển đến /dashboard khi chọn chế độ normal
     console.log("Selected mode is Normal, redirecting to regular dashboard");
     return <Redirect to="/dashboard" />;
   }

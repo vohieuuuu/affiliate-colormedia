@@ -54,10 +54,10 @@ export default function SelectModePage() {
   // Force log to console để theo dõi vấn đề
   console.warn(`[Debug] user role: "${user?.role}", normalized: "${normalizedRole}"`);
   
-  // Sử dụng các hàm kiểm tra vai trò từ middleware
-  // Điều này đảm bảo tính nhất quán trong cách kiểm tra vai trò trên toàn bộ ứng dụng
-  const hasNormalAccess = user?.isAdmin || user?.isAffiliate;
-  const hasKolAccess = user?.isAdmin || user?.isKolVip;
+  // Sử dụng normalizedRole để kiểm tra vai trò
+  // Điều này giúp tránh lỗi khi các thuộc tính isAdmin, isAffiliate, isKolVip chưa được tính toán đúng
+  const hasNormalAccess = normalizedRole.includes("AFFILIATE") || normalizedRole.includes("ADMIN");
+  const hasKolAccess = normalizedRole.includes("KOL") || normalizedRole.includes("ADMIN");
   
   // Thêm log chi tiết về quyết định
   console.warn(`[Debug] Access check: hasNormalAccess=${hasNormalAccess}, hasKolAccess=${hasKolAccess}`);
