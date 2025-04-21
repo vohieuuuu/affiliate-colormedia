@@ -1556,13 +1556,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           } catch (userError) {
             console.error("Error creating user for affiliate:", userError);
-            return res.status(500).json({
-              status: "error",
-              error: {
-                code: "USER_CREATION_ERROR",
-                message: "Failed to create user account for affiliate"
-              }
-            });
+            // Kiểm tra lỗi cụ thể nếu là lỗi do email đã tồn tại
+            if (userError instanceof Error && userError.message.includes("already exists")) {
+              return res.status(400).json({
+                status: "error",
+                error: {
+                  code: "EMAIL_ALREADY_EXISTS",
+                  message: userError.message
+                }
+              });
+            } else {
+              return res.status(500).json({
+                status: "error",
+                error: {
+                  code: "USER_CREATION_ERROR",
+                  message: "Failed to create user account for affiliate"
+                }
+              });
+            }
           }
         }
       } else {
