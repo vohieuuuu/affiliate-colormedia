@@ -23,6 +23,9 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import KolContactsTable from "@/components/kol-vip/kol-contacts-table";
 import KpiProgressCard from "@/components/kol-vip/kpi-progress-card";
+import KolHeader from "@/components/kol-vip/kol-header";
+import KolVideosSection from "@/components/kol-vip/kol-videos-section";
+import KolSalesMaterials from "@/components/kol-vip/kol-sales-materials";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import AddContactModal from "@/components/kol-vip/add-contact-modal";
