@@ -1523,10 +1523,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       const tesseractModule = await import('tesseract.js');
       const { createWorker } = tesseractModule;
 
-      // Khởi tạo worker Tesseract
-      const worker = await createWorker({
-        logger: (m: any) => console.log(`Tesseract OCR: ${JSON.stringify(m)}`)
-      });
+      // Khởi tạo worker Tesseract - không sử dụng custom logger function để tránh lỗi cloning
+      const worker = await createWorker();
 
       // Thiết lập ngôn ngữ cho OCR (Tiếng Việt + Tiếng Anh)
       await worker.loadLanguage('vie+eng');
