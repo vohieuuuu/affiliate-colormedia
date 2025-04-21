@@ -482,7 +482,9 @@ const KolDashboard = () => {
                   <Button
                     variant="outline"
                     onClick={() => setShowScanCardModal(true)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 pointer-events-auto"
+                    style={{ pointerEvents: 'auto' }}
+                    type="button"
                   >
                     <Camera className="h-4 w-4" />
                     Quét card visit
@@ -492,7 +494,9 @@ const KolDashboard = () => {
                       setExtractedContactData(null);
                       setShowAddContactModal(true);
                     }}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 pointer-events-auto"
+                    style={{ pointerEvents: 'auto' }}
+                    type="button"
                   >
                     <PlusCircle className="h-4 w-4" />
                     Thêm liên hệ mới

@@ -236,7 +236,9 @@ const KolContactsTable = ({
 
           <Button 
             onClick={onAddContact} 
-            className="flex items-center gap-2 w-full md:w-auto"
+            className="flex items-center gap-2 w-full md:w-auto pointer-events-auto"
+            style={{ pointerEvents: 'auto' }}
+            type="button"
           >
             <PlusCircle className="h-4 w-4" />
             Thêm liên hệ
