@@ -753,6 +753,7 @@ const KolDashboard = () => {
           isOpen={showScanCardModal}
           onClose={() => setShowScanCardModal(false)}
           onSubmit={handleProcessCardImage}
+          kolId={kolInfo?.affiliate_id || ''}
         />
         {/* Thêm các thành phần video và tài liệu bán hàng */}
         <KolVideosSection />

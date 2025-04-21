@@ -248,6 +248,11 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
       return;
     }
     
+    if (!kolId) {
+      setError("Không tìm thấy ID của KOL/VIP để lưu thông tin");
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -258,6 +263,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
       onSubmit({ 
         image_base64: base64Image,
         confirm_scan: true,  // Đánh dấu là đã xác nhận trước khi lưu
+        kolId: kolId,        // Thêm kolId vào dữ liệu gửi đi
         ...values 
       } as any);
       
