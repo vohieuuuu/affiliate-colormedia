@@ -12,7 +12,10 @@ interface HeaderProps {
 
 export default function Header({ fullName, affiliateId }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  const { logoutMutation } = useAuth();
+  const { logoutMutation, user } = useAuth();
+  
+  // Ưu tiên sử dụng full_name từ prop, nếu không có thì lấy từ user context
+  const displayName = fullName || user?.full_name || user?.username || "Affiliate User";
   const [mounted, setMounted] = useState(false);
   
   // After mounting, we have access to the theme
@@ -60,7 +63,7 @@ export default function Header({ fullName, affiliateId }: HeaderProps) {
                 </div>
                 <div className="ml-3">
                   <span className="text-sm font-medium text-white block">
-                    {fullName || "Affiliate User"}
+                    {displayName}
                   </span>
                   <span className="text-xs text-white/80">
                     ID: {affiliateId || "---"}

@@ -31,6 +31,7 @@ interface ApiUser {
   role: string;
   is_first_login?: boolean;
   affiliate_id?: string; // Thêm affiliate_id để kiểm tra khi đăng nhập
+  full_name?: string; // Thêm full_name để hiển thị trong header
 }
 
 // Định nghĩa kiểu dữ liệu cho user với thông tin bổ sung

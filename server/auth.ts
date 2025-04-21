@@ -7,7 +7,6 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from "crypto";
 import type { User } from "@shared/schema";
 import { users, affiliates, kolVipAffiliates } from "@shared/schema";
-import { eq } from "drizzle-orm";
 import { sendAccountActivationEmail } from "./email";
 
 // Số lượng round cho bcrypt (tăng từ 10 lên 12 để tăng độ khó giải mã)
@@ -175,16 +174,69 @@ export function setupAuthRoutes(app: any, db: any) {
         })
         .where(eq(users.id, user.id));
 
+      // Chuẩn bị thông tin người dùng cơ bản
+      const userResponse = {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        is_first_login: user.is_first_login === 1
+      };
+      
+      // Nếu user là affiliate, thêm thông tin full_name
+      if (user.role === "AFFILIATE") {
+        // Tìm affiliate theo user_id
+        const [affiliate] = await db.select().from(affiliates).where(eq(affiliates.user_id, user.id));
+        
+        if (affiliate) {
+          console.log(`Found affiliate data for user ${user.id}: ${affiliate.full_name}`);
+          Object.assign(userResponse, {
+            full_name: affiliate.full_name,
+            affiliate_id: affiliate.affiliate_id
+          });
+        } else {
+          // Thử tìm affiliate theo email (username)
+          const [affiliateByEmail] = await db.select().from(affiliates).where(eq(affiliates.email, user.username));
+          
+          if (affiliateByEmail) {
+            console.log(`Found affiliate by email ${user.username} instead of user_id ${user.id}`);
+            Object.assign(userResponse, {
+              full_name: affiliateByEmail.full_name,
+              affiliate_id: affiliateByEmail.affiliate_id
+            });
+          }
+        }
+      }
+      
+      // Nếu user là KOL/VIP, thêm thông tin full_name
+      if (user.role === "KOL_VIP") {
+        // Tìm KOL/VIP theo user_id
+        const [kolVip] = await db.select().from(kolVipAffiliates).where(eq(kolVipAffiliates.user_id, user.id));
+        
+        if (kolVip) {
+          console.log(`Found KOL/VIP data for user ${user.id}: ${kolVip.full_name}`);
+          Object.assign(userResponse, {
+            full_name: kolVip.full_name,
+            affiliate_id: kolVip.affiliate_id
+          });
+        } else {
+          // Thử tìm KOL/VIP theo email (username)
+          const [kolVipByEmail] = await db.select().from(kolVipAffiliates).where(eq(kolVipAffiliates.email, user.username));
+          
+          if (kolVipByEmail) {
+            console.log(`Found KOL/VIP by email ${user.username} instead of user_id ${user.id}`);
+            Object.assign(userResponse, {
+              full_name: kolVipByEmail.full_name,
+              affiliate_id: kolVipByEmail.affiliate_id
+            });
+          }
+        }
+      }
+      
       // Trả về thông tin người dùng đã xác thực
       res.json({
         status: "success",
         data: {
-          user: {
-            id: user.id,
-            username: user.username,
-            role: user.role,
-            is_first_login: user.is_first_login === 1
-          },
+          user: userResponse,
           token: token,
           requires_password_change: user.is_first_login === 1
         }
