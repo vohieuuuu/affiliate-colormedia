@@ -233,7 +233,7 @@ const KolDashboard = () => {
 
   // Mutation xử lý ảnh card visit - sử dụng affiliate_id
   const processCardImageMutation = useMutation({
-    mutationFn: async (data: { image_base64: string }) => {
+    mutationFn: async (data: any) => {
       console.log("Processing card for KOL with affiliate_id:", kolInfo?.affiliate_id);
       const response = await apiRequest(
         "POST",
@@ -243,18 +243,30 @@ const KolDashboard = () => {
       return await response.json();
     },
     onSuccess: (data) => {
-      setShowScanCardModal(false);
-      setExtractedContactData(data.contact_data);
-      setShowAddContactModal(true);
-      toast({
-        title: "Thành công",
-        description: "Đã trích xuất thông tin từ card visit",
-      });
+      // Nếu có contact đã được tạo trực tiếp, cập nhật danh sách liên hệ
+      if (data?.data?.contact) {
+        setShowScanCardModal(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.affiliate_id, "contacts"] });
+        toast({
+          title: "Thành công",
+          description: "Đã thêm liên hệ mới từ card visit",
+        });
+      } 
+      // Nếu chỉ có ảnh, hiển thị form nhập liệu
+      else if (data?.data?.contact_data) {
+        setShowScanCardModal(false);
+        setExtractedContactData(data.data.contact_data);
+        setShowAddContactModal(true);
+        toast({
+          title: "Đã tải lên ảnh",
+          description: "Vui lòng điền thông tin từ card visit",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
         title: "Thất bại",
-        description: error.message || "Đã xảy ra lỗi khi trích xuất thông tin từ card visit",
+        description: error.message || "Đã xảy ra lỗi khi xử lý ảnh card visit",
         variant: "destructive",
       });
     },
@@ -315,7 +327,7 @@ const KolDashboard = () => {
   };
 
   // Xử lý xử lý ảnh card visit - sử dụng affiliate_id thay vì id
-  const handleProcessCardImage = (data: { image_base64: string }) => {
+  const handleProcessCardImage = (data: any) => {
     if (kolInfo?.affiliate_id) {
       processCardImageMutation.mutate(data);
     } else {
