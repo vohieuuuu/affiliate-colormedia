@@ -50,9 +50,10 @@ interface ScanCardModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  kolId?: string;
 }
 
-const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
+const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps) => {
   const { toast } = useToast();
   const [image, setImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -91,8 +92,14 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
       // Lấy ra base64 thực sự (bỏ phần đầu data:image/...)
       const base64Data = imageBase64.split(',')[1];
       
-      // Gọi API để quét
-      const response = await fetch('/api/kol/scan-card', {
+      if (!kolId) {
+        setError("Không tìm thấy ID của KOL/VIP để quét ảnh");
+        setIsScanning(false);
+        return;
+      }
+      
+      // Gọi API để quét với kolId
+      const response = await fetch(`/api/kol/${kolId}/scan-card`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
