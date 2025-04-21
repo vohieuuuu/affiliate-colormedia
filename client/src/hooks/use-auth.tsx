@@ -129,8 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ...apiUser,
     // Sử dụng includes trực tiếp thay vì gọi các hàm để đảm bảo tính nhất quán
     isAdmin: apiUser.role ? String(apiUser.role).toUpperCase().includes("ADMIN") : false,
-    isKolVip: apiUser.role ? String(apiUser.role).toUpperCase().includes("KOL") : false,
-    isAffiliate: apiUser.role ? String(apiUser.role).toUpperCase().includes("AFFILIATE") : false,
+    // ADMIN không thể truy cập dashboard KOL/VIP
+    isKolVip: apiUser.role ? (String(apiUser.role).toUpperCase().includes("KOL") && 
+                             !String(apiUser.role).toUpperCase().includes("ADMIN") && 
+                             !!apiUser.affiliate_id) : false,
+    isAffiliate: apiUser.role ? (String(apiUser.role).toUpperCase().includes("AFFILIATE") || 
+                                String(apiUser.role).toUpperCase().includes("ADMIN")) : false,
     dashboardRoute: getDashboardForRole(apiUser)
   } : null;
   

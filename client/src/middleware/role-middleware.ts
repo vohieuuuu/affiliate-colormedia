@@ -104,7 +104,8 @@ export function isKolVipRole(user?: any | null): boolean {
   });
   
   // Sử dụng includes() thay vì so sánh chính xác
-  return normalizedRole.includes("KOL") && hasAffiliateId;
+  // KHÔNG cho phép admin truy cập role KOL/VIP
+  return normalizedRole.includes("KOL") && !normalizedRole.includes("ADMIN") && hasAffiliateId;
 }
 
 /**
@@ -194,12 +195,12 @@ export function getDashboardForRole(user: any | null): string {
   
   // Xử lý đặc biệt cho ADMIN role - không yêu cầu affiliate_id
   if (normalizedRole.includes(ADMIN_ROLE)) {
-    // Admin có thể xem cả hai loại dashboard, mặc định chuyển về dashboard thường
+    // Admin chỉ có thể xem dashboard thường
     return '/dashboard';
   }
   
   // Xử lý trực tiếp dựa trên role đã chuẩn hóa và affiliate_id
-  if (normalizedRole.includes("KOL") && hasAffiliateId) {
+  if (normalizedRole.includes("KOL") && !normalizedRole.includes("ADMIN") && hasAffiliateId) {
     console.log("Returning KOL dashboard path for KOL/VIP role with valid affiliate_id:", normalizedRole);
     return '/kol-dashboard';
   } else if ((normalizedRole.includes("AFFILIATE") || normalizedRole.includes("MANAGER")) && hasAffiliateId) {

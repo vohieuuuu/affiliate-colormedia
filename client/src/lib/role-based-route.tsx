@@ -72,10 +72,11 @@ export function RoleBasedRoute() {
   
   // Kiểm tra các vai trò của người dùng - lưu ý rằng chúng ta sử dụng includes thay vì so sánh chính xác
   // Bỏ vai trò ADMIN riêng biệt như yêu cầu, chỉ tập trung vào NORMAL và KOL
-  const isKolVip = normalizedRole.includes("KOL");
-  // Coi ADMIN cũng có quyền truy cập affiliate normal
+  // ADMIN không còn được tự động truy cập vào KOL dashboard
+  const isKolVip = normalizedRole.includes("KOL") && !normalizedRole.includes("ADMIN");
+  // ADMIN chỉ có quyền truy cập affiliate normal
   const isAffiliate = normalizedRole.includes("AFFILIATE") || normalizedRole.includes("ADMIN");
-  // Tạo biến isAdmin để tương thích với code hiện tại, nhưng sẽ loại bỏ sau cùng
+  // Tạo biến isAdmin chỉ để tương thích với code hiện tại, sẽ loại bỏ sau
   const isAdmin = normalizedRole.includes("ADMIN");
   
   console.log("RoleBasedRoute: Role check results", {
