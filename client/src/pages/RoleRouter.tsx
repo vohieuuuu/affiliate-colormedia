@@ -50,17 +50,17 @@ export default function RoleRouter() {
     console.log("RoleRouter: Normalized role for redirection", normalizedRole, "Selected mode:", selectedMode);
 
     // Kiểm tra xem chế độ đã chọn có phù hợp với vai trò không
-    // Nếu chọn chế độ KOL nhưng không có quyền KOL_VIP
-    if (selectedMode === 'kol' && normalizedRole !== "KOL_VIP") {
-      console.log("RoleRouter: User does not have KOL_VIP role but selected KOL mode, redirecting to select-mode");
-      navigate("/select-mode", { replace: true });
+    // Nếu chọn chế độ KOL nhưng không có quyền KOL_VIP và không phải ADMIN
+    if (selectedMode === 'kol' && normalizedRole !== "KOL_VIP" && normalizedRole !== "ADMIN") {
+      console.log("RoleRouter: User does not have KOL_VIP role but selected KOL mode, redirecting to unauthorized");
+      navigate("/unauthorized", { replace: true });
       return;
     }
     
-    // Nếu chọn chế độ normal nhưng là KOL_VIP duy nhất
-    if (selectedMode === 'normal' && normalizedRole === "KOL_VIP") {
-      console.log("RoleRouter: KOL_VIP user selected normal mode but doesn't have permission, redirecting to select-mode");
-      navigate("/select-mode", { replace: true });
+    // Nếu chọn chế độ normal nhưng không có quyền AFFILIATE hoặc ADMIN
+    if (selectedMode === 'normal' && normalizedRole !== "AFFILIATE" && normalizedRole !== "ADMIN" && normalizedRole !== "MANAGER") {
+      console.log("RoleRouter: User selected normal mode but doesn't have permission, redirecting to unauthorized");
+      navigate("/unauthorized", { replace: true });
       return;
     }
 

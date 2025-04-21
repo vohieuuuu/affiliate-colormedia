@@ -3,28 +3,29 @@ import { Loader2 } from "lucide-react";
 import { Redirect, useParams } from "wouter";
 import { useEffect } from "react";
 import { queryClient } from "@/lib/queryClient";
-import { isKolVipRole, getDashboardForRole } from "@/middleware/role-middleware";
+import { isKolVipRole, isAdminRole, isAffiliateRole } from "@/middleware/role-middleware";
 
 /**
- * RoleBasedRoute - Component dùng để chuyển hướng người dùng dựa trên vai trò
+ * RoleBasedRoute - Component dùng để chuyển hướng người dùng dựa trên vai trò và chế độ đã chọn
  * 
- * Luồng xử lý:
+ * Luồng xử lý mới:
  * 1. Kiểm tra người dùng đã đăng nhập hay chưa, nếu chưa thì chuyển hướng đến trang đăng nhập
  * 2. Nếu cần đổi mật khẩu, chuyển hướng đến trang đổi mật khẩu
- * 3. Sau đó kiểm tra vai trò và chuyển hướng đến trang dashboard phù hợp sử dụng middleware mới
- * 
- * Thêm tham số refresh để làm mới dữ liệu người dùng
+ * 3. Nếu chưa chọn chế độ, chuyển hướng đến trang chọn chế độ
+ * 4. Nếu đã chọn chế độ, kiểm tra quyền truy cập vào chế độ đó và chuyển hướng phù hợp
  */
 export function RoleBasedRoute() {
-  const { user, isLoading, requiresPasswordChange } = useAuth();
+  const { user, isLoading, requiresPasswordChange, selectedMode } = useAuth();
   const params = useParams();
   const shouldRefresh = params.refresh === "refresh";
   
-  console.log("RoleBasedRoute: Checking user role for redirection", { 
+  console.log("RoleBasedRoute: Checking user for redirection", { 
     userExists: !!user, 
     userRole: user?.role,
     isKolVip: user?.isKolVip,
-    dashboardRoute: user?.dashboardRoute,
+    isAdmin: user?.isAdmin,
+    isAffiliate: user?.isAffiliate,
+    selectedMode,
     isLoading,
     requiresPasswordChange,
     shouldRefresh
@@ -50,25 +51,50 @@ export function RoleBasedRoute() {
 
   // Nếu người dùng không được xác thực, chuyển hướng đến trang đăng nhập
   if (!user) {
+    console.log("User not authenticated, redirecting to /auth");
     return <Redirect to="/auth" />;
   }
 
   // Nếu người dùng cần đổi mật khẩu, chuyển hướng đến trang đổi mật khẩu
   if (requiresPasswordChange) {
+    console.log("User needs to change password, redirecting to /change-password");
     return <Redirect to="/change-password" />;
   }
 
-  // Sử dụng middleware vai trò để kiểm tra và quyết định chuyển hướng
-  console.log(`Using role middleware to determine dashboard route for role: ${user.role}`);
+  // Chuẩn hóa role để kiểm tra
+  const normalizedRole = user.role ? (typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase()) : '';
   
-  // Chuẩn hóa role thành chữ hoa để kiểm tra chính xác
-  const userRole = user.role ? (typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase()) : '';
-  console.log("RoleBasedRoute: User role normalized:", userRole);
+  // Kiểm tra các vai trò của người dùng
+  const isAdmin = isAdminRole(user);
+  const isKolVip = isKolVipRole(user);
+  const isAffiliate = isAffiliateRole(user);
   
-  // Lấy route phù hợp với vai trò và chuyển hướng tới đó
-  // Quan trọng: Sử dụng Redirect thay vì window.location.href để tránh refresh không cần thiết
-  const dashboardRoute = getDashboardForRole(user);
-  console.log(`RoleBasedRoute: Redirecting user to ${dashboardRoute}`);
+  // Kiểm tra chế độ đã chọn
+  if (!selectedMode) {
+    console.log("No mode selected, redirecting to select-mode page");
+    return <Redirect to="/select-mode" />;
+  }
   
-  return <Redirect to={dashboardRoute} />;
+  // Kiểm tra quyền truy cập vào chế độ đã chọn
+  if (selectedMode === 'kol' && !isKolVip && !isAdmin) {
+    console.log("User does not have access to KOL mode, redirecting to unauthorized");
+    return <Redirect to="/unauthorized" />;
+  }
+  
+  if (selectedMode === 'normal' && !isAffiliate && !isAdmin) {
+    console.log("User does not have access to Normal Affiliate mode, redirecting to unauthorized");
+    return <Redirect to="/unauthorized" />;
+  }
+  
+  // Chuyển hướng dựa trên chế độ đã chọn
+  if (selectedMode === 'kol') {
+    console.log("Selected mode is KOL, redirecting to KOL dashboard");
+    return <Redirect to="/kol-dashboard" />;
+  } else if (selectedMode === 'normal' && isAdmin) {
+    console.log("Selected mode is Normal and user is Admin, redirecting to Admin dashboard");
+    return <Redirect to="/admin-dashboard" />;
+  } else {
+    console.log("Selected mode is Normal, redirecting to regular dashboard");
+    return <Redirect to="/dashboard" />;
+  }
 }
