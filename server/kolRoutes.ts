@@ -1522,24 +1522,21 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       try {
         console.log("Bắt đầu xử lý ảnh card visit với OCR...");
         
-        // Import Tesseract.js
-        const { createWorker } = await import('tesseract.js');
+        // Import Tesseract.js - phiên bản 6.0.1 yêu cầu cách sử dụng khác
+        const Tesseract = await import('tesseract.js');
         
-        // Khởi tạo Tesseract worker mà không truyền logger tùy chỉnh - phiên bản v6+
+        // Khởi tạo Tesseract worker với cấu hình đơn giản nhất
         console.log("Khởi tạo Tesseract worker...");
-        const worker = await createWorker({
-          logger: m => console.log(m), // Logger đơn giản để theo dõi tiến trình
-        });
+        const worker = await Tesseract.createWorker();
         
-        console.log("Cấu hình worker với ngôn ngữ Việt và Anh...");
-        // Các ngôn ngữ phải được tải trước khi sử dụng trong v6+
-        await worker.load();
-        await worker.loadLanguage('vie+eng');
-        
-        // Thực hiện OCR - API v6+
-        console.log("Thực hiện OCR...");
+        // Với phiên bản 6.0.1, cần sử dụng API mới
+        console.log("Đang thực hiện OCR...");
+        // Sử dụng trực tiếp hàm recognize không cần tải và khởi tạo ngôn ngữ riêng biệt
         const result = await worker.recognize(`data:image/jpeg;base64,${image_base64}`);
         console.log("OCR hoàn thành");
+        
+        // Dừng worker sau khi hoàn thành
+        await worker.terminate();
         
         // Phân tích văn bản trích xuất
         const extractedText = result.data.text;
@@ -1551,9 +1548,6 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         const emailExtracted = extractEmailFromText(extractedText);
         const companyExtracted = extractCompanyFromText(extractedText);
         const positionExtracted = extractPositionFromText(extractedText);
-        
-        // Dừng worker
-        await worker.terminate();
         
         // Trả về kết quả
         res.status(200).json({
