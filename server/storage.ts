@@ -59,6 +59,9 @@ export interface IStorage {
   getKolVipAffiliateByEmail(email: string): Promise<KolVipAffiliate | undefined>;
   updateKolVipAffiliateLevel(affiliateId: string, newLevel: KolVipLevelType): Promise<KolVipAffiliate | undefined>;
   updateKolVipAffiliateBalance(affiliateId: string, amount: number): Promise<boolean>;
+  addKolVipWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void>;
+  updateKolVipWithdrawalStatus(affiliateId: string, requestTime: string, newStatus: WithdrawalStatusType): Promise<WithdrawalHistory | undefined>;
+  checkKolVipDailyWithdrawalLimit(affiliateId: string, amount: number): Promise<{exceeds: boolean, totalWithdrawn: number, remainingLimit: number}>;
   addKolVipContact(kolId: string, contactData: KolContact): Promise<KolContact>;
   updateKolVipContactStatus(
     kolId: string,

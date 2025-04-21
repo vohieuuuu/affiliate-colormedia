@@ -1165,10 +1165,9 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         request_time: new Date().toISOString()
       };
       
-      // Xử lý yêu cầu rút tiền trong database
-      await storage.addWithdrawalRequest({
-        ...withdrawalRequest,
-        user_type: "KOL_VIP" // Thêm trường user_type để phân biệt
+      // Xử lý yêu cầu rút tiền trong database cho KOL/VIP
+      await storage.addKolVipWithdrawalRequest({
+        ...withdrawalRequest
       });
       
       // Vô hiệu hóa OTP đã sử dụng
@@ -1305,8 +1304,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      // Cập nhật trạng thái yêu cầu rút tiền
-      const updatedWithdrawal = await storage.updateWithdrawalStatus(
+      // Cập nhật trạng thái yêu cầu rút tiền cho KOL/VIP
+      const updatedWithdrawal = await storage.updateKolVipWithdrawalStatus(
         affiliateId,
         requestTime,
         status as WithdrawalStatusType
