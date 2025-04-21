@@ -1518,57 +1518,11 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
 
-      // Import Tesseract.js để trích xuất văn bản từ ảnh
-      // Sử dụng import dynamic thay vì require
-      const tesseractModule = await import('tesseract.js');
-      const { createWorker } = tesseractModule;
-
-      // Khởi tạo worker Tesseract - không sử dụng custom logger function để tránh lỗi cloning
-      const worker = await createWorker();
-
-      // Thiết lập ngôn ngữ cho OCR (Tiếng Việt + Tiếng Anh)
-      await worker.loadLanguage('vie+eng');
-      await worker.initialize('vie+eng');
-
+      // Do sự cố với Tesseract OCR trên server, chúng ta sẽ trả về hình ảnh để người dùng xem và nhập thông tin thủ công
       try {
-        // Thực hiện OCR trên ảnh
-        const { data } = await worker.recognize(`data:image/jpeg;base64,${image_base64}`);
-        console.log("Văn bản trích xuất từ ảnh:", data.text);
-
-        // Phân tích văn bản để tìm thông tin
-        const extractedText = data.text;
+        console.log("Xử lý ảnh card visit mà không dùng OCR");
         
-        // Xác định thông tin từ văn bản
-        const potentialName = extractNameFromText(extractedText);
-        const potentialPhone = extractPhoneFromText(extractedText);
-        const potentialEmail = extractEmailFromText(extractedText);
-        const potentialCompany = extractCompanyFromText(extractedText);
-        const potentialPosition = extractPositionFromText(extractedText);
-
-        // Dừng worker sau khi hoàn thành
-        await worker.terminate();
-
-        // Trả về kết quả OCR cho người dùng xác nhận
-        res.status(200).json({
-          status: "success",
-          data: {
-            contact_data: {
-              contact_name: potentialName || "",
-              phone: potentialPhone || "",
-              email: potentialEmail || "",
-              company: potentialCompany || "",
-              position: potentialPosition || "",
-              note: ""
-            },
-            raw_text: extractedText,
-            message: "Vui lòng xác nhận thông tin liên hệ đã trích xuất"
-          }
-        });
-      } catch (ocrError) {
-        console.error("Lỗi khi trích xuất văn bản:", ocrError);
-        await worker.terminate();
-
-        // Nếu OCR lỗi, trả về form trống để người dùng nhập thủ công
+        // Trả về form trống cùng với ảnh để người dùng tự nhập thông tin
         const emptyContactData = {
           contact_name: "",
           company: "",
@@ -1582,7 +1536,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
           status: "success",
           data: {
             contact_data: emptyContactData,
-            message: "Không thể trích xuất thông tin từ ảnh. Vui lòng nhập thủ công."
+            image_preview: `data:image/jpeg;base64,${image_base64}`,
+            message: "Vui lòng nhập thông tin liên hệ từ card visit"
           }
         });
       }

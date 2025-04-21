@@ -114,7 +114,18 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
       if (data.status === 'success') {
         // Hiển thị kết quả quét
         const extractedData = data.data.contact_data;
-        setExtractedText(data.data.raw_text || '');
+        
+        // Nếu có văn bản trích xuất thì hiển thị, nếu không thì hiển thị thông báo
+        if (data.data.raw_text) {
+          setExtractedText(data.data.raw_text);
+        } else {
+          setExtractedText("Hệ thống không thể thực hiện OCR. Vui lòng nhập thông tin thủ công.");
+        }
+        
+        // Nếu có hình ảnh preview thì hiển thị
+        if (data.data.image_preview) {
+          setImage(data.data.image_preview);
+        }
         
         // Cập nhật form với dữ liệu trích xuất
         form.setValue('contact_name', extractedData.contact_name || '');
@@ -126,8 +137,8 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
         // Đánh dấu quét thành công và chuyển sang tab nhập thông tin
         setScanSuccess(true);
         toast({
-          title: "Quét thành công",
-          description: "Hệ thống đã trích xuất thông tin từ card visit. Vui lòng kiểm tra và chỉnh sửa nếu cần.",
+          title: "Ảnh đã được tải lên",
+          description: "Vui lòng nhập thông tin của người liên hệ từ card visit.",
           variant: "default",
         });
         
