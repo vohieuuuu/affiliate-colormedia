@@ -155,7 +155,7 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
     }
     
     // Tìm kiếm user trong database theo token
-    console.log(`Authenticating with token: ${token.substring(0, 10)}...`);
+    console.log("Authenticating with token: [SECURED]");
     const [user] = await db.select().from(users).where(eq(users.token, token));
     
     if (!user) {
