@@ -1,9 +1,13 @@
-import { neon } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from 'ws';
 import * as schema from '../shared/schema';
 
 // Thêm log để debug
 console.log("Initializing database connection...");
+
+// Cấu hình websocket cho Neon Serverless
+neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -12,17 +16,16 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Khởi tạo kết nối
-let db;
-console.log("Setting up Neon database connection with neon-serverless");
-const sql = neon(process.env.DATABASE_URL!);
-db = drizzle(sql, { schema });
+console.log("Setting up Neon database connection with Pool");
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool, { schema });
 console.log("Database connection established successfully");
 
 // Kiểm tra kết nối
 async function testConnection() {
   try {
-    const result = await sql`SELECT NOW()`;
-    console.log("Database connection test successful:", result);
+    const result = await pool.query('SELECT NOW()');
+    console.log("Database connection test successful:", result.rows);
   } catch (error) {
     console.error("Database connection test failed:", error);
   }
@@ -30,5 +33,3 @@ async function testConnection() {
 
 // Chạy kiểm tra kết nối
 testConnection();
-
-export { db };

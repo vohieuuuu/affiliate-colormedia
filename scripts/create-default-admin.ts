@@ -2,15 +2,19 @@
  * Script tạo tài khoản admin mặc định trong cơ sở dữ liệu
  * Chạy: tsx scripts/create-default-admin.ts
  */
-import { neon } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { eq } from 'drizzle-orm';
 import dotenv from 'dotenv';
+import ws from 'ws';
 import { users } from '../shared/schema';
 import { hashPassword } from '../server/auth';
 
 // Tải biến môi trường
 dotenv.config();
+
+// Cấu hình websocket cho Neon Serverless
+neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -34,8 +38,8 @@ async function createDefaultAdmin() {
   try {
     // Khởi tạo kết nối
     console.log("Kết nối đến database...");
-    const sql = neon(process.env.DATABASE_URL!);
-    const db = drizzle(sql, { schema: { users } });
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const db = drizzle(pool, { schema: { users } });
     
     console.log("Tìm kiếm tài khoản admin...");
     // Kiểm tra xem admin đã tồn tại chưa
