@@ -1519,7 +1519,9 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       }
 
       // Import Tesseract.js để trích xuất văn bản từ ảnh
-      const { createWorker } = require('tesseract.js');
+      // Sử dụng import dynamic thay vì require
+      const tesseractModule = await import('tesseract.js');
+      const { createWorker } = tesseractModule;
 
       // Khởi tạo worker Tesseract
       const worker = await createWorker({
