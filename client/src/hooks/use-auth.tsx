@@ -98,21 +98,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
+  // Xử lý cấu trúc phản hồi từ API
+  const userData = userRaw && userRaw.status === "success" && userRaw.data?.user 
+    ? userRaw.data.user 
+    : userRaw;
+  
   // Bổ sung thông tin vai trò cho user
-  const user = userRaw ? {
-    ...userRaw,
+  const user = userData ? {
+    ...userData,
     // Sử dụng includes trực tiếp thay vì gọi các hàm để đảm bảo tính nhất quán
-    isAdmin: userRaw.role ? String(userRaw.role).toUpperCase().includes("ADMIN") : false,
-    isKolVip: userRaw.role ? String(userRaw.role).toUpperCase().includes("KOL") : false,
-    isAffiliate: userRaw.role ? String(userRaw.role).toUpperCase().includes("AFFILIATE") : false,
-    dashboardRoute: getDashboardForRole(userRaw)
+    isAdmin: userData.role ? String(userData.role).toUpperCase().includes("ADMIN") : false,
+    isKolVip: userData.role ? String(userData.role).toUpperCase().includes("KOL") : false,
+    isAffiliate: userData.role ? String(userData.role).toUpperCase().includes("AFFILIATE") : false,
+    dashboardRoute: getDashboardForRole(userData)
   } : null;
   
   // Log thông tin vai trò để debug
-  if (userRaw) {
+  if (userData) {
     console.log("useAuth: User role processing", {
-      rawRole: userRaw.role,
-      normalizedRole: userRaw.role ? String(userRaw.role).toUpperCase() : "",
+      userData: userData,
+      rawRole: userData.role,
+      normalizedRole: userData.role ? String(userData.role).toUpperCase() : "",
       isAdmin: user?.isAdmin,
       isKolVip: user?.isKolVip,
       isAffiliate: user?.isAffiliate
