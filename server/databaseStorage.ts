@@ -1178,30 +1178,72 @@ export class DatabaseStorage implements IStorage {
   
   async addKolVipContact(kolId: string, contactData: KolContact): Promise<KolContact> {
     try {
+      console.log(`Attempting to add contact for KOL/VIP with ID: ${kolId}`);
+      
       // 1. Kiểm tra xem KOL/VIP có tồn tại không
       const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
       if (!kolVip) {
-        throw new Error("KOL/VIP affiliate not found");
+        console.error(`KOL/VIP affiliate with ID ${kolId} not found in database`);
+        throw new Error(`KOL/VIP affiliate with ID ${kolId} not found`);
       }
       
+      console.log(`Found KOL/VIP: ${kolVip.full_name} (ID: ${kolVip.affiliate_id})`);
+      
+      // Chuẩn bị dữ liệu cho contact
+      const contactInsertData = {
+        ...contactData,
+        kol_id: kolId,
+        status: contactData.status || 'Mới nhập',
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      
+      console.log(`Preparing to insert contact with data:`, contactInsertData);
+      
       // 2. Thêm contact mới
-      const [newContact] = await db.insert(kolContacts)
-        .values({
-          ...contactData,
-          kol_id: kolId,
-          status: contactData.status || 'Mới nhập',
-          created_at: new Date(),
-          updated_at: new Date()
-        })
-        .returning();
-      
-      // 3. Cập nhật số lượng liên hệ của KOL/VIP
-      const newTotalContacts = (kolVip.total_contacts || 0) + 1;
-      await db.update(kolVipAffiliates)
-        .set({ total_contacts: newTotalContacts })
-        .where(eq(kolVipAffiliates.affiliate_id, kolId));
-      
-      return newContact;
+      try {
+        const [newContact] = await db.insert(kolContacts)
+          .values(contactInsertData)
+          .returning();
+        
+        console.log(`Successfully inserted new contact with ID: ${newContact.id}`);
+        
+        // 3. Cập nhật số lượng liên hệ của KOL/VIP
+        const newTotalContacts = (kolVip.total_contacts || 0) + 1;
+        await db.update(kolVipAffiliates)
+          .set({ total_contacts: newTotalContacts })
+          .where(eq(kolVipAffiliates.affiliate_id, kolId));
+        
+        console.log(`Updated KOL/VIP total_contacts to: ${newTotalContacts}`);
+        
+        return newContact;
+      } catch (insertError) {
+        console.error("Error during contact insert operation:", insertError);
+        
+        // Thử chèn trực tiếp với SQL nếu Drizzle ORM gặp vấn đề
+        console.log("Attempting direct SQL insert for contact");
+        const result = await db.execute(`
+          INSERT INTO kol_contacts (kol_id, full_name, email, phone, company, position, source, status, note, created_at, updated_at)
+          VALUES ('${kolId}', '${contactData.full_name}', '${contactData.email}', '${contactData.phone}', 
+                 '${contactData.company || ""}', '${contactData.position || ""}', '${contactData.source || ""}',
+                 '${contactData.status || "Mới nhập"}', '${contactData.note || ""}', NOW(), NOW())
+          RETURNING *
+        `);
+        
+        console.log("Direct SQL insert result:", result);
+        
+        if (result.rows && result.rows.length > 0) {
+          // Vẫn cập nhật số lượng contact
+          const newTotalContacts = (kolVip.total_contacts || 0) + 1;
+          await db.update(kolVipAffiliates)
+            .set({ total_contacts: newTotalContacts })
+            .where(eq(kolVipAffiliates.affiliate_id, kolId));
+          
+          return result.rows[0] as KolContact;
+        } else {
+          throw new Error("Failed to insert contact using direct SQL");
+        }
+      }
     } catch (error) {
       console.error("Error adding KOL/VIP contact:", error);
       throw new Error("Failed to add KOL/VIP contact");
