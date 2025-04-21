@@ -233,10 +233,12 @@ export function setupAuthRoutes(app: any, db: any) {
       }
       
       // Thiết lập token vào HTTP-only cookie để tăng bảo mật
+      console.log("API Login: Setting auth_token cookie");
       res.cookie('auth_token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+        path: '/', // Đảm bảo cookie có sẵn cho tất cả các đường dẫn
         sameSite: 'lax'
       });
       
@@ -319,10 +321,12 @@ export function setupAuthRoutes(app: any, db: any) {
       }
 
       // Thiết lập token vào HTTP-only cookie để tăng bảo mật
+      console.log("API Register: Setting auth_token cookie");
       res.cookie('auth_token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+        path: '/', // Đảm bảo cookie có sẵn cho tất cả các đường dẫn
         sameSite: 'lax'
       });
       
