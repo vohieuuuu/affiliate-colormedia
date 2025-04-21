@@ -69,13 +69,9 @@ export default function RoleRouter() {
       console.log("RoleRouter: KOL mode selected, redirecting to /kol-dashboard");
       navigate("/kol-dashboard", { replace: true });
     } else if (selectedMode === 'normal') {
-      if (normalizedRole === "ADMIN") {
-        console.log("RoleRouter: Admin user in normal mode, redirecting to /admin-dashboard");
-        navigate("/admin-dashboard", { replace: true });
-      } else {
-        console.log("RoleRouter: Normal mode selected, redirecting to /dashboard");
-        navigate("/dashboard", { replace: true });
-      }
+      // Chuyển tất cả người dùng đến /dashboard khi chọn chế độ normal
+      console.log("RoleRouter: Normal mode selected, redirecting to /dashboard");
+      navigate("/dashboard", { replace: true });
     }
   }, [user, isLoading, navigate, selectedMode]);
 

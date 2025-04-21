@@ -61,8 +61,9 @@ export function RoleBasedRoute() {
     return <Redirect to="/change-password" />;
   }
 
-  // Chuẩn hóa role để kiểm tra
-  const normalizedRole = user.role ? (typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase()) : '';
+  // Chuẩn hóa role để kiểm tra - bảo vệ khỏi lỗi khi user.role là undefined
+  // Sử dụng String() trực tiếp và chỉ khi role tồn tại
+  const normalizedRole = user.role ? String(user.role).toUpperCase() : '';
   
   console.log("RoleBasedRoute: Processing user role", {
     role: user.role,
@@ -70,12 +71,14 @@ export function RoleBasedRoute() {
   });
   
   // Kiểm tra các vai trò của người dùng - lưu ý rằng chúng ta sử dụng includes thay vì so sánh chính xác
-  const isAdmin = normalizedRole.includes("ADMIN");
+  // Bỏ vai trò ADMIN riêng biệt như yêu cầu, chỉ tập trung vào NORMAL và KOL
   const isKolVip = normalizedRole.includes("KOL");
-  const isAffiliate = normalizedRole.includes("AFFILIATE");
+  // Coi ADMIN cũng có quyền truy cập affiliate normal
+  const isAffiliate = normalizedRole.includes("AFFILIATE") || normalizedRole.includes("ADMIN");
+  // Tạo biến isAdmin để tương thích với code hiện tại, nhưng sẽ loại bỏ sau cùng
+  const isAdmin = normalizedRole.includes("ADMIN");
   
   console.log("RoleBasedRoute: Role check results", {
-    isAdmin,
     isKolVip,
     isAffiliate
   });
