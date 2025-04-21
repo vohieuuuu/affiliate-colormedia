@@ -38,6 +38,7 @@ const KolDashboard = () => {
   const [activeTab, setActiveTab] = useState("contacts");
   const [showAddContactModal, setShowAddContactModal] = useState(false);
   const [showScanCardModal, setShowScanCardModal] = useState(false);
+  const [extractedContactData, setExtractedContactData] = useState(null);
   
   // Thêm log để kiểm tra chi tiết user
   console.log("KolDashboard - User info:", {
@@ -272,8 +273,7 @@ const KolDashboard = () => {
     },
   });
 
-  // State lưu dữ liệu trích xuất từ card visit
-  const [extractedContactData, setExtractedContactData] = useState<Partial<KolContact> | null>(null);
+  // State đã được khai báo ở trên
 
   // Xử lý thêm liên hệ - sử dụng affiliate_id thay vì id
   const handleAddContact = (contactData: any) => {
