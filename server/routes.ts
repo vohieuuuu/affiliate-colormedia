@@ -430,19 +430,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Áp dụng middleware xác thực cho các endpoints cần bảo vệ
   // Sử dụng cùng một cách tiếp cận cho cả development và production
-  console.log("SECURITY: Enforcing authentication for admin APIs");
+  console.log("SECURITY: Enforcing authentication for API endpoints");
   secureApiEndpoints.forEach(endpoint => {
     if (endpoint.startsWith("/api/admin")) {
       // API admin cần token và quyền admin chặt chẽ
       app.use(endpoint, authenticateUser, requireAdmin);
     } else {
-      // API khác hiện tại bỏ qua xác thực cho dễ kiểm thử
-      // app.use(endpoint, authenticateUser);
+      // API thông thường cũng cần xác thực
+      app.use(endpoint, authenticateUser);
     }
   });
   
   // Bảo vệ riêng tất cả các API admin khác không liệt kê cụ thể
   app.use("/api/admin/*", authenticateUser, requireAdmin);
+  
+  // Bảo vệ tất cả API affiliate để đảm bảo đều yêu cầu xác thực
+  app.use("/api/affiliate*", authenticateUser);
   
   // API endpoint to register a new affiliate for a user
   app.post("/api/register-affiliate", authenticateUser, async (req, res) => {
@@ -682,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API endpoint to get top affiliates
-  app.get("/api/affiliates/top", async (req, res) => {
+  app.get("/api/affiliates/top", authenticateUser, async (req, res) => {
     try {
       const topAffiliates = await storage.getTopAffiliates();
       res.setHeader('Content-Type', 'application/json');
