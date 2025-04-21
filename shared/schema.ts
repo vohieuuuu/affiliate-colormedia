@@ -101,6 +101,9 @@ export const affiliates = pgTable("affiliates", {
   received_balance: integer("received_balance").notNull().default(0),
   paid_balance: integer("paid_balance").notNull().default(0),
   remaining_balance: integer("remaining_balance").notNull().default(0),
+  accumulated_commission: integer("accumulated_commission").notNull().default(0), // Tổng hoa hồng tích lũy (bao gồm cả bonus)
+  monthly_contract_value: integer("monthly_contract_value").notNull().default(0), // Tổng giá trị hợp đồng trong tháng hiện tại
+  affiliate_type: text("affiliate_type").notNull().default("partner"), // partner, sme
   referred_customers: json("referred_customers").$type<ReferredCustomer[]>().notNull().default([]),
   withdrawal_history: json("withdrawal_history").$type<WithdrawalHistory[]>().notNull().default([]),
 });
@@ -348,6 +351,8 @@ export const kolVipAffiliates = pgTable("kol_vip_affiliates", {
   received_balance: integer("received_balance").notNull().default(0), // Tổng thu nhập đã nhận (lương + hoa hồng)
   paid_balance: integer("paid_balance").notNull().default(0),         // Tổng đã rút
   remaining_balance: integer("remaining_balance").notNull().default(0), // Số dư có thể rút
+  accumulated_commission: integer("accumulated_commission").notNull().default(0), // Tổng hoa hồng tích lũy (bao gồm cả bonus)
+  monthly_contract_value: integer("monthly_contract_value").notNull().default(0), // Tổng giá trị hợp đồng trong tháng hiện tại
   kpi_history: json("kpi_history").$type<MonthlyKpi[]>().notNull().default([]),
   referred_customers: json("referred_customers").$type<ReferredCustomer[]>().notNull().default([]),
   withdrawal_history: json("withdrawal_history").$type<WithdrawalHistory[]>().notNull().default([]),
