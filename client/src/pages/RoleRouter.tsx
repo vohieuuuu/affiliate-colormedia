@@ -4,22 +4,24 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
 /**
- * RoleRouter - Component điều hướng người dùng dựa vào vai trò
+ * RoleRouter - Component điều hướng người dùng dựa vào vai trò và chế độ đã chọn
  * 
- * Dựa trên hướng dẫn từ tài liệu, component này sẽ:
+ * Với cải tiến mới, component này sẽ:
  * - Kiểm tra trạng thái loading trước khi thực hiện điều hướng
- * - Điều hướng đến dashboard phù hợp dựa trên vai trò người dùng
+ * - Điều hướng đến dashboard phù hợp dựa trên vai trò người dùng và chế độ đã chọn
+ * - Chuyển hướng đến trang chọn chế độ nếu người dùng chưa chọn
  * - Sử dụng replace: true để tránh lỗi quay lại / rồi redirect lại
  */
 export default function RoleRouter() {
   const [, navigate] = useLocation();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, selectedMode } = useAuth();
 
   // Log thông tin debug
   console.log("RoleRouter: Rendering with user data", {
     isLoading,
     user,
     userRole: user?.role,
+    selectedMode
   });
 
   useEffect(() => {
@@ -36,26 +38,46 @@ export default function RoleRouter() {
       return;
     }
 
+    // Nếu người dùng chưa chọn chế độ, điều hướng đến trang chọn chế độ
+    if (!selectedMode) {
+      console.log("RoleRouter: No mode selected, redirecting to select-mode page");
+      navigate("/select-mode", { replace: true });
+      return;
+    }
+
     // Chuẩn hóa role để so sánh không phân biệt hoa thường
     const normalizedRole = user?.role ? String(user.role).toUpperCase() : '';
-    console.log("RoleRouter: Normalized role for redirection", normalizedRole);
+    console.log("RoleRouter: Normalized role for redirection", normalizedRole, "Selected mode:", selectedMode);
 
-    // ✅ Nếu role là KOL/VIP, chuyển về kol-dashboard
-    if (normalizedRole === "KOL_VIP") {
-      console.log("RoleRouter: KOL/VIP user detected, redirecting to /kol-dashboard");
+    // Kiểm tra xem chế độ đã chọn có phù hợp với vai trò không
+    // Nếu chọn chế độ KOL nhưng không có quyền KOL_VIP
+    if (selectedMode === 'kol' && normalizedRole !== "KOL_VIP") {
+      console.log("RoleRouter: User does not have KOL_VIP role but selected KOL mode, redirecting to select-mode");
+      navigate("/select-mode", { replace: true });
+      return;
+    }
+    
+    // Nếu chọn chế độ normal nhưng là KOL_VIP duy nhất
+    if (selectedMode === 'normal' && normalizedRole === "KOL_VIP") {
+      console.log("RoleRouter: KOL_VIP user selected normal mode but doesn't have permission, redirecting to select-mode");
+      navigate("/select-mode", { replace: true });
+      return;
+    }
+
+    // Điều hướng dựa trên chế độ đã chọn
+    if (selectedMode === 'kol') {
+      console.log("RoleRouter: KOL mode selected, redirecting to /kol-dashboard");
       navigate("/kol-dashboard", { replace: true });
-    } 
-    // ✅ Nếu role là ADMIN, chuyển về admin-dashboard
-    else if (normalizedRole === "ADMIN") {
-      console.log("RoleRouter: Admin user detected, redirecting to /admin-dashboard");
-      navigate("/admin-dashboard", { replace: true });
+    } else if (selectedMode === 'normal') {
+      if (normalizedRole === "ADMIN") {
+        console.log("RoleRouter: Admin user in normal mode, redirecting to /admin-dashboard");
+        navigate("/admin-dashboard", { replace: true });
+      } else {
+        console.log("RoleRouter: Normal mode selected, redirecting to /dashboard");
+        navigate("/dashboard", { replace: true });
+      }
     }
-    // ✅ Nếu là role bình thường (AFFILIATE, MANAGER), chuyển về dashboard
-    else {
-      console.log("RoleRouter: Normal affiliate detected, redirecting to /dashboard");
-      navigate("/dashboard", { replace: true });
-    }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, selectedMode]);
 
   // Hiển thị loading trong lúc chờ hoặc đang chuyển hướng
   return (

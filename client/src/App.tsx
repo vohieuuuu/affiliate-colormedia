@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import KolDashboard from "@/pages/kol-dashboard";
 import SelectModePage from "@/pages/select-mode";
+import UnauthorizedPage from "@/pages/unauthorized";
 import AuthPage from "@/pages/auth-page";
 import ChangePasswordPage from "@/pages/change-password";
 import RoleRouter from "@/pages/RoleRouter";
@@ -24,6 +25,12 @@ function Router() {
       
       {/* Route điều hướng vai trò - giữ lại để tương thích với code cũ */}
       <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
+      
+      {/* Trang chọn chế độ - cần xác thực nhưng không cần kiểm tra vai trò */}
+      <ProtectedRoute path="/select-mode" component={SelectModePage} />
+      
+      {/* Trang không có quyền truy cập */}
+      <ProtectedRoute path="/unauthorized" component={UnauthorizedPage} />
       
       {/* 
         GIẢI PHÁP MỚI: Sử dụng RoleRouter để quyết định hiển thị Dashboard nào

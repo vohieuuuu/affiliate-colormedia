@@ -1,144 +1,166 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, UserCircle, Award } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { Building, PenSquare, ArrowRight } from "lucide-react";
 
+/**
+ * SelectModePage - Trang cho phép người dùng chọn chế độ làm việc
+ * 
+ * Với cải tiến mới, component này cho phép:
+ * - Hiển thị các chế độ người dùng có thể truy cập dựa trên vai trò của họ
+ * - Người dùng chọn chế độ làm việc (Normal/KOL) khi họ có nhiều vai trò
+ * - Lưu trữ chế độ đã chọn để sử dụng cho các lần truy cập tiếp theo
+ */
 export default function SelectModePage() {
-  const { user, isLoading, selectMode } = useAuth();
   const [, navigate] = useLocation();
+  const { user, isLoading, selectedMode, selectMode } = useAuth();
 
+  // Kiểm tra xem người dùng đã đăng nhập chưa
   useEffect(() => {
-    // Nếu người dùng chưa đăng nhập, chuyển hướng về trang đăng nhập
     if (!isLoading && !user) {
+      console.log("SelectModePage: User not logged in, redirecting to auth");
       navigate("/auth", { replace: true });
     }
   }, [user, isLoading, navigate]);
 
-  const handleSelectMode = (mode: 'normal' | 'kol') => {
-    // Kiểm tra quyền truy cập
-    const normalizedRole = user?.role ? String(user.role).toUpperCase() : '';
-    
-    // Nếu chọn KOL_VIP nhưng không có quyền
-    if (mode === 'kol' && normalizedRole !== 'KOL_VIP') {
-      return;
-    }
-    
-    // Nếu chọn normal nhưng không có quyền (chỉ có role KOL_VIP)
-    if (mode === 'normal' && normalizedRole !== 'AFFILIATE' && normalizedRole !== 'ADMIN') {
-      return;
-    }
-    
-    // Lưu mode đã chọn
-    selectMode(mode);
-    
-    // Chuyển hướng đến trang tương ứng
-    if (mode === 'kol') {
-      navigate('/kol-dashboard', { replace: true });
-    } else {
-      navigate('/dashboard', { replace: true });
-    }
-  };
-
-  // Kiểm tra xem người dùng có quyền truy cập vào chế độ nào
-  const canAccessNormal = user?.role && String(user.role).toUpperCase() !== 'KOL_VIP';
-  const canAccessKol = user?.role && String(user.role).toUpperCase() === 'KOL_VIP';
-
+  // Nếu đang tải dữ liệu, hiển thị loading
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Đang tải thông tin người dùng...</p>
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        <p className="text-muted-foreground">Đang tải thông tin...</p>
       </div>
     );
   }
 
+  // Nếu không có người dùng, không hiển thị gì (sẽ được redirect bởi useEffect)
+  if (!user) {
+    return null;
+  }
+
+  // Chuẩn hóa role để so sánh không phân biệt hoa thường
+  const normalizedRole = user?.role ? String(user.role).toUpperCase() : '';
+  
+  // Kiểm tra các vai trò của người dùng
+  const hasNormalAccess = normalizedRole === "ADMIN" || normalizedRole === "AFFILIATE" || normalizedRole === "MANAGER";
+  const hasKolAccess = normalizedRole === "KOL_VIP" || normalizedRole === "ADMIN";
+
+  // Chọn chế độ và chuyển hướng đến trang chủ
+  const handleSelectMode = (mode: 'normal' | 'kol') => {
+    console.log("SelectModePage: Selecting mode", mode);
+    selectMode(mode);
+    
+    // Chuyển hướng đến trang chủ để RoleRouter xử lý việc điều hướng tiếp theo
+    navigate("/", { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <h1 className="text-2xl md:text-3xl font-bold text-center mb-8 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-          Chọn chế độ truy cập
-        </h1>
-        
-        <div className="grid gap-6">
-          {/* Chế độ Affiliate thường */}
-          <Card className={`border-2 ${canAccessNormal ? 'hover:border-primary cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
-                onClick={() => canAccessNormal && handleSelectMode('normal')}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <UserCircle className="h-5 w-5 text-primary" />
-                Affiliate thường
-              </CardTitle>
-              <CardDescription>
-                Quản lý khách hàng giới thiệu và theo dõi doanh số
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Theo dõi hoa hồng và doanh số</li>
-                  <li>Quản lý khách hàng giới thiệu</li>
-                  <li>Rút tiền hoa hồng</li>
-                </ul>
-              </div>
-            </CardContent>
-            <CardFooter>
-              {!canAccessNormal && (
-                <Alert variant="destructive" className="w-full p-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle className="text-xs">Không có quyền truy cập</AlertTitle>
-                  <AlertDescription className="text-xs">
-                    Bạn không được phân quyền vào chế độ này
-                  </AlertDescription>
-                </Alert>
-              )}
-              {canAccessNormal && (
-                <Button variant="outline" className="w-full">Chọn chế độ này</Button>
-              )}
-            </CardFooter>
-          </Card>
-
-          {/* Chế độ KOL/VIP */}
-          <Card className={`border-2 ${canAccessKol ? 'hover:border-primary cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
-                onClick={() => canAccessKol && handleSelectMode('kol')}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-primary" />
-                KOL/VIP Affiliate
-              </CardTitle>
-              <CardDescription>
-                Quản lý KPI và theo dõi hiệu suất theo cấp độ
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Quét card visit tự động</li>
-                  <li>Theo dõi KPI hàng tháng</li>
-                  <li>Quản lý lộ trình cấp độ (Level)</li>
-                </ul>
-              </div>
-            </CardContent>
-            <CardFooter>
-              {!canAccessKol && (
-                <Alert variant="destructive" className="w-full p-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle className="text-xs">Không có quyền truy cập</AlertTitle>
-                  <AlertDescription className="text-xs">
-                    Bạn không được phân quyền vào chế độ này
-                  </AlertDescription>
-                </Alert>
-              )}
-              {canAccessKol && (
-                <Button variant="outline" className="w-full">Chọn chế độ này</Button>
-              )}
-            </CardFooter>
-          </Card>
+      <div className="max-w-4xl w-full">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-blue-500 text-transparent bg-clip-text">
+            ColorMedia Affiliate System
+          </h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Chọn chế độ bạn muốn truy cập. Tùy theo vai trò của mình, bạn có thể truy cập vào hệ thống Affiliate thông thường hoặc hệ thống KOL/VIP.
+          </p>
         </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mx-auto">
+          {/* Chế độ Affiliate thông thường */}
+          {hasNormalAccess && (
+            <Card className={`shadow-md transition-all ${selectedMode === 'normal' ? 'border-primary ring-2 ring-primary ring-opacity-50' : 'hover:shadow-lg'}`}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5 text-primary" />
+                  <span>Affiliate Thông thường</span>
+                </CardTitle>
+                <CardDescription>
+                  Quản lý khách hàng được giới thiệu và theo dõi hoa hồng
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm text-gray-500">
+                  <p className="flex items-start gap-2">
+                    <ArrowRight className="h-4 w-4 shrink-0 mt-1" />
+                    <span>Quản lý thông tin khách hàng được giới thiệu</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <ArrowRight className="h-4 w-4 shrink-0 mt-1" />
+                    <span>Theo dõi tiến trình từ giới thiệu đến ký hợp đồng</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <ArrowRight className="h-4 w-4 shrink-0 mt-1" />
+                    <span>Tạo yêu cầu rút tiền hoa hồng</span>
+                  </p>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full" 
+                  onClick={() => handleSelectMode('normal')}
+                  variant={selectedMode === 'normal' ? 'default' : 'outline'}
+                >
+                  {selectedMode === 'normal' ? 'Đang chọn' : 'Chọn chế độ này'}
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
+          
+          {/* Chế độ KOL/VIP */}
+          {hasKolAccess && (
+            <Card className={`shadow-md transition-all ${selectedMode === 'kol' ? 'border-primary ring-2 ring-primary ring-opacity-50' : 'hover:shadow-lg'}`}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PenSquare className="h-5 w-5 text-primary" />
+                  <span>KOL/VIP Affiliate</span>
+                </CardTitle>
+                <CardDescription>
+                  Quản lý danh sách liên hệ và theo dõi KPI theo cấp bậc
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm text-gray-500">
+                  <p className="flex items-start gap-2">
+                    <ArrowRight className="h-4 w-4 shrink-0 mt-1" />
+                    <span>Quản lý danh sách khách hàng tiềm năng</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <ArrowRight className="h-4 w-4 shrink-0 mt-1" />
+                    <span>Theo dõi KPI theo cấp bậc KOL</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <ArrowRight className="h-4 w-4 shrink-0 mt-1" />
+                    <span>Quét danh thiếp để thêm nhanh khách hàng</span>
+                  </p>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full" 
+                  onClick={() => handleSelectMode('kol')}
+                  variant={selectedMode === 'kol' ? 'default' : 'outline'}
+                >
+                  {selectedMode === 'kol' ? 'Đang chọn' : 'Chọn chế độ này'}
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
+        </div>
+        
+        {/* Thông báo nếu không có quyền truy cập vào bất kỳ chế độ nào */}
+        {!hasNormalAccess && !hasKolAccess && (
+          <div className="text-center p-8">
+            <p className="text-red-500 font-medium mb-4">
+              Tài khoản của bạn không có quyền truy cập vào bất kỳ chế độ nào.
+            </p>
+            <Button onClick={() => navigate("/auth")}>
+              Quay lại trang đăng nhập
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
