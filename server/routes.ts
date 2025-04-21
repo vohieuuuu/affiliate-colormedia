@@ -31,6 +31,7 @@ import {
   encryptSensitiveData,
   decryptSensitiveData
 } from "./security";
+import commissionRouter from "./api/commission";
 
 // Hàm trợ giúp để kiểm tra vai trò thống nhất
 function isUserRole(role: any, expectedRole: string): boolean {
@@ -2016,8 +2017,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Tính toán hoa hồng và giá trị bổ sung
       const oldContractValue = customer.contract_value || 0;
       const additionalContractValue = contract_value - oldContractValue;
-      // Làm tròn số hoa hồng thành số nguyên (tránh lỗi số thập phân)
-      const additionalCommission = Math.round(additionalContractValue * 0.03); // 3% hoa hồng
+      
+      // Xác định loại affiliate và tính hoa hồng theo quy tắc mới
+      const affiliateType = affiliate.affiliate_type || "partner";
+      // Nhập cảng hàm tính toán từ module commission
+      const { calculateCommission } = require("@shared/schemas/commission");
+      // Tính toán hoa hồng dựa trên loại affiliate và giá trị hợp đồng
+      const newCommission = calculateCommission(affiliateType as any, contract_value);
+      const oldCommission = customer.commission || 0;
+      const additionalCommission = Math.round(newCommission - oldCommission);
       
       console.log(`Calculating commission: old value ${oldContractValue}, new value ${contract_value}, additional: ${additionalContractValue}, commission: ${additionalCommission} (rounded)`);
       
@@ -3131,6 +3139,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } catch (error) {
     console.error("Error setting up KOL/VIP routes:", error);
   }
+
+  // Thiết lập routes API cho hoa hồng
+  app.use("/api/commission", commissionRouter);
 
   const httpServer = createServer(app);
 
