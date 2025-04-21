@@ -50,9 +50,15 @@ export default function SelectModePage() {
     user: user
   });
   
-  // Kiểm tra các vai trò của người dùng
-  const hasNormalAccess = normalizedRole === "ADMIN" || normalizedRole === "AFFILIATE" || normalizedRole === "MANAGER";
-  const hasKolAccess = normalizedRole === "KOL_VIP" || normalizedRole === "ADMIN";
+  // Force log to console để theo dõi vấn đề
+  console.warn(`[Debug] user role: "${user?.role}", normalized: "${normalizedRole}"`);
+  
+  // Kiểm tra các vai trò của người dùng bằng includes thay vì so sánh chính xác
+  const hasNormalAccess = normalizedRole.includes("ADMIN") || normalizedRole.includes("AFFILIATE") || normalizedRole.includes("MANAGER");
+  const hasKolAccess = normalizedRole.includes("KOL") || normalizedRole.includes("ADMIN");
+  
+  // Thêm log chi tiết về quyết định
+  console.warn(`[Debug] Access check: hasNormalAccess=${hasNormalAccess}, hasKolAccess=${hasKolAccess}`);
   
   console.log("SelectModePage: Access check result", {
     hasNormalAccess,
