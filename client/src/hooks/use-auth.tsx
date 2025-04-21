@@ -102,22 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const storedMode = typeof window !== 'undefined' ? localStorage.getItem("selected_mode") as SelectedMode : null;
   const [selectedMode, setSelectedMode] = useState<SelectedMode>(storedMode);
   
-  // Xử lý việc clear token và thông tin xác thực khi không có session
-  useEffect(() => {
-    // Kiểm tra token trong localStorage và sessionStorage
-    const localToken = localStorage.getItem("auth_token");
-    const sessionToken = sessionStorage.getItem("auth_token");
-    
-    // Nếu không có token nào, đảm bảo thông tin người dùng được xóa
-    if (!localToken && !sessionToken) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log("No auth token found, clearing user data");
-      }
-      localStorage.removeItem("selected_mode");
-      sessionStorage.removeItem("requires_password_change");
-    }
-  }, []);
-  
   // Query để lấy thông tin người dùng hiện tại và bổ sung thông tin vai trò
   const {
     data: userRaw,
@@ -127,6 +111,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
+  
+  // Xử lý việc clear thông tin xác thực khi người dùng không đăng nhập
+  useEffect(() => {
+    // Không cần kiểm tra token từ localStorage nữa, vì giờ đã sử dụng HttpOnly cookie
+    // Token sẽ được xử lý tự động bởi API proxy server
+    // Tuy nhiên vẫn cần xóa thông tin người dùng trong trường hợp logout hoặc session hết hạn
+    
+    // Nếu không load user được, xóa thông tin mode đã chọn
+    if (!userRaw && !isLoading) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log("No authenticated user, clearing client-side data");
+      }
+      localStorage.removeItem("selected_mode");
+      sessionStorage.removeItem("requires_password_change");
+    }
+  }, [userRaw, isLoading]);
   
   // Xử lý cấu trúc phản hồi từ API
   let apiUser: ApiUser | null = null;
@@ -193,14 +193,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [error, isLoading, userRaw]);
   
-  // Hàm xóa tất cả dữ liệu xác thực
+  // Hàm xóa tất cả dữ liệu xác thực phía client (cookies được xử lý ở backend)
   const clearAuthData = () => {
     if (typeof window !== 'undefined') {
       if (process.env.NODE_ENV === 'development') {
-        console.log("Clearing all auth data");
+        console.log("Clearing all client auth data");
       }
-      sessionStorage.removeItem("auth_token");
-      localStorage.removeItem("auth_token");
+      // Không còn cần xóa auth_token từ localStorage/sessionStorage
+      // vì giờ đã dùng cookies httpOnly 
       localStorage.removeItem("selected_mode");
       sessionStorage.removeItem("requires_password_change");
     }
@@ -218,32 +218,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     },
     onSuccess: (response: LoginResponse) => {
-      // Lưu thông tin người dùng và token
-      if (response.token) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log("Login successful, token received");
-        }
-        
-        // Lưu token vào cả localStorage và sessionStorage để đảm bảo tính nhất quán
-        if (typeof window !== 'undefined') {
-          // Lưu token vào session storage để sử dụng trong các API calls
-          sessionStorage.setItem("auth_token", response.token);
-          localStorage.setItem("auth_token", response.token);
-        }
-        
-        // Cập nhật thông tin người dùng trong query cache
-        // Đóng gói thông tin người dùng theo đúng định dạng phản hồi từ API
-        queryClient.setQueryData(["/api/auth/me"], {
-          status: "success",
-          data: {
-            user: response.user
-          }
-        });
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.error("Login response missing token!");
-        }
+      // Xử lý đăng nhập thành công
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Login successful, user authenticated");
       }
+      
+      // Không cần lưu token trong localStorage/sessionStorage nữa
+      // Token đã được lưu trong HttpOnly cookie bởi API proxy
+        
+      // Cập nhật thông tin người dùng trong query cache
+      // Đóng gói thông tin người dùng theo đúng định dạng phản hồi từ API
+      queryClient.setQueryData(["/api/auth/me"], {
+        status: "success",
+        data: {
+          user: response.user
+        }
+      });
       
       // Lưu và cập nhật trạng thái yêu cầu đổi mật khẩu
       const needsPasswordChange = response.requires_password_change;
@@ -321,10 +311,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       // Xóa tất cả dữ liệu phiên khi đăng xuất
       if (typeof window !== 'undefined') {
+        // Xóa dữ liệu liên quan đến phiên người dùng
         sessionStorage.removeItem("requires_password_change");
-        sessionStorage.removeItem("auth_token");
-        localStorage.removeItem("auth_token");
         localStorage.removeItem("selected_mode");
+        // Không cần xóa auth_token từ localStorage/sessionStorage 
+        // vì đã dùng HTTP-only cookie
       }
       setRequiresPasswordChange(false);
       setSelectedMode(null);

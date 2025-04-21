@@ -2,68 +2,206 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
+const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS for all routes
-app.use(cors());
+// Cấu hình API token bảo mật
+// API token không còn được lưu trữ ở client, chỉ được lưu trữ an toàn trên server
+const SERVER_API_TOKEN = process.env.API_TOKEN || "1ee19664de4bcbd354400cfe0000078cac0618835772f112858183e5ec9b94dc";
+
+// Cấu hình giới hạn tốc độ truy cập API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 100, // giới hạn mỗi IP chỉ được gọi 100 request trong khoảng thời gian
+  message: {
+    status: 'error',
+    message: 'Quá nhiều yêu cầu, vui lòng thử lại sau 15 phút'
+  },
+  standardHeaders: true, // trả về thông tin về giới hạn rate trong header `RateLimit-*`
+  legacyHeaders: false, // vô hiệu hóa header `X-RateLimit-*`
+});
+
+// Giới hạn nghiêm ngặt hơn cho các API đăng nhập/đăng ký để ngăn tấn công bruteforce
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 giờ
+  max: 10, // tối đa 10 yêu cầu từ một IP
+  message: { 
+    status: 'error', 
+    message: 'Quá nhiều yêu cầu xác thực, vui lòng thử lại sau 1 giờ'
+  }
+});
+
+// Cấu hình Content-Security-Policy
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:;"
+  );
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
+// Enable CORS với cấu hình nghiêm ngặt
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://affclm.replit.app'] 
+    : ['http://localhost:5000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
+
+// Khởi tạo cookie-parser để đọc cookies
+app.use(cookieParser());
+
 app.use(express.json());
 
-// Serve static files from the 'dist/public' directory
-app.use(express.static(path.join(__dirname, 'dist/public')));
+// Serve static files with caching
+app.use(express.static(path.join(__dirname, 'dist/public'), {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js') || path.endsWith('.css')) {
+      // Cache JavaScript/CSS files for 1 week
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.gif')) {
+      // Cache images for 1 day
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
 
 // Simple health check endpoint
 app.get('/api/check', (req, res) => {
   res.json({ status: 'ok', message: 'API proxy is working' });
 });
 
-// Redirect API requests to your actual API server
+// Middleware để xử lý Cookie và token
+const extractToken = (req, res, next) => {
+  // Lấy token từ Authorization header hoặc cookie
+  let token = null;
+  
+  // 1. Kiểm tra header Authorization
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  }
+  
+  // 2. Kiểm tra cookie
+  if (!token && req.cookies && req.cookies.auth_token) {
+    token = req.cookies.auth_token;
+  }
+  
+  // Thêm token vào request object (không lộ token trong logs)
+  req.authToken = token || SERVER_API_TOKEN;
+  
+  next();
+};
+
+// Áp dụng rate limiting
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/*', apiLimiter);
+app.use('/api/*', extractToken);
+
+// Proxy mọi request API tới server API thực sự
 app.all('/api/*', async (req, res) => {
   try {
-    // Đây là đường dẫn đến API tạm thời, có thể điều chỉnh nếu cần
-    // Local server sẽ chạy trên cổng khác
     const isProd = process.env.NODE_ENV === 'production';
     const backendUrl = isProd ? process.env.API_URL || 'https://affclm-api.replit.app' : 'http://localhost:3000';
     const method = req.method.toLowerCase();
     const url = `${backendUrl}${req.url}`;
     
-    console.log(`Proxying ${method.toUpperCase()} request to: ${url}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Proxying ${method.toUpperCase()} request to: ${url}`);
+    }
     
-    // Forward the request to the backend
+    // Xóa thông tin nhạy cảm từ logs
+    const sanitizedHeaders = { ...req.headers };
+    delete sanitizedHeaders.authorization;
+    delete sanitizedHeaders.cookie;
+    
+    // Forward request đến backend với token bảo mật
     const response = await axios({
       method,
       url,
       data: req.body,
       headers: {
-        ...req.headers,
+        ...sanitizedHeaders,
         host: new URL(backendUrl).host,
+        Authorization: `Bearer ${req.authToken}`,
+        'X-Forwarded-For': req.ip,
+        'X-Real-IP': req.ip
       },
       validateStatus: () => true, // Accept any status code
     });
     
-    // Set the response headers
+    // Thiết lập Cookie HttpOnly cho token nếu là response đăng nhập thành công
+    if (req.url.includes('/api/auth/login') && response.status === 200 && response.data?.data?.token) {
+      // Lưu trữ token trong HttpOnly cookie
+      const token = response.data.data.token;
+      
+      // Xóa token khỏi response data để không gửi về client
+      delete response.data.data.token;
+      
+      // Thiết lập cookie chỉ có thể truy cập bởi server, không thể truy cập bởi JavaScript
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000, // 1 ngày
+        sameSite: 'strict'
+      });
+    }
+    
+    // Xử lý đăng xuất: xóa cookie auth_token khi đăng xuất thành công
+    if (req.url.includes('/api/auth/logout') && response.status === 200) {
+      // Xóa cookie auth_token bằng cách thiết lập maxAge = 0
+      res.cookie('auth_token', '', {
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 0, // Xóa cookie ngay lập tức
+        sameSite: 'strict'
+      });
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Logout successful: Cookie auth_token removed');
+      }
+    }
+    
+    // Set các header từ response gốc
     Object.entries(response.headers).forEach(([key, value]) => {
-      res.set(key, value);
+      // Bỏ qua các header liên quan đến CORS vì chúng ta tự xử lý
+      if (!['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'].includes(key.toLowerCase())) {
+        res.set(key, value);
+      }
     });
     
-    // Send the response
+    // Gửi response về client
     res.status(response.status).send(response.data);
   } catch (error) {
-    console.error('Proxy error:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Proxy error:', error.message);
+    }
+    
     res.status(502).json({
       error: 'Bad Gateway',
-      message: 'Failed to connect to the backend server',
-      details: error.message
+      message: 'Không thể kết nối đến máy chủ',
+      details: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
     });
   }
 });
 
-// Serve the index.html for all other routes (SPA support)
+// SPA support - phục vụ index.html cho tất cả các route không tìm thấy
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/public/index.html'));
 });
 
+// Lắng nghe kết nối
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`API proxy server running on port ${PORT}`);
 });

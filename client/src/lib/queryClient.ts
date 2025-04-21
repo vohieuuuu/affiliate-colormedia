@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { API_URL, DEFAULT_API_TOKEN } from "./config";
+import { API_URL } from "./config";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -8,9 +8,6 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Get API token, sử dụng token từ config
-const API_TOKEN = DEFAULT_API_TOKEN;
-
 export async function apiRequest(
   method: string,
   url: string,
@@ -18,27 +15,19 @@ export async function apiRequest(
 ): Promise<Response> {
   const headers: Record<string, string> = {};
   
-  // Sử dụng token từ session storage hoặc localStorage nếu có, nếu không sử dụng API_TOKEN mặc định
-  let authToken = API_TOKEN;
-  if (typeof window !== 'undefined') {
-    const sessionToken = sessionStorage.getItem("auth_token");
-    const localToken = localStorage.getItem("auth_token");
-    
-    // Log thông tin token để debug - giới hạn thông tin để tránh log quá nhiều
-    if (url.includes("/auth")) {
-      console.log("Token status in apiRequest:", { 
-        hasSessionToken: !!sessionToken, 
-        hasLocalToken: !!localToken,
-        method,
-        url
-      });
-    }
-    
-    // Ưu tiên sử dụng token từ sessionStorage trước
-    authToken = sessionToken || localToken || API_TOKEN;
+  // Không cần đọc token từ localStorage/sessionStorage nữa
+  // Vì token được lưu trong HttpOnly cookie và được tự động gửi đi
+  
+  // Log thông tin request để debug - giới hạn thông tin để tránh log quá nhiều
+  if (process.env.NODE_ENV === 'development' && url.includes("/auth")) {
+    console.log("API Request:", { 
+      method,
+      url
+    });
   }
   
-  headers["Authorization"] = `Bearer ${authToken}`;
+  // Không cần thêm token vào headers Authorization nữa
+  // Vì sẽ được xử lý tự động bởi cookies
   headers["Accept"] = "application/json";
   
   if (data) {
@@ -80,20 +69,8 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // Sử dụng token từ session storage hoặc localStorage nếu có, nếu không sử dụng API_TOKEN mặc định
-    let authToken = API_TOKEN;
-    if (typeof window !== 'undefined') {
-      const sessionToken = sessionStorage.getItem("auth_token");
-      const localToken = localStorage.getItem("auth_token");
-      
-      // Không log thông tin nhạy cảm về token
-      if (process.env.NODE_ENV === 'development' && !String(queryKey[0]).includes("/api/auth")) {
-        console.log("API Request:", queryKey[0]);
-      }
-      
-      // Ưu tiên sử dụng token từ sessionStorage trước
-      authToken = sessionToken || localToken || API_TOKEN;
-    }
+    // Không cần sử dụng token từ session storage hoặc localStorage nữa
+    // Token được lưu trong HttpOnly cookie và được tự động gửi đi
     
     // Cần chuyển đổi URL cho môi trường production
     const url = queryKey[0] as string;
@@ -105,9 +82,8 @@ export const getQueryFn: <T>(options: {
     }
     
     const res = await fetch(fullUrl, {
-      credentials: "include",
+      credentials: "include", // Quan trọng: để gửi cookies trong các request
       headers: {
-        "Authorization": `Bearer ${authToken}`,
         "Accept": "application/json",
         "Content-Type": "application/json"
       }
@@ -116,11 +92,9 @@ export const getQueryFn: <T>(options: {
     if (res.status === 401) {
       console.log("401 Unauthorized response in query", { url, unauthorizedBehavior });
       
-      // Xóa token không hợp lệ từ cả localStorage và sessionStorage
+      // Xóa dữ liệu người dùng trên client
       if (typeof window !== 'undefined') {
-        console.log("Clearing invalid tokens due to 401 error");
-        localStorage.removeItem("auth_token");
-        sessionStorage.removeItem("auth_token");
+        console.log("Clearing client data due to 401 error");
         localStorage.removeItem("selected_mode");
       }
       
