@@ -82,8 +82,8 @@ export default function Dashboard() {
     setIsWithdrawalModalOpen(false);
   };
 
-  // Hiển thị thông báo chuyển hướng nếu vẫn tải được trang mặc dù đã có useEffect
-  if (user?.role === "KOL_VIP") {
+  // Kiểm tra vai trò để điều hướng theo yêu cầu
+  if (user?.role && String(user.role).toUpperCase().includes("KOL")) {
     console.log("Dashboard rendering KOL/VIP redirect message");
     return (
       <div className="min-h-screen flex items-center justify-center">

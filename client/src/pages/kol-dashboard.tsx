@@ -110,7 +110,14 @@ const KolDashboard = () => {
     queryFn: async () => {
       try {
         console.log("Fetching KPI stats for KOL with affiliate_id:", kolInfo?.affiliate_id);
-        const response = await apiRequest("GET", `/api/kol/${kolInfo?.affiliate_id}/kpi-stats`);
+        
+        // Kiểm tra affiliate_id tồn tại để đảm bảo có thể lấy dữ liệu
+        if (!kolInfo?.affiliate_id) {
+          console.error("Missing affiliate_id for KOL when fetching KPI stats");
+          throw new Error("Không tìm thấy ID của KOL/VIP để tải thông tin KPI");
+        }
+        
+        const response = await apiRequest("GET", `/api/kol/${kolInfo.affiliate_id}/kpi-stats`);
         const data = await response.json();
         console.log("Received KPI stats:", data);
         if (data.status === "success") {
