@@ -172,17 +172,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Kiểm tra bất kỳ lỗi nào trong quá trình xác thực
     if (error) {
-      console.error("Error fetching user data:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching user data:", error);
+      }
       // Xóa bỏ thông tin token đã lưu nếu lỗi 401 hoặc lỗi khác
       if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
-        console.log("Auth error detected, clearing session data");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Auth error detected, clearing session data");
+        }
         clearAuthData();
       }
     }
     
     // Kiểm tra nếu quá trình tải hoàn tất mà không có user
     if (!isLoading && !userRaw) {
-      console.log("Authentication check completed: No user found, clearing any stale tokens");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Authentication check completed: No user found, clearing any stale tokens");
+      }
       clearAuthData();
     }
   }, [error, isLoading, userRaw]);
@@ -190,7 +196,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Hàm xóa tất cả dữ liệu xác thực
   const clearAuthData = () => {
     if (typeof window !== 'undefined') {
-      console.log("Clearing all auth data");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Clearing all auth data");
+      }
       sessionStorage.removeItem("auth_token");
       localStorage.removeItem("auth_token");
       localStorage.removeItem("selected_mode");
@@ -212,7 +220,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (response: LoginResponse) => {
       // Lưu thông tin người dùng và token
       if (response.token) {
-        console.log("Login successful, token received, length:", response.token.length);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Login successful, token received");
+        }
         
         // Lưu token vào cả localStorage và sessionStorage để đảm bảo tính nhất quán
         if (typeof window !== 'undefined') {
@@ -230,7 +240,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
       } else {
-        console.error("Login response missing token!");
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Login response missing token!");
+        }
       }
       
       // Lưu và cập nhật trạng thái yêu cầu đổi mật khẩu
@@ -248,12 +260,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Chuyển hướng đến trang dựa vào trạng thái đổi mật khẩu
       if (needsPasswordChange) {
         // Nếu cần đổi mật khẩu, chuyển đến trang đổi mật khẩu trước
-        console.log("Login success: redirecting to change-password page");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Login success: redirecting to change-password page");
+        }
         // Sử dụng navigate để tránh làm mới trang
         navigate("/change-password");
       } else {
         // Nếu không cần đổi mật khẩu, chuyển đến trang chọn vai trò
-        console.log("Login success: redirecting to select-mode page");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Login success: redirecting to select-mode page");
+        }
         
         // Xóa chế độ đã chọn trước đó (nếu có) khi đăng nhập thành công
         if (typeof window !== 'undefined') {
@@ -330,7 +346,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Xóa yêu cầu đổi mật khẩu khi hoàn thành
   const clearPasswordChangeRequirement = useCallback(() => {
-    console.log("Clearing password change requirement");
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Clearing password change requirement");
+    }
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem("requires_password_change");
     }
@@ -342,7 +360,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Xử lý chọn chế độ (mode)
   const selectMode = useCallback((mode: SelectedMode) => {
-    console.log("Selecting mode:", mode);
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Selecting mode:", mode);
+    }
     setSelectedMode(mode);
     
     // Lưu chế độ đã chọn vào localStorage để duy trì giữa các phiên
