@@ -91,12 +91,12 @@ export default function ChangePasswordPage() {
           
           console.log("Change password success: redirecting to select-mode page");
           
-          // Chuyển hướng đến trang chọn chế độ thay vì dashboard cụ thể
-          window.location.href = "/select-mode";
+          // Sử dụng setLocation thay vì window.location để tránh refresh trang
+          setLocation("/select-mode", { replace: true });
         } catch (error) {
           console.error("Error during redirect:", error);
           // Fallback nếu có lỗi
-          window.location.href = "/";
+          setLocation("/", { replace: true });
         }
       }, 2000);
     },
