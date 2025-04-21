@@ -19,8 +19,8 @@ app.use(cors({
   credentials: true, // Quan trọng: cho phép trình duyệt gửi cookie trong các yêu cầu CORS
   exposedHeaders: ['Set-Cookie', 'Authorization'] // Cho phép client đọc các header này
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' })); // Tăng giới hạn lên 50MB để hỗ trợ hình ảnh base64 lớn
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 // Sử dụng cookie-parser với cookie secret để hỗ trợ cookie có chữ ký
 app.use(cookieParser(process.env.COOKIE_SECRET || 'colormedia-affiliate-system-secret'));
 
