@@ -301,17 +301,22 @@ export function setupAuthRoutes(app: any, db: any) {
         });
       }
 
-      // Kiểm tra mật khẩu hiện tại
-      const passwordValid = await comparePasswords(current_password, user.password);
-
-      if (!passwordValid) {
-        return res.status(400).json({
-          status: "error",
-          error: {
-            code: "INVALID_PASSWORD",
-            message: "Mật khẩu hiện tại không chính xác"
-          }
-        });
+      // Kiểm tra xem đây có phải là đăng nhập lần đầu không
+      const isFirstLogin = user.is_first_login === 1;
+      
+      // Nếu không phải đăng nhập lần đầu, kiểm tra mật khẩu hiện tại
+      if (!isFirstLogin) {
+        const passwordValid = await comparePasswords(current_password, user.password);
+        
+        if (!passwordValid) {
+          return res.status(400).json({
+            status: "error",
+            error: {
+              code: "INVALID_PASSWORD",
+              message: "Mật khẩu hiện tại không chính xác"
+            }
+          });
+        }
       }
 
       // Mã hóa mật khẩu mới
