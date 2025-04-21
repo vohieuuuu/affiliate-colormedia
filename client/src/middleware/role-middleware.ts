@@ -64,11 +64,12 @@ export function isAdminRole(user?: User | null): boolean {
     role: user.role,
     normalizedRole, 
     normalizedExpectedRole, 
-    isEqual: normalizedRole === normalizedExpectedRole, 
+    isEqual: normalizedRole.includes(normalizedExpectedRole), 
     user_role_type: typeof user.role 
   });
   
-  return normalizedRole === normalizedExpectedRole;
+  // Sử dụng includes() thay vì so sánh chính xác
+  return normalizedRole.includes(normalizedExpectedRole);
 }
 
 /**
@@ -87,11 +88,12 @@ export function isKolVipRole(user?: User | null): boolean {
     role: user.role,
     normalizedRole, 
     normalizedExpectedRole, 
-    isEqual: normalizedRole === normalizedExpectedRole, 
+    isEqual: normalizedRole.includes(normalizedExpectedRole), 
     user_role_type: typeof user.role 
   });
   
-  return normalizedRole === normalizedExpectedRole;
+  // Sử dụng includes() thay vì so sánh chính xác
+  return normalizedRole.includes("KOL");
 }
 
 /**
@@ -110,11 +112,12 @@ export function isAffiliateRole(user?: User | null): boolean {
     role: user.role,
     normalizedRole, 
     normalizedExpectedRole, 
-    isEqual: normalizedRole === normalizedExpectedRole, 
+    isEqual: normalizedRole.includes(normalizedExpectedRole), 
     user_role_type: typeof user.role 
   });
   
-  return normalizedRole === normalizedExpectedRole;
+  // Sử dụng includes() thay vì so sánh chính xác
+  return normalizedRole.includes(normalizedExpectedRole);
 }
 
 /**
@@ -166,11 +169,11 @@ export function getDashboardForRole(user: User | null): string {
     route: ROLE_ROUTES[normalizedRole as keyof typeof ROLE_ROUTES] || '/dashboard'
   });
   
-  // Xử lý trực tiếp dựa trên role đã chuẩn hóa
-  if (normalizedRole === KOL_VIP_ROLE) {
+  // Xử lý trực tiếp dựa trên role đã chuẩn hóa sử dụng includes() thay vì so sánh chính xác
+  if (normalizedRole.includes("KOL")) {
     console.log("Returning KOL dashboard path directly for KOL/VIP role:", normalizedRole);
     return '/kol-dashboard';
-  } else if (normalizedRole === ADMIN_ROLE) {
+  } else if (normalizedRole.includes("ADMIN")) {
     return '/admin-dashboard';
   } else {
     return '/dashboard';
