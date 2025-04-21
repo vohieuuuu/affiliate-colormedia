@@ -1,10 +1,12 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import type { IStorage } from "./storage";
-import { authenticateUser } from "./routes";
-import { KolContact, KolVipAffiliate, KolVipLevelType, MonthlyKpi, kolContacts, kolVipAffiliates } from "@shared/schema";
-import { hashPassword } from "./auth";
+import { authenticateUser, detectSuspiciousWithdrawal } from "./routes";
+import { KolContact, KolVipAffiliate, KolVipLevelType, MonthlyKpi, kolContacts, kolVipAffiliates, WithdrawalStatusType } from "@shared/schema";
+import { hashPassword, generateToken } from "./auth";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
+import { rateLimit } from "express-rate-limit";
+import { sendOtpVerificationEmail } from "./email";
 
 /**
  * Thiết lập routes quản lý KOL/VIP
