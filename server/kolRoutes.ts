@@ -25,16 +25,17 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       });
     }
 
-    // Kiểm tra role KOL_VIP - sử dụng chuẩn hóa chữ hoa
+    // Kiểm tra role KOL_VIP hoặc KOL - sử dụng chuẩn hóa chữ hoa
     const normalizedRole = String(req.user.role).toUpperCase();
     console.log("requireKolVip checking: ", {
       role: req.user.role, 
       normalizedRole, 
-      isKolVip: normalizedRole === "KOL_VIP", 
-      isAdmin: normalizedRole === "ADMIN"
+      isKolVip: normalizedRole.includes("KOL"), 
+      isAdmin: normalizedRole.includes("ADMIN")
     });
     
-    if (normalizedRole !== "KOL_VIP" && normalizedRole !== "ADMIN") {
+    // Sử dụng includes thay vì so sánh chính xác để linh hoạt hơn
+    if (!normalizedRole.includes("KOL") && !normalizedRole.includes("ADMIN")) {
       return res.status(403).json({
         status: "error",
         error: {
@@ -47,8 +48,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     // Tìm thông tin KOL/VIP
     let kolVip = await storage.getKolVipAffiliateByUserId(req.user.id);
     
-    // Nếu không tìm thấy thông tin KOL/VIP và người dùng có role KOL_VIP
-    if (!kolVip && normalizedRole === "KOL_VIP") {
+    // Nếu không tìm thấy thông tin KOL/VIP và người dùng có role KOL hoặc KOL_VIP
+    if (!kolVip && normalizedRole.includes("KOL")) {
       console.log(`No KOL/VIP data found for user ${req.user.id} (${req.user.username}) - creating default data`);
       
       // Tạo dữ liệu KOL/VIP mặc định cho user có role KOL_VIP
@@ -96,10 +97,10 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     console.log("ensureOwnKolVipData checking: ", {
       role: req.user?.role, 
       normalizedRole,
-      isAdmin: normalizedRole === "ADMIN"
+      isAdmin: normalizedRole.includes("ADMIN")
     });
     
-    if (normalizedRole === "ADMIN") {
+    if (normalizedRole.includes("ADMIN")) {
       return next();
     }
     

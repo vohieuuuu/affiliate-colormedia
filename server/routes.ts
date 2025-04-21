@@ -42,7 +42,8 @@ function isUserRole(role: any, expectedRole: string): boolean {
   
   console.log(`Role checking: ${normalizedRole} vs ${normalizedExpectedRole}`);
   
-  return normalizedRole === normalizedExpectedRole;
+  // Sử dụng includes thay vì so sánh chính xác để linh hoạt hơn
+  return normalizedRole.includes(normalizedExpectedRole);
 }
 
 // Kiểm tra xem một user có phải là admin hay không
@@ -54,7 +55,9 @@ export function isAdminRole(user: User | undefined): boolean {
 // Kiểm tra xem một user có phải là KOL/VIP hay không
 export function isKolVipRole(user: User | undefined): boolean {
   if (!user) return false;
-  return isUserRole(user.role, "KOL_VIP");
+  
+  // Sử dụng KOL thay vì KOL_VIP để tương thích với frontend
+  return isUserRole(user.role, "KOL");
 }
 
 // Kiểm tra xem một user có phải là Affiliate thường hay không
