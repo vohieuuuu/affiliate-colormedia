@@ -921,6 +921,61 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     next();
   };
 
+  // API endpoint để kiểm tra giới hạn rút tiền cho KOL/VIP
+  app.post("/api/kol/withdrawal-request/check-limit", authenticateUser, requireKolVip, async (req: Request, res: Response) => {
+    try {
+      const { amount } = req.body;
+      
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_AMOUNT",
+            message: "Số tiền không hợp lệ"
+          }
+        });
+      }
+      
+      // Lấy thông tin KOL/VIP
+      const kolVip = await storage.getKolVipAffiliateByUserId(req.user.id);
+      if (!kolVip) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "KOL_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP"
+          }
+        });
+      }
+      
+      // Kiểm tra số dư
+      if (kolVip.remaining_balance < amount) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INSUFFICIENT_BALANCE",
+            message: `Số dư không đủ. Số dư hiện tại: ${kolVip.remaining_balance.toLocaleString()} VND`
+          }
+        });
+      }
+      
+      // Kiểm tra giới hạn rút tiền theo ngày
+      const limitCheck = await storage.checkKolVipDailyWithdrawalLimit(kolVip.affiliate_id, amount);
+      
+      return res.status(200).json(limitCheck);
+      
+    } catch (error) {
+      console.error("Error checking KOL/VIP withdrawal limit:", error);
+      return res.status(500).json({
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Lỗi kiểm tra giới hạn rút tiền"
+        }
+      });
+    }
+  });
+
   // API endpoint to request withdrawal OTP for KOL/VIP
   app.post("/api/kol/withdrawal-request/send-otp", authenticateUser, requireKolVip, detectSuspiciousKolVipWithdrawal, async (req: Request, res: Response) => {
     try {
