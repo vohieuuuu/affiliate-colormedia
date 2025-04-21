@@ -37,7 +37,7 @@ export default function RoleRouter() {
     }
 
     // Chuẩn hóa role để so sánh không phân biệt hoa thường
-    const normalizedRole = String(user.role).toUpperCase();
+    const normalizedRole = user?.role ? String(user.role).toUpperCase() : '';
     console.log("RoleRouter: Normalized role for redirection", normalizedRole);
 
     // ✅ Nếu role là KOL/VIP, chuyển về kol-dashboard

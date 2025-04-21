@@ -62,7 +62,7 @@ export function RoleBasedRoute() {
   console.log(`Using role middleware to determine dashboard route for role: ${user.role}`);
   
   // Chuẩn hóa role thành chữ hoa để kiểm tra chính xác
-  const userRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
+  const userRole = user.role ? (typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase()) : '';
   console.log("RoleBasedRoute: User role normalized:", userRole);
   
   // Lấy route phù hợp với vai trò và chuyển hướng tới đó

@@ -40,8 +40,6 @@ const KolDashboard = () => {
   console.log("KolDashboard - User info:", {
     user,
     role: user?.role,
-    isKolVip: user?.isKolVip,
-    dashboardRoute: user?.dashboardRoute,
     normalizedRole: user?.role ? String(user.role).toUpperCase() : 'unknown'
   });
   
