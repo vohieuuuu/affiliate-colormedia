@@ -107,13 +107,18 @@ const extractToken = (req, res, next) => {
   }
   
   // Debug cookies
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' && req.url.includes('/api/auth')) {
+    console.log(`DEBUG REQUEST: ${req.method} ${req.url}`);
     console.log("Available cookies:", Object.keys(req.cookies || {}));
     console.log("Available signed cookies:", Object.keys(req.signedCookies || {}));
     
     if (req.headers.cookie) {
       console.log("Raw cookie header:", req.headers.cookie);
+    } else {
+      console.log("No cookie header present");
     }
+    
+    console.log("Headers:", Object.keys(req.headers));
   }
   
   // 2. Nếu không có cookie, kiểm tra header Authorization (legacy)
@@ -232,24 +237,44 @@ app.all('/api/*', async (req, res) => {
       if (token) {
         if (process.env.NODE_ENV === 'development') {
           console.log('Setting auth_token cookie after successful login');
+          console.log('Token:', token.substring(0, 5) + '...');
         }
         
         // Thiết lập cookie với các tùy chọn phù hợp cho môi trường phát triển
         const cookieOptions = {
           httpOnly: true,                                        // Bảo mật: JavaScript không thể đọc cookie
-          secure: process.env.NODE_ENV === 'production',         // Chỉ gửi qua HTTPS trong production
+          secure: false,                                         // Trong Dev, không cần HTTPS
           maxAge: 24 * 60 * 60 * 1000,                           // 1 ngày
-          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Lax là cần thiết cho dev
+          sameSite: 'lax',                                       // Lax là cần thiết cho dev
           path: '/',                                             // Cookie sẽ được gửi cho mọi request
-          signed: true                                           // Ký cookie để tăng bảo mật
+          signed: false                                          // Không ký cookie trong dev để dễ debug
         };
         
-        // Thiết lập cả cookie thường và cookie đã ký để đảm bảo tương thích
+        // Debug bao nhiêu cookies hiện có trong response
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Cookies in response before setting:', res.getHeader('Set-Cookie'));
+        }
+        
+        // Thiết lập cookie cho token
         res.cookie('auth_token', token, cookieOptions);
         
-        // Cũng thiết lập cookie không ký để đảm bảo tương thích ngược
-        const unsignedCookieOptions = {...cookieOptions, signed: false};
-        res.cookie('auth_token_unsigned', token, unsignedCookieOptions);
+        // Đảm bảo browser lưu cookie bằng cách set header trực tiếp
+        const cookieStr = `auth_token=${token}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly`;
+        
+        // Thêm header Set-Cookie
+        if (!res.getHeader('Set-Cookie')) {
+          res.setHeader('Set-Cookie', [cookieStr]);
+        } else {
+          const existing = res.getHeader('Set-Cookie');
+          const cookies = Array.isArray(existing) ? existing : [existing];
+          cookies.push(cookieStr);
+          res.setHeader('Set-Cookie', cookies);
+        }
+        
+        // Debug
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Set-Cookie header after:', res.getHeader('Set-Cookie'));
+        }
         
         if (process.env.NODE_ENV === 'development') {
           console.log('Cookie options:', cookieOptions);
