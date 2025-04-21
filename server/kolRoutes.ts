@@ -57,7 +57,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
           full_name: req.user.username.split('@')[0] || `KOL User ${req.user.id}`,
           email: req.user.username,
           phone: "0987654321",
-          level: 1,
+          level: "LEVEL_1",
           monthly_salary: 5000000,
           kpi_status: "Pending",
           total_contacts: 0,
