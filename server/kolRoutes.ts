@@ -1525,22 +1525,24 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         // Import Tesseract.js
         const { createWorker } = await import('tesseract.js');
         
-        // Khởi tạo Tesseract worker mà không truyền logger tùy chỉnh
+        // Khởi tạo Tesseract worker mà không truyền logger tùy chỉnh - phiên bản v6+
         console.log("Khởi tạo Tesseract worker...");
-        const worker = await createWorker();
+        const worker = await createWorker({
+          logger: m => console.log(m), // Logger đơn giản để theo dõi tiến trình
+        });
         
         console.log("Cấu hình worker với ngôn ngữ Việt và Anh...");
-        // Cấu hình worker với ngôn ngữ tiếng Việt và tiếng Anh
+        // Các ngôn ngữ phải được tải trước khi sử dụng trong v6+
+        await worker.load();
         await worker.loadLanguage('vie+eng');
-        await worker.initialize('vie+eng');
         
-        // Thực hiện OCR
+        // Thực hiện OCR - API v6+
         console.log("Thực hiện OCR...");
-        const { data } = await worker.recognize(`data:image/jpeg;base64,${image_base64}`);
+        const result = await worker.recognize(`data:image/jpeg;base64,${image_base64}`);
         console.log("OCR hoàn thành");
         
         // Phân tích văn bản trích xuất
-        const extractedText = data.text;
+        const extractedText = result.data.text;
         console.log("Văn bản trích xuất: ", extractedText.substring(0, 100) + "...");
         
         // Trích xuất thông tin liên hệ

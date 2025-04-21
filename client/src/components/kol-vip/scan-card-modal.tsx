@@ -499,7 +499,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                             Họ tên
                           </FormLabel>
                           <FormControl>
-                            <Input placeholder="Nguyễn Văn A" {...field} />
+                            <Input placeholder="Nguyễn Văn A" {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -516,7 +516,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                             Công ty
                           </FormLabel>
                           <FormControl>
-                            <Input placeholder="Tên công ty" {...field} />
+                            <Input placeholder="Tên công ty" {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -533,7 +533,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                             Chức vụ
                           </FormLabel>
                           <FormControl>
-                            <Input placeholder="Giám đốc, Trưởng phòng..." {...field} />
+                            <Input placeholder="Giám đốc, Trưởng phòng..." {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -550,7 +550,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                             Số điện thoại
                           </FormLabel>
                           <FormControl>
-                            <Input placeholder="0912345678" {...field} />
+                            <Input placeholder="0912345678" {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -567,7 +567,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                             Email
                           </FormLabel>
                           <FormControl>
-                            <Input placeholder="email@example.com" {...field} />
+                            <Input placeholder="email@example.com" {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
