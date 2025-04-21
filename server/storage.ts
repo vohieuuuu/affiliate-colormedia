@@ -1799,8 +1799,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Chọn loại storage dựa vào môi trường hoặc biến env
-// Mặc định sử dụng MemStorage trong development để dễ test
-export const storage = process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production" 
-  ? new DatabaseStorage() 
-  : new MemStorage();
+// Luôn sử dụng DatabaseStorage để đảm bảo tính nhất quán
+export const storage = new DatabaseStorage();
