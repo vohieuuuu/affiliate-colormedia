@@ -345,13 +345,7 @@ const KolDashboard = () => {
     );
   }
 
-  // Kiểm tra xem người dùng hiện tại có phải là KOL/VIP không
-  useEffect(() => {
-    if (user && user.role !== "KOL_VIP") {
-      console.log("KolDashboard detected non-KOL user, redirecting to normal dashboard");
-      window.location.href = "/";
-    }
-  }, [user]);
+  /* Đã gỡ bỏ check KOL/VIP tại đây vì đã được xử lý bởi RoleRouter */
 
   // Hiển thị thông báo nếu thông tin KOL chưa được tải
   if (!kolInfo) {
