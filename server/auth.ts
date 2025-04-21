@@ -464,7 +464,23 @@ export function setupAuthRoutes(app: any, db: any) {
   // API lấy thông tin người dùng hiện tại
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
-      const token = req.headers.authorization?.split(" ")[1];
+      // Lấy token từ header hoặc cookie
+      let token = req.headers.authorization?.split(" ")[1];
+      
+      // Nếu không có token trong header, kiểm tra cookies
+      // Lưu ý: cookies phải được truyền từ proxy nếu dùng HttpOnly cookie
+      if (!token && req.headers.cookie) {
+        const cookies = req.headers.cookie.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        }, {} as Record<string, string>);
+        
+        if (cookies.auth_token) {
+          token = cookies.auth_token;
+          console.log("Found token in cookies");
+        }
+      }
 
       if (!token) {
         return res.status(401).json({
@@ -476,8 +492,8 @@ export function setupAuthRoutes(app: any, db: any) {
         });
       }
 
-      // Log token cho mục đích debug
-      console.log("Checking token: [SECURED]");
+      // Log debug
+      console.log("Checking token (from cookies or Authorization header)");
       
       // Tìm người dùng theo token
       const [user] = await db.select().from(users).where(eq(users.token, token));
