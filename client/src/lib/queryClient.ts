@@ -48,8 +48,10 @@ export async function apiRequest(
   // Tạo URL đầy đủ khi cần (cho môi trường production)
   const fullUrl = API_URL ? `${API_URL}${url}` : url;
   
-  console.log(`API Request: ${method} ${url} with token: ${authToken ? "Present" : "Missing"}`);
-  // Không log giá trị token để đảm bảo bảo mật
+  // Chỉ log request API không nhạy cảm trong môi trường phát triển
+  if (process.env.NODE_ENV === 'development' && !url.includes("/api/auth")) {
+    console.log(`API Request: ${method} ${url}`);
+  }
   
   try {
     const res = await fetch(fullUrl, {
@@ -84,12 +86,10 @@ export const getQueryFn: <T>(options: {
       const sessionToken = sessionStorage.getItem("auth_token");
       const localToken = localStorage.getItem("auth_token");
       
-      // Log thông tin token để debug
-      console.log("Token status in getQueryFn:", { 
-        hasSessionToken: !!sessionToken, 
-        hasLocalToken: !!localToken,
-        url: queryKey[0]
-      });
+      // Không log thông tin nhạy cảm về token
+      if (process.env.NODE_ENV === 'development' && !String(queryKey[0]).includes("/api/auth")) {
+        console.log("API Request:", queryKey[0]);
+      }
       
       // Ưu tiên sử dụng token từ sessionStorage trước
       authToken = sessionToken || localToken || API_TOKEN;
@@ -99,8 +99,10 @@ export const getQueryFn: <T>(options: {
     const url = queryKey[0] as string;
     const fullUrl = API_URL ? `${API_URL}${url}` : url;
     
-    // Không log chi tiết token để đảm bảo bảo mật
-    console.log(`Query - ${url}: Using token: [SECURED]`);
+    // Chỉ log thông tin không nhạy cảm trong môi trường phát triển
+    if (process.env.NODE_ENV === 'development' && !url.includes('/api/auth')) {
+      console.log(`Query - ${url}: Processing request`);
+    }
     
     const res = await fetch(fullUrl, {
       credentials: "include",

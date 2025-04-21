@@ -40,7 +40,9 @@ export function ProtectedRoute({
 
   // Ưu tiên #1: Nếu người dùng không được xác thực, chuyển hướng đến trang đăng nhập
   if (!user) {
-    console.log("ProtectedRoute: User not authenticated, redirecting to auth for path:", path);
+    if (process.env.NODE_ENV === 'development') {
+      console.log("ProtectedRoute: User not authenticated, redirecting to auth for path:", path);
+    }
     return (
       <Route path={path}>
         <Redirect to="/auth" />
