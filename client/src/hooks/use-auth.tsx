@@ -101,11 +101,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Bổ sung thông tin vai trò cho user
   const user = userRaw ? {
     ...userRaw,
-    isAdmin: isAdminRole(userRaw),
-    isKolVip: isKolVipRole(userRaw),
-    isAffiliate: isAffiliateRole(userRaw),
+    // Sử dụng includes trực tiếp thay vì gọi các hàm để đảm bảo tính nhất quán
+    isAdmin: userRaw.role ? String(userRaw.role).toUpperCase().includes("ADMIN") : false,
+    isKolVip: userRaw.role ? String(userRaw.role).toUpperCase().includes("KOL") : false,
+    isAffiliate: userRaw.role ? String(userRaw.role).toUpperCase().includes("AFFILIATE") : false,
     dashboardRoute: getDashboardForRole(userRaw)
   } : null;
+  
+  // Log thông tin vai trò để debug
+  if (userRaw) {
+    console.log("useAuth: User role processing", {
+      rawRole: userRaw.role,
+      normalizedRole: userRaw.role ? String(userRaw.role).toUpperCase() : "",
+      isAdmin: user?.isAdmin,
+      isKolVip: user?.isKolVip,
+      isAffiliate: user?.isAffiliate
+    });
+  }
 
   // Xử lý lỗi xác thực bằng cách kiểm tra error
   useEffect(() => {

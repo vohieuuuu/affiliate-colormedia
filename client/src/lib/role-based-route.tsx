@@ -64,10 +64,21 @@ export function RoleBasedRoute() {
   // Chuẩn hóa role để kiểm tra
   const normalizedRole = user.role ? (typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase()) : '';
   
-  // Kiểm tra các vai trò của người dùng
-  const isAdmin = isAdminRole(user);
-  const isKolVip = isKolVipRole(user);
-  const isAffiliate = isAffiliateRole(user);
+  console.log("RoleBasedRoute: Processing user role", {
+    role: user.role,
+    normalizedRole
+  });
+  
+  // Kiểm tra các vai trò của người dùng - lưu ý rằng chúng ta sử dụng includes thay vì so sánh chính xác
+  const isAdmin = normalizedRole.includes("ADMIN");
+  const isKolVip = normalizedRole.includes("KOL");
+  const isAffiliate = normalizedRole.includes("AFFILIATE");
+  
+  console.log("RoleBasedRoute: Role check results", {
+    isAdmin,
+    isKolVip,
+    isAffiliate
+  });
   
   // Kiểm tra chế độ đã chọn
   if (!selectedMode) {

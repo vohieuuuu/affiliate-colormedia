@@ -19,25 +19,43 @@ export default function SelectModePage() {
 
   // Kiểm tra xem người dùng đã đăng nhập chưa
   useEffect(() => {
-    if (!isLoading && !user) {
-      console.log("SelectModePage: User not logged in, redirecting to auth");
-      navigate("/auth", { replace: true });
-    }
+    const checkAuth = async () => {
+      try {
+        // Lấy token từ localStorage hoặc sessionStorage
+        const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
+        
+        if (!token) {
+          console.log("SelectModePage: No token found, redirecting to auth");
+          navigate("/auth", { replace: true });
+          return;
+        }
+        
+        // Nếu không có user và không đang tải dữ liệu, đồng nghĩa với việc token không hợp lệ
+        if (!isLoading && !user) {
+          console.log("SelectModePage: User not logged in, redirecting to auth");
+          // Xóa token không hợp lệ
+          localStorage.removeItem("auth_token");
+          sessionStorage.removeItem("auth_token");
+          navigate("/auth", { replace: true });
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+        navigate("/auth", { replace: true });
+      }
+    };
+    
+    checkAuth();
   }, [user, isLoading, navigate]);
 
-  // Nếu đang tải dữ liệu, hiển thị loading
-  if (isLoading) {
+  // Nếu đang tải dữ liệu HOẶC không có user, hiển thị loading
+  // Đảm bảo không hiển thị nội dung chính của trang trước khi user được xác thực đầy đủ
+  if (isLoading || !user) {
     return (
       <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
         <p className="text-muted-foreground">Đang tải thông tin...</p>
       </div>
     );
-  }
-
-  // Nếu không có người dùng, không hiển thị gì (sẽ được redirect bởi useEffect)
-  if (!user) {
-    return null;
   }
 
   // Chuẩn hóa role để so sánh không phân biệt hoa thường
@@ -53,9 +71,10 @@ export default function SelectModePage() {
   // Force log to console để theo dõi vấn đề
   console.warn(`[Debug] user role: "${user?.role}", normalized: "${normalizedRole}"`);
   
-  // Kiểm tra các vai trò của người dùng bằng includes thay vì so sánh chính xác
-  const hasNormalAccess = normalizedRole.includes("ADMIN") || normalizedRole.includes("AFFILIATE") || normalizedRole.includes("MANAGER");
-  const hasKolAccess = normalizedRole.includes("KOL") || normalizedRole.includes("ADMIN");
+  // Sử dụng các hàm kiểm tra vai trò từ middleware
+  // Điều này đảm bảo tính nhất quán trong cách kiểm tra vai trò trên toàn bộ ứng dụng
+  const hasNormalAccess = user?.isAdmin || user?.isAffiliate;
+  const hasKolAccess = user?.isAdmin || user?.isKolVip;
   
   // Thêm log chi tiết về quyết định
   console.warn(`[Debug] Access check: hasNormalAccess=${hasNormalAccess}, hasKolAccess=${hasKolAccess}`);
