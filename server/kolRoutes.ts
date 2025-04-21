@@ -152,8 +152,15 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
   app.get("/api/kol/:kolId/contacts", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
     try {
       const { kolId } = req.params;
-      const contacts = await storage.getKolVipContacts(kolId);
-
+      console.log(`Getting contacts for KOL/VIP ${kolId}`);
+      
+      // Truy vấn trực tiếp từ database
+      const contacts = await db.select()
+        .from(kolContacts)
+        .where(eq(kolContacts.kol_id, kolId));
+      
+      console.log(`Found ${contacts.length} contacts for KOL/VIP ${kolId}`);
+      
       res.status(200).json({
         status: "success",
         data: contacts
@@ -174,20 +181,56 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
   app.post("/api/kol/:kolId/contacts", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
     try {
       const { kolId } = req.params;
-      const contactData: KolContact = req.body;
-
-      // Đảm bảo kolId trong contact khớp với kolId trong params
-      contactData.kol_id = kolId;
-
-      // Đảm bảo trường ngày tháng
-      contactData.created_at = contactData.created_at || new Date().toISOString();
-      contactData.updated_at = new Date().toISOString();
-
-      // Đảm bảo trạng thái mặc định
-      contactData.status = contactData.status || "Mới nhập";
-
-      const newContact = await storage.addKolVipContact(kolId, contactData);
-
+      const contactData = req.body;
+      
+      console.log(`Trực tiếp thêm contact mới cho KOL/VIP ${kolId} với dữ liệu:`, contactData);
+      
+      // 1. Kiểm tra xem KOL/VIP có tồn tại trong database không
+      const [kolVip] = await db.select()
+        .from(kolVipAffiliates)
+        .where(eq(kolVipAffiliates.affiliate_id, kolId));
+      
+      if (!kolVip) {
+        console.error(`KOL/VIP with ID ${kolId} not found in database`);
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "KOL_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP"
+          }
+        });
+      }
+      
+      // 2. Chuyển đổi dữ liệu contact từ request
+      // Thay thế full_name bằng contact_name nếu có
+      const contact_name = contactData.contact_name || contactData.full_name;
+      
+      // 3. Thêm contact mới trực tiếp vào database
+      const [newContact] = await db.insert(kolContacts)
+        .values({
+          kol_id: kolId,
+          contact_name: contact_name,
+          email: contactData.email,
+          phone: contactData.phone,
+          company: contactData.company,
+          position: contactData.position,
+          source: contactData.source,
+          status: contactData.status || "Mới nhập",
+          note: contactData.note,
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning();
+      
+      console.log("New contact created successfully:", newContact);
+      
+      // 4. Cập nhật tổng số contacts của KOL/VIP
+      await db.update(kolVipAffiliates)
+        .set({ 
+          total_contacts: kolVip.total_contacts + 1 
+        })
+        .where(eq(kolVipAffiliates.id, kolVip.id));
+      
       res.status(201).json({
         status: "success",
         data: newContact
@@ -198,7 +241,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         status: "error",
         error: {
           code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi khi thêm contact mới"
+          message: "Lỗi khi thêm contact mới: " + (error instanceof Error ? error.message : String(error))
         }
       });
     }
