@@ -108,6 +108,11 @@ function AuthenticatedRoutes() {
       <ProtectedRoute path="/kol-dashboard/withdrawal" component={KolWithdrawalPage} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
+      {/* Admin routes */}
+      <ProtectedRoute path="/admin/commission" component={() => 
+        <RoleBasedRoute roles={["ADMIN"]} component={() => import("@/pages/admin/commission-management")} />
+      } />
+      
       {/* Route mặc định nếu không tìm thấy trang */}
       <Route component={NotFound} />
     </Switch>
