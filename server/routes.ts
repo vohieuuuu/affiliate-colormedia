@@ -156,8 +156,46 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
     // Sử dụng database trong môi trường production và khi được cấu hình
     if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
       console.log("Using database authentication in production/configured environment");
-      // Sử dụng database authentication
-      next();
+      
+      // Kiểm tra token admin cố định (hỗ trợ cả database mode)
+      if (token === ADMIN_FIXED_TOKEN) {
+        console.log("Using admin fixed token in database mode");
+        // Set admin user object in request
+        req.user = {
+          id: 1,
+          username: "admin",
+          role: "ADMIN"
+        };
+        return next();
+      }
+      
+      // Trong môi trường database, tìm kiếm user theo token
+      // Import từ Drizzle và schema
+      const { eq } = await import("drizzle-orm");
+      const { db } = await import("./db");
+      const { users } = await import("../shared/schema");
+      
+      // Tìm user dựa trên token
+      console.log(`Authenticating with token in database mode: ${token.substring(0, 10)}...`);
+      const [user] = await db.select().from(users).where(eq(users.token, token));
+      
+      if (!user) {
+        return res.status(401).json({
+          status: "error",
+          error: {
+            code: "INVALID_TOKEN",
+            message: "Invalid or expired token"
+          }
+        });
+      }
+      
+      console.log(`User authenticated in database mode: ${user.username}, role: ${user.role}`);
+      req.user = {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      };
+      return next();
     } else {
       // Kiểm tra token trong môi trường phát triển
       // 1. Kiểm tra nếu token là token admin cố định
