@@ -36,16 +36,14 @@ export default function AuthPage() {
     }
   });
   
-  // Tạm thời bỏ qua chuyển hướng tự động để tránh vòng lặp vô hạn
-  // useEffect(() => {
-  //   if (user && location === "/auth") {
-  //     console.log("AuthPage: Redirecting authenticated user to role-redirect");
-  //     // Đặt timeout để tránh vòng lặp vô hạn
-  //     setTimeout(() => {
-  //       window.location.href = "/role-redirect";
-  //     }, 100);
-  //   }
-  // }, [user, location]);
+  // Chuyển hướng người dùng đã đăng nhập
+  useEffect(() => {
+    if (user && location === "/auth") {
+      console.log("AuthPage: Redirecting authenticated user to select-mode");
+      // Sử dụng setLocation thay vì window.location để tránh load lại trang
+      setLocation("/select-mode");
+    }
+  }, [user, location, setLocation]);
   
   // Xử lý đăng nhập
   const handleLogin = (values: z.infer<typeof loginSchema>) => {

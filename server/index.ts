@@ -20,6 +20,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+// Sử dụng cookie-parser với cookie secret để hỗ trợ cookie có chữ ký
 app.use(cookieParser(process.env.COOKIE_SECRET || 'colormedia-affiliate-system-secret'));
 
 // Thiết lập rate limiter để hạn chế số lượng request đến API
