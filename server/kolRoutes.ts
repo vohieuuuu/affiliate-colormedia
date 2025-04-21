@@ -681,10 +681,18 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
       const defaultPassword = "color1234@";
       // Băm mật khẩu mặc định trước khi lưu
       const hashedPassword = await hashPassword(defaultPassword);
+      
+      // Log để debug
+      console.log("Creating KOL/VIP user with:", {
+        username,
+        role: "KOL_VIP",
+        is_first_login: true
+      });
+      
       const user = await storage.createUser({
         username,
         password: hashedPassword,
-        role: "KOL_VIP",
+        role: "KOL_VIP", // Đảm bảo role được đặt đúng
         is_first_login: true
       });
 
