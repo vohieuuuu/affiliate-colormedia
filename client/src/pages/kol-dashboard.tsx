@@ -36,6 +36,15 @@ const KolDashboard = () => {
   const [showAddContactModal, setShowAddContactModal] = useState(false);
   const [showScanCardModal, setShowScanCardModal] = useState(false);
   
+  // Thêm log để kiểm tra chi tiết user
+  console.log("KolDashboard - User info:", {
+    user,
+    role: user?.role,
+    isKolVip: user?.isKolVip,
+    dashboardRoute: user?.dashboardRoute,
+    normalizedRole: user?.role ? String(user.role).toUpperCase() : 'unknown'
+  });
+  
   // Đã sử dụng RoleBasedRoute để xử lý chuyển hướng dựa trên vai trò
 
   // Lấy thông tin KOL hiện tại
