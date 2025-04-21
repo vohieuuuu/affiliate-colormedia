@@ -84,20 +84,28 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Thiết lập các routes xác thực nếu sử dụng database
+  // Thiết lập các routes xác thực dựa vào cài đặt
   if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
     try {
-      // Import tĩnh thay vì dùng dynamic import để tránh lỗi khi build
-      log("Skipping database auth routes in production for now");
-      // Khi cần sử dụng db trong tương lai:
-      // import { db } from "./db";
-      // import { setupAuthRoutes } from "./auth";
-      // setupAuthRoutes(app, db);
+      // Import các module cần thiết cho xác thực với database
+      const authModule = await import("./auth");
+      const dbModule = await import("./db");
+      log("Using database authentication in production");
+      authModule.setupAuthRoutes(app, dbModule.db);
     } catch (error) {
-      console.error("Failed to set up authentication routes:", error);
+      console.error("Failed to set up database authentication routes:", error);
+      // Fallback về xác thực dev nếu có lỗi
+      log("Falling back to in-memory authentication due to error");
+      const devAuthModule = await import("./devAuth");
+      const storageModule = await import("./storage");
+      devAuthModule.setupDevAuthRoutes(app, storageModule.storage);
     }
   } else {
     log("Using in-memory storage, authentication is simulated");
+    // Import trực tiếp setup dev auth khi không sử dụng database
+    const { setupDevAuthRoutes } = await import("./devAuth");
+    const { storage } = await import("./storage");
+    setupDevAuthRoutes(app, storage);
   }
 
   const server = await registerRoutes(app);

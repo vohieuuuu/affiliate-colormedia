@@ -153,13 +153,10 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
   }
 
   try {
-    // Môi trường production sẽ tạm thời sử dụng cách xác thực giống dev
-    // để tránh vấn đề với dynamic import
-    if (false) { // (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") 
-      // Đoạn code sử dụng database sẽ được khôi phục trong phiên bản tương lai
-      console.log("Skipping database auth in production");
-      
-      // Đoạn code này đã được bỏ qua
+    // Sử dụng database trong môi trường production và khi được cấu hình
+    if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
+      console.log("Using database authentication in production/configured environment");
+      // Sử dụng database authentication
       next();
     } else {
       // Kiểm tra token trong môi trường phát triển

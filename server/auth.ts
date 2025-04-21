@@ -117,10 +117,11 @@ export async function createUserForAffiliate(
 /**
  * Thiết lập routes xác thực (đăng nhập, đăng ký, đăng xuất)
  */
+import { LoginSchema, RegisterSchema, users, insertUserSchema } from "@shared/schema";
+import { eq } from "drizzle-orm";
+
 export function setupAuthRoutes(app: any, db: any) {
-  // Import các schema và models
-  const { LoginSchema, RegisterSchema, users, insertUserSchema } = require("@shared/schema");
-  const { eq } = require("drizzle-orm");
+  // Sử dụng các schema và models đã import
 
   // API đăng nhập
   app.post("/api/auth/login", async (req: Request, res: Response) => {
