@@ -1474,7 +1474,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         position, 
         phone, 
         email, 
-        note 
+        note,
+        confirm_scan // Thêm tham số confirm_scan để biết người dùng đã xác nhận
       } = req.body;
 
       // Validate dữ liệu
@@ -1488,9 +1489,9 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
 
-      // Nếu có dữ liệu từ form (trường hợp người dùng nhập thủ công)
-      if (contact_name && phone) {
-        // Tạo một liên hệ mới từ dữ liệu người dùng nhập
+      // Nếu người dùng đã xác nhận dữ liệu quét và cung cấp contact_name và phone
+      if (confirm_scan && contact_name && phone) {
+        // Tạo một liên hệ mới từ dữ liệu người dùng xác nhận
         const contactData = {
           kol_id: kolId,
           contact_name,
@@ -1500,13 +1501,13 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
           email: email || null,
           status: "Mới nhập" as CustomerStatusType,
           note: note || null,
-          // Lưu ảnh card visit nếu có
-          image_url: image_base64 ? `data:image/jpeg;base64,${image_base64}` : null
+          // Lưu ảnh card visit
+          image_url: `data:image/jpeg;base64,${image_base64}`
         };
 
         // Thêm liên hệ mới vào cơ sở dữ liệu
         const newContact = await storage.addKolVipContact(kolId, contactData);
-        console.log("Trực tiếp thêm contact mới cho KOL/VIP", kolId, "với dữ liệu:", contactData);
+        console.log("Thêm contact mới từ card visit đã xác nhận cho KOL/VIP", kolId);
 
         return res.status(201).json({
           status: "success",
@@ -1517,23 +1518,74 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
 
-      // Nếu chỉ có ảnh và không có dữ liệu từ form, trả về một kết quả trống để hiện form nhập thủ công
-      const emptyContactData = {
-        contact_name: "",
-        company: "",
-        position: "",
-        phone: "",
-        email: ""
-      };
+      // Import Tesseract.js để trích xuất văn bản từ ảnh
+      const { createWorker } = require('tesseract.js');
 
-      // Trả về dữ liệu trống để người dùng điền vào form
-      res.status(200).json({
-        status: "success",
-        data: {
-          contact_data: emptyContactData,
-          message: "Vui lòng nhập thông tin liên hệ từ card visit"
-        }
+      // Khởi tạo worker Tesseract
+      const worker = await createWorker({
+        logger: (m: any) => console.log(`Tesseract OCR: ${JSON.stringify(m)}`)
       });
+
+      // Thiết lập ngôn ngữ cho OCR (Tiếng Việt + Tiếng Anh)
+      await worker.loadLanguage('vie+eng');
+      await worker.initialize('vie+eng');
+
+      try {
+        // Thực hiện OCR trên ảnh
+        const { data } = await worker.recognize(`data:image/jpeg;base64,${image_base64}`);
+        console.log("Văn bản trích xuất từ ảnh:", data.text);
+
+        // Phân tích văn bản để tìm thông tin
+        const extractedText = data.text;
+        
+        // Xác định thông tin từ văn bản
+        const potentialName = extractNameFromText(extractedText);
+        const potentialPhone = extractPhoneFromText(extractedText);
+        const potentialEmail = extractEmailFromText(extractedText);
+        const potentialCompany = extractCompanyFromText(extractedText);
+        const potentialPosition = extractPositionFromText(extractedText);
+
+        // Dừng worker sau khi hoàn thành
+        await worker.terminate();
+
+        // Trả về kết quả OCR cho người dùng xác nhận
+        res.status(200).json({
+          status: "success",
+          data: {
+            contact_data: {
+              contact_name: potentialName || "",
+              phone: potentialPhone || "",
+              email: potentialEmail || "",
+              company: potentialCompany || "",
+              position: potentialPosition || "",
+              note: ""
+            },
+            raw_text: extractedText,
+            message: "Vui lòng xác nhận thông tin liên hệ đã trích xuất"
+          }
+        });
+      } catch (ocrError) {
+        console.error("Lỗi khi trích xuất văn bản:", ocrError);
+        await worker.terminate();
+
+        // Nếu OCR lỗi, trả về form trống để người dùng nhập thủ công
+        const emptyContactData = {
+          contact_name: "",
+          company: "",
+          position: "",
+          phone: "",
+          email: "",
+          note: ""
+        };
+
+        res.status(200).json({
+          status: "success",
+          data: {
+            contact_data: emptyContactData,
+            message: "Không thể trích xuất thông tin từ ảnh. Vui lòng nhập thủ công."
+          }
+        });
+      }
     } catch (error) {
       console.error("Error processing business card:", error);
       res.status(500).json({
@@ -1545,4 +1597,89 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       });
     }
   });
+
+// Hàm phụ trợ để trích xuất thông tin từ văn bản OCR
+function extractNameFromText(text: string): string | null {
+  // Tìm kiếm dòng có thể là tên người (thường là dòng ngắn ở đầu card)
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  
+  // Ưu tiên 2-3 dòng đầu tiên và tìm dòng có thể là tên người
+  for (let i = 0; i < Math.min(3, lines.length); i++) {
+    const line = lines[i].trim();
+    
+    // Tên người thường ngắn gọn và không chứa ký tự đặc biệt
+    if (line.length > 2 && line.length < 30 && 
+        !line.includes('@') && 
+        !line.match(/\d{5,}/) && // Không chứa nhiều số liền nhau
+        !line.includes('http') &&
+        !line.toLowerCase().includes('company')) {
+      return line;
+    }
+  }
+  
+  return null;
+}
+
+function extractPhoneFromText(text: string): string | null {
+  // Tìm kiếm số điện thoại
+  const phoneRegex = /(\+?84|0)[-\s.]?(\d{2,3})[-\s.]?(\d{3,4})[-\s.]?(\d{3,4})/g;
+  const phoneMatches = text.match(phoneRegex);
+  
+  return phoneMatches ? phoneMatches[0].replace(/[-\s.]/g, '') : null;
+}
+
+function extractEmailFromText(text: string): string | null {
+  // Tìm kiếm địa chỉ email
+  const emailRegex = /[\w.-]+@[\w.-]+\.\w+/g;
+  const emailMatches = text.match(emailRegex);
+  
+  return emailMatches ? emailMatches[0] : null;
+}
+
+function extractCompanyFromText(text: string): string | null {
+  // Tìm kiếm tên công ty
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  
+  // Tìm dòng có thể chứa tên công ty
+  for (const line of lines) {
+    const lowercaseLine = line.toLowerCase();
+    if (
+      (lowercaseLine.includes('company') || 
+       lowercaseLine.includes('co.') || 
+       lowercaseLine.includes('ltd') || 
+       lowercaseLine.includes('inc') || 
+       lowercaseLine.includes('corporation') ||
+       lowercaseLine.includes('jsc') ||
+       lowercaseLine.includes('group') ||
+       lowercaseLine.includes('cty') ||
+       lowercaseLine.includes('công ty')) && 
+      line.length > 5
+    ) {
+      return line;
+    }
+  }
+  
+  return null;
+}
+
+function extractPositionFromText(text: string): string | null {
+  // Tìm kiếm vị trí công việc
+  const positionKeywords = [
+    'ceo', 'director', 'manager', 'giám đốc', 'trưởng phòng', 
+    'phó phòng', 'leader', 'chuyên viên', 'staff', 'nhân viên'
+  ];
+  
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  
+  for (const line of lines) {
+    const lowercaseLine = line.toLowerCase();
+    for (const keyword of positionKeywords) {
+      if (lowercaseLine.includes(keyword) && line.length < 50) {
+        return line;
+      }
+    }
+  }
+  
+  return null;
+}
 }

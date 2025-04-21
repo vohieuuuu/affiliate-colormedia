@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -20,7 +20,8 @@ import {
   Building,
   Briefcase,
   Phone,
-  Mail 
+  Mail,
+  Check
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 // Schema cho form thông tin liên hệ
 const contactFormSchema = z.object({
@@ -60,6 +62,9 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
+  const [extractedText, setExtractedText] = useState<string>("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState(false);
 
   // Form cho nhập thông tin thủ công
   const form = useForm<ContactFormValues>({
@@ -74,6 +79,69 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
     }
   });
 
+  // Xử lý khi quét ảnh sử dụng API OCR
+  const scanImageWithOCR = async (imageBase64: string) => {
+    if (!imageBase64) return;
+    
+    setIsScanning(true);
+    setError(null);
+    setScanSuccess(false);
+    
+    try {
+      // Lấy ra base64 thực sự (bỏ phần đầu data:image/...)
+      const base64Data = imageBase64.split(',')[1];
+      
+      // Gọi API để quét
+      const response = await fetch('/api/kol/scan-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_base64: base64Data
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        // Hiển thị kết quả quét
+        const extractedData = data.data.contact_data;
+        setExtractedText(data.data.raw_text || '');
+        
+        // Cập nhật form với dữ liệu trích xuất
+        form.setValue('contact_name', extractedData.contact_name || '');
+        form.setValue('company', extractedData.company || '');
+        form.setValue('position', extractedData.position || '');
+        form.setValue('phone', extractedData.phone || '');
+        form.setValue('email', extractedData.email || '');
+        
+        // Đánh dấu quét thành công và chuyển sang tab nhập thông tin
+        setScanSuccess(true);
+        toast({
+          title: "Quét thành công",
+          description: "Hệ thống đã trích xuất thông tin từ card visit. Vui lòng kiểm tra và chỉnh sửa nếu cần.",
+          variant: "default",
+        });
+        
+        // Chuyển sang tab nhập thông tin
+        setActiveTab("manual");
+      } else {
+        // Xử lý lỗi
+        setError(data.error?.message || "Có lỗi xảy ra khi quét ảnh");
+        // Vẫn chuyển sang tab nhập thông tin nhưng với form trống
+        setActiveTab("manual");
+      }
+    } catch (error) {
+      console.error("Lỗi khi quét ảnh:", error);
+      setError("Có lỗi xảy ra khi quét ảnh. Vui lòng nhập thông tin thủ công.");
+      // Vẫn chuyển sang tab nhập thông tin
+      setActiveTab("manual");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+  
   // Xử lý khi chọn file
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
@@ -92,7 +160,9 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
     reader.onload = () => {
       const result = reader.result as string;
       setImage(result);
-      setActiveTab("manual"); // Chuyển sang tab nhập thủ công
+      
+      // Quét ảnh với OCR
+      scanImageWithOCR(result);
     };
     reader.onerror = () => {
       setError("Không thể đọc file");
@@ -134,7 +204,9 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
         const dataUrl = canvas.toDataURL("image/jpeg");
         setImage(dataUrl);
         stopCamera();
-        setActiveTab("manual"); // Chuyển sang tab nhập thủ công
+        
+        // Quét ảnh với OCR giống như khi tải ảnh lên
+        scanImageWithOCR(dataUrl);
       }
     } catch (err) {
       console.error("Lỗi khi chụp ảnh:", err);
@@ -175,14 +247,17 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
       // Chuyển đổi dataURL thành base64 bằng cách loại bỏ phần prefix
       const base64Image = image.split(',')[1];
       
-      // Lưu thông tin liên hệ và ảnh
+      // Lưu thông tin liên hệ và ảnh, đánh dấu là đã xác nhận
       onSubmit({ 
         image_base64: base64Image,
+        confirm_scan: true,  // Đánh dấu là đã xác nhận trước khi lưu
         ...values 
       } as any);
       
       // Reset state
       setImage(null);
+      setExtractedText("");
+      setScanSuccess(false);
       form.reset();
       setActiveTab("upload");
     } catch (error) {
@@ -339,16 +414,51 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
                       </CardContent>
                     </Card>
                   )}
+                  
+                  {/* Hiển thị văn bản trích xuất */}
+                  {extractedText && (
+                    <div className="mt-4">
+                      <Label className="mb-2 flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Văn bản đã trích xuất
+                      </Label>
+                      <Card>
+                        <CardContent className="p-2">
+                          <div className="text-xs whitespace-pre-wrap max-h-[150px] overflow-y-auto">
+                            {extractedText}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
                 </div>
                 
                 <div>
-                  <Alert className="mb-4 bg-gradient-to-r from-[#FFC919]/10 to-[#FFC919]/5">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Hướng dẫn</AlertTitle>
-                    <AlertDescription>
-                      Nhập thông tin từ card visit. Những trường không có thông tin có thể để trống.
-                    </AlertDescription>
-                  </Alert>
+                  {isScanning ? (
+                    <Alert className="mb-4 bg-gradient-to-r from-[#07ADB8]/10 to-[#07ADB8]/5">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <AlertTitle>Đang quét...</AlertTitle>
+                      <AlertDescription>
+                        Hệ thống đang trích xuất thông tin từ ảnh card visit
+                      </AlertDescription>
+                    </Alert>
+                  ) : scanSuccess ? (
+                    <Alert className="mb-4 bg-gradient-to-r from-[#07ADB8]/10 to-[#FFC919]/5">
+                      <Check className="h-4 w-4 text-green-500" />
+                      <AlertTitle>Quét thành công</AlertTitle>
+                      <AlertDescription>
+                        Đã trích xuất thông tin từ card visit. Vui lòng kiểm tra và chỉnh sửa nếu cần.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert className="mb-4 bg-gradient-to-r from-[#FFC919]/10 to-[#FFC919]/5">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Hướng dẫn</AlertTitle>
+                      <AlertDescription>
+                        Nhập thông tin từ card visit. Những trường không có thông tin có thể để trống.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               </div>
               

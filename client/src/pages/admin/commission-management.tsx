@@ -201,7 +201,7 @@ export default function CommissionManagementPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="partner">Partner (>30M VND)</SelectItem>
+                          <SelectItem value="partner">Partner ({'>'}30M VND)</SelectItem>
                           <SelectItem value="sme">SME (1-29.99M VND)</SelectItem>
                           <SelectItem value="kol_vip">KOL/VIP</SelectItem>
                         </SelectContent>
