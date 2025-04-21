@@ -25,7 +25,7 @@ if (!process.env.DATABASE_URL) {
 // Định nghĩa thông tin tài khoản admin mặc định
 const DEFAULT_ADMIN = {
   username: "admin",
-  password: "admin", // Sẽ được hash
+  password: "admin123", // Sẽ được hash
   role: "ADMIN" as const,
   token: "45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60",
   is_active: 1,
@@ -77,7 +77,7 @@ async function createDefaultAdmin() {
     
     console.log("Đã tạo tài khoản admin mặc định:");
     console.log("- Username: admin");
-    console.log("- Password: admin");
+    console.log("- Password: admin123");
     console.log("- Token: 45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60");
     
   } catch (error) {
