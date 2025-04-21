@@ -433,6 +433,7 @@ export function setupAuthRoutes(app: any, db: any) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+        path: '/', // Thêm đường dẫn để đảm bảo cookie hoạt động trên toàn bộ ứng dụng
         sameSite: 'lax'
       });
 

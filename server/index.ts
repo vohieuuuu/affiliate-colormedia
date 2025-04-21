@@ -13,10 +13,11 @@ const app = express();
 // Cấu hình trust proxy - cần thiết cho rate limit khi chạy phía sau proxy
 app.set('trust proxy', 1);
 // Đảm bảo tất cả API response đều có Content-Type: application/json
+// Cấu hình CORS để cho phép chia sẻ cookie giữa các domain
 app.use(cors({
-  origin: true,
-  credentials: true,
-  exposedHeaders: ['Set-Cookie']
+  origin: true, // Cho phép tất cả các origin (có thể thay bằng danh sách domain cụ thể cho môi trường production)
+  credentials: true, // Quan trọng: cho phép trình duyệt gửi cookie trong các yêu cầu CORS
+  exposedHeaders: ['Set-Cookie', 'Authorization'] // Cho phép client đọc các header này
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

@@ -1,0 +1,93 @@
+1. Partner Commission Structure
+Condition:
+
+Contract value > 30,000,000 VND
+
+Commission:
+
+3% of the contract value.
+
+Example:
+
+Contract value = 50,000,000 VND → Commission = 1,500,000 VND.
+
+2. KOL/VIP Commission & Salary Structure
+2.1. Fixed Salary & Commission
+Level	Fixed Salary	Commission Rate
+L1	5,000,000 VND	3% of contract value
+L2	10,000,000 VND	3% of contract value
+L3	15,000,000 VND	3% of contract value
+2.2. KPI Requirements for Salary & Level-Up
+Level	Monthly KPI (Contacts + Leads)	Condition to Maintain Salary	Condition to Level Up
+L1	10 contacts + 5 leads	Achieve lead KPI (5 leads)	Total contract value ≥ 200M VND → L2
+L2	20 contacts + 10 leads	Achieve lead KPI (10 leads)	Total contract value ≥ 500M VND → L3
+L3	30 contacts + 15 leads	Achieve lead KPI (15 leads)	-
+Notes:
+
+If KPI (leads) is not met, the fixed salary is not paid, but commission still applies.
+
+Level-up is based on total contract value in a month.
+
+3. SME Commission Structure
+Condition:
+
+Contract value 1,000,000 VND – 29,999,000 VND
+
+Commission:
+
+Fixed 500,000 VND per contract (regardless of value).
+
+Example:
+
+Contract value = 15,000,000 VND → Commission = 500,000 VND.
+
+4. Additional API Requirements
+4.1. API to Add External Bonus to Accumulated Commission
+Endpoint:
+
+POST /api/commission/add-bonus  
+Request Body:
+
+json
+{
+  "user_id": "123",  
+  "user_type": "partner/kol/sme",  
+  "bonus_amount": 1000000,  
+  "description": "External referral bonus"  
+}
+Response:
+
+json
+{
+  "status": "success",  
+  "new_accumulated_commission": 15000000  
+}
+Functionality:
+
+Allows manual addition of bonuses (e.g., referral rewards, incentives) to the user’s accumulated commission.
+
+Should update the total commission balance in real-time.
+
+5. Summary Table for Quick Reference
+Role	Condition	Commission	Fixed Salary	KPI Requirements	Level-Up Condition
+Partner	Contract > 30M	3%	-	-	-
+KOL/VIP (L1)	-	3%	5M	10 contacts + 5 leads	≥200M → L2
+KOL/VIP (L2)	-	3%	10M	20 contacts + 10 leads	≥500M → L3
+KOL/VIP (L3)	-	3%	15M	30 contacts + 15 leads	-
+SME	1M–29.999M	500K	-	-	-
+Next Steps for Implementation:
+Database Schema Update:
+
+Add fields for accumulated_commission, current_level, monthly_contract_value.
+
+Automated KPI Tracking:
+
+System should track contacts/leads and check KPI at the end of the month.
+
+Level-Up Automation:
+
+If contract value threshold is met, auto-update level in the next month.
+
+API Development:
+
+Ensure /api/commission/add-bonus integrates with the commission system.
