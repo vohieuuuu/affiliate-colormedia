@@ -70,7 +70,7 @@ function AuthenticatedRoutes() {
   // Khi đã vượt qua tất cả các điều kiện, hiển thị Switch bình thường với các routes
   return (
     <Switch>
-      {/* Những route không cần xác thực */}
+      {/* Những route không cần xác thực - chỉ trang đăng nhập */}
       <Route path="/auth" component={AuthPage} />
       
       {/* Route đổi mật khẩu được bảo vệ */}
@@ -79,7 +79,7 @@ function AuthenticatedRoutes() {
       {/* Route điều hướng vai trò - giữ lại để tương thích với code cũ */}
       <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
       
-      {/* Trang chọn chế độ - cần xác thực nhưng không cần kiểm tra vai trò */}
+      {/* Trang chọn chế độ - cần xác thực, không thể truy cập nếu chưa đăng nhập */}
       <ProtectedRoute path="/select-mode" component={SelectModePage} />
       
       {/* Trang không có quyền truy cập */}

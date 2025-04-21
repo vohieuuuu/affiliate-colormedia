@@ -57,7 +57,8 @@ export default function SelectModePage() {
   // Sử dụng normalizedRole để kiểm tra vai trò
   // Điều này giúp tránh lỗi khi các thuộc tính isAdmin, isAffiliate, isKolVip chưa được tính toán đúng
   const hasNormalAccess = normalizedRole.includes("AFFILIATE") || normalizedRole.includes("ADMIN");
-  const hasKolAccess = normalizedRole.includes("KOL") || normalizedRole.includes("ADMIN");
+  // Admin không được truy cập KOL dashboard
+  const hasKolAccess = normalizedRole.includes("KOL") && !normalizedRole.includes("ADMIN");
   
   // Thêm log chi tiết về quyết định
   console.warn(`[Debug] Access check: hasNormalAccess=${hasNormalAccess}, hasKolAccess=${hasKolAccess}`);
