@@ -232,12 +232,20 @@ export function setupAuthRoutes(app: any, db: any) {
         }
       }
       
+      // Thiết lập token vào HTTP-only cookie để tăng bảo mật
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+        sameSite: 'lax'
+      });
+      
       // Trả về thông tin người dùng đã xác thực
       res.json({
         status: "success",
         data: {
           user: userResponse,
-          token: token,
+          token: token, // Vẫn trả về token trong response để tương thích với client cũ
           requires_password_change: user.is_first_login === 1
         }
       });
@@ -310,6 +318,14 @@ export function setupAuthRoutes(app: any, db: any) {
         await db.insert(affiliates).values(affiliateData);
       }
 
+      // Thiết lập token vào HTTP-only cookie để tăng bảo mật
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+        sameSite: 'lax'
+      });
+      
       // Trả về thông tin người dùng mới
       res.status(201).json({
         status: "success",
@@ -319,7 +335,7 @@ export function setupAuthRoutes(app: any, db: any) {
             username: newUser.username,
             role: newUser.role
           },
-          token: token
+          token: token // Vẫn trả về token trong response để tương thích với client cũ
         }
       });
     } catch (error) {
@@ -338,7 +354,22 @@ export function setupAuthRoutes(app: any, db: any) {
   app.post("/api/auth/change-password", async (req: Request, res: Response) => {
     try {
       const { current_password, new_password } = req.body;
-      const token = req.headers.authorization?.split(" ")[1];
+      
+      // Lấy token từ nhiều nguồn
+      let token = null;
+      
+      // 1. Kiểm tra cookie trực tiếp
+      if (req.cookies && req.cookies.auth_token) {
+        token = req.cookies.auth_token;
+      }
+      // 2. Kiểm tra header Authorization
+      else if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        token = req.headers.authorization.split(' ')[1];
+      }
+      // 3. Kiểm tra body
+      else if (!token && req.body && req.body.token) {
+        token = req.body.token;
+      }
 
       if (!token) {
         return res.status(401).json({
@@ -396,6 +427,14 @@ export function setupAuthRoutes(app: any, db: any) {
           token: newToken
         })
         .where(eq(users.id, user.id));
+        
+      // Thiết lập token mới vào HTTP-only cookie
+      res.cookie('auth_token', newToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+        sameSite: 'lax'
+      });
 
       // Kiểm tra và cập nhật liên kết với affiliate nếu cần
       const { affiliates } = await import("@shared/schema");
@@ -436,12 +475,25 @@ export function setupAuthRoutes(app: any, db: any) {
   // API đăng xuất
   app.post("/api/auth/logout", async (req: Request, res: Response) => {
     try {
-      const token = req.headers.authorization?.split(" ")[1];
-
+      // Lấy token từ các nguồn khác nhau theo thứ tự ưu tiên
+      let token = null;
+      
+      // 1. Kiểm tra cookie trực tiếp
+      if (req.cookies && req.cookies.auth_token) {
+        token = req.cookies.auth_token;
+      }
+      // 2. Kiểm tra header Authorization
+      else if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        token = req.headers.authorization.split(' ')[1];
+      }
+      
       if (token) {
         // Tìm người dùng theo token và xóa token
         await db.update(users).set({ token: null }).where(eq(users.token, token));
       }
+      
+      // Xóa cookie auth_token
+      res.clearCookie('auth_token');
 
       res.json({
         status: "success",
