@@ -54,6 +54,12 @@ export function isKolVipRole(user: User | undefined): boolean {
   return isUserRole(user.role, "KOL_VIP");
 }
 
+// Kiểm tra xem một user có phải là Affiliate thường hay không
+export function isAffiliateRole(user: User | undefined): boolean {
+  if (!user) return false;
+  return isUserRole(user.role, "AFFILIATE");
+}
+
 // Extend Express.Request to include user property
 declare global {
   namespace Express {
