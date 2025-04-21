@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import KolDashboard from "@/pages/kol-dashboard";
+import KolWithdrawalPage from "@/pages/kol-dashboard/WithdrawalPage";
 import SelectModePage from "@/pages/select-mode";
 import UnauthorizedPage from "@/pages/unauthorized";
 import AuthPage from "@/pages/auth-page";
@@ -94,6 +95,7 @@ function AuthenticatedRoutes() {
       {/* Đặt route cụ thể cho KOL/VIP và Dashboard thông thường SAU route chính để 
          đảm bảo RoleRouter được ưu tiên cao hơn khi truy cập route / */}
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
+      <ProtectedRoute path="/kol-dashboard/withdrawal" component={KolWithdrawalPage} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       {/* Đã loại bỏ route admin-dashboard, mọi admin sẽ sử dụng dashboard thông thường */}
