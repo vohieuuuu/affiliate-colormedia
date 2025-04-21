@@ -14,8 +14,11 @@ import {
   User,
   Affiliate,
   VideoData,
-  KolVipAffiliate
+  KolVipAffiliate,
+  users
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { setupDevAuthRoutes } from "./devAuth";
 import { setupVideoRoutes } from "./videoRoutes";
 import { setupKolVipRoutes } from "./kolRoutes";
@@ -208,14 +211,23 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
         return next();
       }
       
-      // 2. Kiểm tra token trong danh sách người dùng MemStorage
+      // 2. Kiểm tra token trong database
       console.log("DEV MODE: Checking user auth with token");
-      const user = (storage as any).users.find((u: any) => u.token === token);
-      
-      if (user) {
-        console.log(`DEV MODE: User authenticated: ${user.username}`);
-        req.user = user;
-        return next();
+      try {
+        const result = await db.select().from(users).where(eq(users.token, token));
+        const user = result[0];
+        
+        if (user) {
+          console.log(`DEV MODE: User authenticated: ${user.username}`);
+          req.user = {
+            id: user.id,
+            username: user.username,
+            role: user.role
+          };
+          return next();
+        }
+      } catch (error) {
+        console.error("Error checking token in database:", error);
       }
       
       return res.status(401).json({
@@ -436,9 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Thiết lập xác thực cho ứng dụng
-  // Chỉ sử dụng setupDevAuthRoutes khi không kích hoạt database
-  if (process.env.USE_DATABASE !== "true" && process.env.NODE_ENV !== "production") {
-    console.log("Setup dev auth routes from routes.ts for in-memory storage");
+  // Chỉ sử dụng setupDevAuthRoutes khi yêu cầu rõ ràng
+  if (process.env.USE_DEV_AUTH === "true") {
+    console.log("Setup dev auth routes from routes.ts for testing");
     setupDevAuthRoutes(app, storage);
   } else {
     console.log("Skip setting up dev auth routes from routes.ts as database auth is enabled");
@@ -3194,7 +3206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Thiết lập routes quản lý KOL/VIP
   try {
     // Sử dụng cùng một loại storage cho tất cả các module để đảm bảo tính nhất quán
-    console.log("Setting up KOL/VIP routes with", process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production" ? "DatabaseStorage" : "MemStorage");
+    console.log("Setting up KOL/VIP routes with DatabaseStorage");
     setupKolVipRoutes(app, storage);
   } catch (error) {
     console.error("Error setting up KOL/VIP routes:", error);
