@@ -22,7 +22,7 @@ import {
   BarChart4
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
-import { StatisticsPeriodType } from "@shared/schema";
+import { StatisticsPeriodType, Affiliate } from "@shared/schema";
 import { 
   BarChart, 
   Bar, 
@@ -38,7 +38,17 @@ import {
 
 interface StatisticsByPeriodProps {
   defaultPeriod?: StatisticsPeriodType;
-  affiliate?: any; // Affiliate data passed from parent
+  affiliate?: Affiliate; // Affiliate data passed from parent
+}
+
+interface StatsData {
+  totalCustomers: number;
+  totalContracts: number;
+  totalContractValue: number;
+  totalCommission: number;
+  periodType: string;
+  periodStart: string;
+  periodEnd: string;
 }
 
 type ChartData = {
@@ -52,6 +62,7 @@ export default function StatisticsByPeriod({ defaultPeriod = "month", affiliate 
   const [period, setPeriod] = useState<StatisticsPeriodType>(defaultPeriod);
   const [chartType, setChartType] = useState<"line" | "bar">("bar");
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [stats, setStats] = useState<StatsData | null>(null);
   
   // Fetch affiliate data if not provided
   const { data: affiliateData, isLoading: isAffiliateLoading } = useQuery({
@@ -60,7 +71,7 @@ export default function StatisticsByPeriod({ defaultPeriod = "month", affiliate 
   });
   
   // Use provided affiliate data or the one fetched from API
-  const currentAffiliate = affiliate || (affiliateData?.status === "success" ? affiliateData.data : null);
+  const currentAffiliate = affiliate || (affiliateData?.status === "success" ? affiliateData?.data : null);
   const isLoading = !affiliate && isAffiliateLoading;
   
   // Generate statistics and chart data from affiliate data
@@ -205,8 +216,7 @@ export default function StatisticsByPeriod({ defaultPeriod = "month", affiliate 
     }
   }, [currentAffiliate, period]);
   
-  // Local stats state
-  const [stats, setStats] = useState<any>(null);
+  /* Stats already defined above */
   
   // Determine appropriate chart height
   const chartHeight = period === "year" ? 300 : period === "month" ? 350 : 250;
