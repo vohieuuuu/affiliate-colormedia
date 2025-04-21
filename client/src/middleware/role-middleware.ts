@@ -166,7 +166,15 @@ export function getDashboardForRole(user: User | null): string {
     route: ROLE_ROUTES[normalizedRole as keyof typeof ROLE_ROUTES] || '/dashboard'
   });
   
-  return ROLE_ROUTES[normalizedRole as keyof typeof ROLE_ROUTES] || '/dashboard';
+  // Xử lý trực tiếp dựa trên role đã chuẩn hóa
+  if (normalizedRole === KOL_VIP_ROLE) {
+    console.log("Returning KOL dashboard path directly for KOL/VIP role:", normalizedRole);
+    return '/kol-dashboard';
+  } else if (normalizedRole === ADMIN_ROLE) {
+    return '/admin-dashboard';
+  } else {
+    return '/dashboard';
+  }
 }
 
 /**

@@ -94,6 +94,16 @@ export default function RoleRouter() {
   const userRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
   console.log("RoleRouter: User role normalized:", userRole);
   
+  // Thêm log chi tiết để debug
+  console.log("RoleRouter - Debug info:", {
+    normalizedRole: userRole,
+    compareWithKolVip: userRole === "KOL_VIP",
+    compareWithAdmin: userRole === "ADMIN",
+    stringComparison: "KOL_VIP" === "KOL_VIP",
+    codePointKolVip: Array.from(userRole).map(c => c.codePointAt(0)),
+    codePointConstant: Array.from("KOL_VIP").map(c => c.codePointAt(0))
+  });
+  
   if (userRole === "ADMIN") {
     // Hiển thị một trang quản trị hoặc một thông báo cho admin
     return (
@@ -151,7 +161,15 @@ export default function RoleRouter() {
   } else if (userRole === "KOL_VIP") {
     // Trực tiếp render KolDashboard thay vì chuyển hướng
     console.log("Rendering KOL/VIP dashboard directly");
-    return <KolDashboard />;
+    // Sử dụng Redirect để chuyển hướng tới route cụ thể khi cần debug
+    console.log("DEBUG: Using direct redirect to /kol-dashboard");
+    window.location.href = "/kol-dashboard";
+    return (
+      <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Đang chuyển hướng đến KOL dashboard...</p>
+      </div>
+    );
   } else {
     // Trực tiếp render Dashboard thay vì chuyển hướng
     console.log("Rendering normal dashboard directly");
