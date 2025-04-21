@@ -43,9 +43,22 @@ export default function SelectModePage() {
   // Chuẩn hóa role để so sánh không phân biệt hoa thường
   const normalizedRole = user?.role ? String(user.role).toUpperCase() : '';
   
+  console.log("SelectModePage: User role check", {
+    role: user?.role,
+    normalizedRole,
+    roleType: typeof user?.role,
+    user: user
+  });
+  
   // Kiểm tra các vai trò của người dùng
   const hasNormalAccess = normalizedRole === "ADMIN" || normalizedRole === "AFFILIATE" || normalizedRole === "MANAGER";
   const hasKolAccess = normalizedRole === "KOL_VIP" || normalizedRole === "ADMIN";
+  
+  console.log("SelectModePage: Access check result", {
+    hasNormalAccess,
+    hasKolAccess,
+    showNoAccessMessage: !hasNormalAccess && !hasKolAccess
+  });
 
   // Chọn chế độ và chuyển hướng đến trang chủ
   const handleSelectMode = (mode: 'normal' | 'kol') => {
