@@ -112,8 +112,8 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  // Trường hợp đặc biệt cho API dành cho admin - kiểm tra token cố định
-  if (req.path.startsWith("/api/admin/")) {
+  // Trường hợp đặc biệt cho API dành cho admin hoặc KOL - kiểm tra token cố định
+  if (req.path.startsWith("/api/admin/") || req.path.startsWith("/api/kol/")) {
     
     // Kiểm tra token cố định
     if (token === ADMIN_FIXED_TOKEN || token === "admin-token" || token === "admin") {
@@ -132,13 +132,9 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
       };
       return next();
     } else {
-      return res.status(403).json({
-        status: "error",
-        error: {
-          code: "ADMIN_ACCESS_DENIED",
-          message: "Tài khoản admin được yêu cầu cho API này"
-        }
-      });
+      // Nếu không phải token cố định, tiếp tục với xác thực bình thường
+      // KHÔNG trả về lỗi ngay lập tức
+      console.log("Token không phải là token cố định, tiếp tục với xác thực thông thường");
     }
   }
 
