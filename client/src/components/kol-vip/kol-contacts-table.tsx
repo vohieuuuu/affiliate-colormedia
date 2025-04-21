@@ -234,10 +234,13 @@ const KolContactsTable = ({
             </Select>
           </div>
 
-          <Button variant="default" onClick={onAddContact} className="w-full md:w-auto">
-            <PlusCircle className="h-4 w-4 mr-2" />
+          <button 
+            onClick={onAddContact} 
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white hover:bg-primary/90 w-full md:w-auto"
+          >
+            <PlusCircle className="h-4 w-4" />
             Thêm liên hệ
-          </Button>
+          </button>
         </div>
       </div>
 
