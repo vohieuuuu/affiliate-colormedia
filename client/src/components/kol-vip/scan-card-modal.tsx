@@ -115,11 +115,11 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
         // Hiển thị kết quả quét
         const extractedData = data.data.contact_data;
         
-        // Nếu có văn bản trích xuất thì hiển thị, nếu không thì hiển thị thông báo
+        // Nếu có văn bản trích xuất thì hiển thị
         if (data.data.raw_text) {
           setExtractedText(data.data.raw_text);
         } else {
-          setExtractedText("Hệ thống không thể thực hiện OCR. Vui lòng nhập thông tin thủ công.");
+          setExtractedText("");
         }
         
         // Nếu có hình ảnh preview thì hiển thị
@@ -137,8 +137,8 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
         // Đánh dấu quét thành công và chuyển sang tab nhập thông tin
         setScanSuccess(true);
         toast({
-          title: "Ảnh đã được tải lên",
-          description: "Vui lòng nhập thông tin của người liên hệ từ card visit.",
+          title: "Quét thành công",
+          description: "Hệ thống đã trích xuất thông tin từ card visit. Vui lòng kiểm tra và chỉnh sửa nếu cần.",
           variant: "default",
         });
         
@@ -416,9 +416,9 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
               {image && (
                 <Alert className="bg-gradient-to-r from-[#07ADB8]/10 to-[#FFC919]/5">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Tiếp theo</AlertTitle>
+                  <AlertTitle>Đang xử lý OCR</AlertTitle>
                   <AlertDescription>
-                    Bạn đã tải lên ảnh thành công. Nhấn "Tiếp theo" để nhập thông tin liên hệ từ card visit.
+                    Hệ thống đang trích xuất thông tin từ card visit. Nhấn "Tiếp theo" khi đã sẵn sàng.
                   </AlertDescription>
                 </Alert>
               )}

@@ -48,6 +48,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/nodemailer": "^6.4.17",
+    "@types/tesseract.js": "^0.0.2",
     "axios": "^1.8.4",
     "bcrypt": "^5.1.1",
     "class-variance-authority": "^0.7.0",
