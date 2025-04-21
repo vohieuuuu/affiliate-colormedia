@@ -1,8 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import type { IStorage } from "./storage";
 import { authenticateUser } from "./routes";
-import { KolContact, KolVipAffiliate, KolVipLevelType, MonthlyKpi } from "@shared/schema";
+import { KolContact, KolVipAffiliate, KolVipLevelType, MonthlyKpi, kolContacts, kolVipAffiliates } from "@shared/schema";
 import { hashPassword } from "./auth";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 /**
  * Thiết lập routes quản lý KOL/VIP
