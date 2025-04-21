@@ -630,18 +630,22 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
   });
 
   // POST /api/admin/kol/create - Tạo mới KOL/VIP (Admin only)
-  app.post("/api/admin/kol/create", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/admin/kol/create", authenticateUser, (req: Request, res: Response, next: NextFunction) => {
+    // Kiểm tra quyền admin
+    if (!req.user || req.user.role !== "ADMIN") {
+      return res.status(403).json({
+        status: "error",
+        error: {
+          code: "FORBIDDEN",
+          message: "Chỉ admin mới có quyền tạo KOL/VIP"
+        }
+      });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
     try {
-      // Kiểm tra quyền admin
-      if (req.user?.role !== "ADMIN") {
-        return res.status(403).json({
-          status: "error",
-          error: {
-            code: "FORBIDDEN",
-            message: "Chỉ admin mới có quyền tạo KOL/VIP"
-          }
-        });
-      }
+      // Kiểm tra quyền admin được thực hiện ở middleware trước đó,
+      // không cần kiểm tra lại ở đây
 
       // Hỗ trợ cả hai định dạng body - format cũ và format mới giống affiliate thường
       let username, affiliateData;
@@ -743,18 +747,21 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
   });
 
   // GET /api/admin/kol - Lấy danh sách KOL/VIP (Admin only)
-  app.get("/api/admin/kol", authenticateUser, async (req: Request, res: Response) => {
+  app.get("/api/admin/kol", authenticateUser, (req: Request, res: Response, next: NextFunction) => {
+    // Kiểm tra quyền admin
+    if (!req.user || req.user.role !== "ADMIN") {
+      return res.status(403).json({
+        status: "error",
+        error: {
+          code: "FORBIDDEN",
+          message: "Chỉ admin mới có quyền xem danh sách KOL/VIP"
+        }
+      });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
     try {
-      // Kiểm tra quyền admin
-      if (req.user?.role !== "ADMIN") {
-        return res.status(403).json({
-          status: "error",
-          error: {
-            code: "FORBIDDEN",
-            message: "Chỉ admin mới có quyền xem danh sách KOL/VIP"
-          }
-        });
-      }
+      // Kiểm tra quyền admin đã được thực hiện ở middleware trước đó
 
       // TODO: Thêm phương thức getAllKolVipAffiliates vào IStorage
 
@@ -778,18 +785,21 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
   });
 
   // POST /api/admin/kol/:kolId/update-level - Cập nhật level của KOL/VIP (Admin only)
-  app.post("/api/admin/kol/:kolId/update-level", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/admin/kol/:kolId/update-level", authenticateUser, (req: Request, res: Response, next: NextFunction) => {
+    // Kiểm tra quyền admin
+    if (!req.user || req.user.role !== "ADMIN") {
+      return res.status(403).json({
+        status: "error",
+        error: {
+          code: "FORBIDDEN",
+          message: "Chỉ admin mới có quyền cập nhật level KOL/VIP"
+        }
+      });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
     try {
-      // Kiểm tra quyền admin
-      if (req.user?.role !== "ADMIN") {
-        return res.status(403).json({
-          status: "error",
-          error: {
-            code: "FORBIDDEN",
-            message: "Chỉ admin mới có quyền cập nhật level KOL/VIP"
-          }
-        });
-      }
+      // Kiểm tra quyền admin đã được thực hiện ở middleware trước đó
 
       const { kolId } = req.params;
       const { level } = req.body;
