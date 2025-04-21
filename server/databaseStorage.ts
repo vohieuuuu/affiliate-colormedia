@@ -411,9 +411,14 @@ export class DatabaseStorage implements IStorage {
       total_contracts += 1;
       const contractValue = newCustomer.contract_value || 20000000;
       contract_value += contractValue;
-      const commission = contractValue * 0.03; // 3% hoa hồng theo yêu cầu mới
+      // Làm tròn hoa hồng thành số nguyên
+      const commission = Math.round(contractValue * 0.03); // 3% hoa hồng theo yêu cầu mới
       remaining_balance += commission;
       received_balance += commission;
+      
+      // Đảm bảo các giá trị contract_value, commission là số nguyên
+      newCustomer.contract_value = Math.round(contractValue);
+      newCustomer.commission = commission;
     }
     
     // 7. Cập nhật affiliate
@@ -486,15 +491,16 @@ export class DatabaseStorage implements IStorage {
       total_contracts += 1;
       const defaultValue = 20000000; // 20M VND
       contract_value += defaultValue;
-      const commission = defaultValue * 0.03; // 3% hoa hồng theo yêu cầu mới
+      // Làm tròn hoa hồng thành số nguyên
+      const commission = Math.round(defaultValue * 0.03); // 3% hoa hồng theo yêu cầu mới
       remaining_balance += commission;
       received_balance += commission;
       
-      // Cập nhật thông tin hợp đồng cho khách hàng
+      // Cập nhật thông tin hợp đồng cho khách hàng (tất cả là số nguyên)
       updatedCustomer = {
         ...updatedCustomer,
-        contract_value: defaultValue,
-        commission: commission,
+        contract_value: Math.round(defaultValue),
+        commission: Math.round(commission),
         contract_date: now
       };
       
@@ -587,17 +593,27 @@ export class DatabaseStorage implements IStorage {
       const newContractValue = (balanceUpdates.contract_value || 0);
       const contractValueDifference = Math.max(0, newContractValue - currentContractValue);
       
-      // Tính toán giá trị chênh lệch của hoa hồng (3% của giá trị hợp đồng mới)
-      const commissionDifference = contractValueDifference * 0.03;
+      // Tính toán giá trị chênh lệch của hoa hồng (3% của giá trị hợp đồng mới) và làm tròn thành số nguyên
+      const commissionDifference = Math.round(contractValueDifference * 0.03);
       
       console.log(`Contract value calculation: Current=${currentContractValue}, New=${newContractValue}, Difference=${contractValueDifference}`);
-      console.log(`Commission calculation: Difference=${commissionDifference}`);
+      console.log(`Commission calculation: Difference=${commissionDifference} (rounded from ${contractValueDifference * 0.03})`);
       
-      // Cập nhật giá trị mới bằng cách cộng dồn chênh lệch
-      const newTotalContractValue = currentContractValue + contractValueDifference;
+      // Làm tròn tất cả các giá trị về số nguyên trước khi cập nhật vào database
+      const newTotalContractValue = Math.round(currentContractValue + contractValueDifference);
       // Làm tròn số và chuyển về số nguyên để tránh lỗi khi lưu vào database
       const newReceivedBalance = Math.round((affiliate.received_balance || 0) + commissionDifference);
       const newRemainingBalance = Math.round((affiliate.remaining_balance || 0) + commissionDifference);
+      
+      // Đảm bảo customerData.commission là số nguyên
+      if (customerData.commission) {
+        customerData.commission = Math.round(customerData.commission);
+      }
+      
+      // Đảm bảo customerData.contract_value là số nguyên
+      if (customerData.contract_value) {
+        customerData.contract_value = Math.round(customerData.contract_value);
+      }
       
       console.log(`New values after adding differences (rounded): contract_value=${newTotalContractValue}, received_balance=${newReceivedBalance}, remaining_balance=${newRemainingBalance}`);
       

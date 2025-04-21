@@ -1975,26 +1975,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Tính toán hoa hồng và giá trị bổ sung
       const oldContractValue = customer.contract_value || 0;
       const additionalContractValue = contract_value - oldContractValue;
+      // Làm tròn số hoa hồng thành số nguyên (tránh lỗi số thập phân)
       const additionalCommission = Math.round(additionalContractValue * 0.03); // 3% hoa hồng
       
-      console.log(`Calculating commission: old value ${oldContractValue}, new value ${contract_value}, additional: ${additionalContractValue}, commission: ${additionalCommission}`);
+      console.log(`Calculating commission: old value ${oldContractValue}, new value ${contract_value}, additional: ${additionalContractValue}, commission: ${additionalCommission} (rounded)`);
       
       // Tạo bản cập nhật cho khách hàng
       const updatedCustomer = {
         ...customer,
         status: "Đã chốt hợp đồng" as const,  // Cập nhật trạng thái thành đã ký hợp đồng
-        contract_value: contract_value, // Cập nhật giá trị hợp đồng mới (không phải chỉ phần bổ sung)
-        commission: (customer.commission || 0) + additionalCommission, // Cộng dồn hoa hồng
+        contract_value: Math.round(contract_value), // Cập nhật giá trị hợp đồng mới và làm tròn số
+        commission: Math.round((customer.commission || 0) + additionalCommission), // Cộng dồn hoa hồng và làm tròn số
         contract_date: contract_date || customer.contract_date || new Date().toISOString(),
         updated_at: new Date().toISOString(),
         note: note || customer.note || "",
       };
       
-      // Tính toán các thay đổi về số dư
+      // Tính toán các thay đổi về số dư (tất cả đều làm tròn)
       const balanceUpdates = {
-        contract_value: affiliate.contract_value + additionalContractValue,
-        received_balance: affiliate.received_balance + additionalCommission,
-        remaining_balance: affiliate.remaining_balance + additionalCommission
+        contract_value: Math.round(affiliate.contract_value + additionalContractValue),
+        received_balance: Math.round(affiliate.received_balance + additionalCommission),
+        remaining_balance: Math.round(affiliate.remaining_balance + additionalCommission)
       };
       
       // Debug log
