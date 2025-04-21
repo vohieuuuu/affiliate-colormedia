@@ -35,9 +35,16 @@ function AuthenticatedRoutes() {
     });
   }, [user, isLoading, requiresPasswordChange, selectedMode, location]);
   
-  // Thêm việc xử lý các trường hợp đặc biệt
+  // Tạo danh sách các routes không cần xác thực
+  const publicRoutes = ["/auth"];
   
-  // 1. Nếu đang tải dữ liệu, hiển thị trạng thái loading thay vì chuyển hướng
+  // Tạo danh sách các routes yêu cầu xác thực nhưng không yêu cầu chọn mode
+  const authOnlyRoutes = ["/change-password", "/select-mode", "/unauthorized"];
+  
+  // Tạo danh sách các routes đặc biệt
+  const specialRoutes = ["/role-redirect"];
+  
+  // 1. Đang tải dữ liệu: hiển thị trạng thái loading
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
@@ -47,58 +54,48 @@ function AuthenticatedRoutes() {
     );
   }
   
-  // 2. Nếu không có user (chưa đăng nhập) và không phải ở trang đăng nhập, chuyển hướng đến trang đăng nhập
-  if (!user && location !== "/auth") {
-    console.log("AuthenticatedRoutes: No user, redirecting to auth page");
+  // 2. Kiểm tra nếu người dùng chưa đăng nhập và đang cố truy cập route yêu cầu xác thực
+  if (!user && !publicRoutes.includes(location)) {
+    console.log("AuthenticatedRoutes: No user and trying to access protected route, redirecting to /auth");
     return <Redirect to="/auth" />;
   }
   
-  // 3. Nếu yêu cầu đổi mật khẩu và không đang ở trang đổi mật khẩu, chuyển hướng đến trang đổi mật khẩu
+  // 3. Kiểm tra nếu cần đổi mật khẩu
   if (user && requiresPasswordChange && location !== "/change-password") {
-    console.log("AuthenticatedRoutes: Password change required, redirecting");
+    console.log("AuthenticatedRoutes: Password change required, redirecting to /change-password");
     return <Redirect to="/change-password" />;
   }
   
-  // 4. Nếu đã đăng nhập và không cần đổi mật khẩu nhưng chưa chọn chế độ và không đang ở trang chọn chế độ
-  // hoặc trong các routes được bảo vệ
-  const protectedRoutes = ["/select-mode", "/auth", "/change-password", "/role-redirect"];
-  if (user && !requiresPasswordChange && !selectedMode && !protectedRoutes.includes(location)) {
-    console.log("AuthenticatedRoutes: Mode selection required, redirecting to select-mode");
+  // 4. Kiểm tra nếu đã đăng nhập nhưng chưa chọn chế độ
+  const needsModeCheckRoutes = !publicRoutes.includes(location) && 
+                             !authOnlyRoutes.includes(location) && 
+                             !specialRoutes.includes(location) &&
+                             !location.startsWith("/role-redirect");
+  
+  if (user && !requiresPasswordChange && !selectedMode && needsModeCheckRoutes) {
+    console.log("AuthenticatedRoutes: Mode selection required, redirecting to /select-mode");
     return <Redirect to="/select-mode" />;
   }
   
-  // Khi đã vượt qua tất cả các điều kiện, hiển thị Switch bình thường với các routes
+  // Khi đã vượt qua tất cả các điều kiện bảo vệ, hiển thị các routes
   return (
     <Switch>
-      {/* Những route không cần xác thực - chỉ trang đăng nhập */}
+      {/* Những route công khai - không cần xác thực */}
       <Route path="/auth" component={AuthPage} />
       
-      {/* Route đổi mật khẩu được bảo vệ */}
+      {/* Route chỉ yêu cầu xác thực nhưng không yêu cầu chọn chế độ */}
       <ProtectedRoute path="/change-password" component={ChangePasswordPage} />
-      
-      {/* Route điều hướng vai trò - giữ lại để tương thích với code cũ */}
-      <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
-      
-      {/* Trang chọn chế độ - cần xác thực, không thể truy cập nếu chưa đăng nhập */}
       <ProtectedRoute path="/select-mode" component={SelectModePage} />
-      
-      {/* Trang không có quyền truy cập */}
       <ProtectedRoute path="/unauthorized" component={UnauthorizedPage} />
       
-      {/* 
-        GIẢI PHÁP MỚI: Sử dụng RoleRouter để quyết định hiển thị Dashboard nào
-        dựa trên vai trò người dùng. RoleRouter sẽ kiểm tra vai trò và 
-        hiển thị giao diện phù hợp cho mỗi loại người dùng
-      */}
-      <ProtectedRoute path="/" component={RoleRouter} />
+      {/* Route đặc biệt */}
+      <Route path="/role-redirect/:refresh?" component={RoleBasedRoute} />
       
-      {/* Đặt route cụ thể cho KOL/VIP và Dashboard thông thường SAU route chính để 
-         đảm bảo RoleRouter được ưu tiên cao hơn khi truy cập route / */}
+      {/* Các routes cần xác thực và có thể cần chọn chế độ */}
+      <ProtectedRoute path="/" component={RoleRouter} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
       <ProtectedRoute path="/kol-dashboard/withdrawal" component={KolWithdrawalPage} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
-      
-      {/* Đã loại bỏ route admin-dashboard, mọi admin sẽ sử dụng dashboard thông thường */}
       
       {/* Route mặc định nếu không tìm thấy trang */}
       <Route component={NotFound} />

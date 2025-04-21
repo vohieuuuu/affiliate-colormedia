@@ -97,7 +97,7 @@ export default function SelectModePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building className="h-5 w-5 text-primary" />
-                  <span>Affiliate Thông thường</span>
+                  <span>Affiliate Partner</span>
                 </CardTitle>
                 <CardDescription>
                   Quản lý khách hàng được giới thiệu và theo dõi hoa hồng
