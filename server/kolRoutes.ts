@@ -43,16 +43,41 @@ export function setupKolVipRoutes(app: Router, storage: IStorage) {
     }
 
     // Tìm thông tin KOL/VIP
-    const kolVip = await storage.getKolVipAffiliateByUserId(req.user.id);
-    // Sử dụng normalizedRole đã được định nghĩa ở trên
+    let kolVip = await storage.getKolVipAffiliateByUserId(req.user.id);
+    
+    // Nếu không tìm thấy thông tin KOL/VIP và người dùng có role KOL_VIP
     if (!kolVip && normalizedRole === "KOL_VIP") {
-      return res.status(404).json({
-        status: "error",
-        error: {
-          code: "KOL_NOT_FOUND",
-          message: "Không tìm thấy thông tin KOL/VIP của bạn"
-        }
-      });
+      console.log(`No KOL/VIP data found for user ${req.user.id} (${req.user.username}) - creating default data`);
+      
+      // Tạo dữ liệu KOL/VIP mặc định cho user có role KOL_VIP
+      try {
+        const defaultKolVip = await storage.createKolVipAffiliate({
+          affiliate_id: `KOL${req.user.id}`,
+          user_id: req.user.id,
+          full_name: req.user.username.split('@')[0] || `KOL User ${req.user.id}`,
+          email: req.user.username,
+          phone: "0987654321",
+          level: 1,
+          monthly_salary: 5000000,
+          kpi_status: "Pending",
+          total_contacts: 0,
+          potential_contacts: 0,
+          contracts_signed: 0,
+          created_at: new Date().toISOString()
+        });
+        
+        kolVip = defaultKolVip;
+        console.log(`Created default KOL/VIP data for user ${req.user.id}:`, kolVip);
+      } catch (error) {
+        console.error(`Error creating default KOL/VIP data:`, error);
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "KOL_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP của bạn và không thể tạo mới"
+          }
+        });
+      }
     }
 
     // Thêm thông tin KOL/VIP vào request để các middleware sau có thể sử dụng
