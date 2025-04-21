@@ -109,6 +109,7 @@ export function isKolVipRole(user?: any | null): boolean {
 
 /**
  * Kiểm tra xem một người dùng có phải là Affiliate thông thường hay không
+ * Giờ đây cũng kiểm tra affiliate_id để đảm bảo có dữ liệu phù hợp
  * @param user Thông tin người dùng
  * @returns true nếu là Affiliate, ngược lại false
  */
@@ -119,16 +120,21 @@ export function isAffiliateRole(user?: any | null): boolean {
   const normalizedRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
   const normalizedExpectedRole = AFFILIATE_ROLE.toUpperCase();
   
+  // Kiểm tra thêm affiliate_id
+  const hasAffiliateId = hasValidAffiliateId(user);
+  
   console.log("isAffiliateRole checking:", { 
     role: user.role,
     normalizedRole, 
     normalizedExpectedRole, 
     isEqual: normalizedRole.includes(normalizedExpectedRole), 
-    user_role_type: typeof user.role 
+    user_role_type: typeof user.role,
+    hasAffiliateId,
+    affiliateId: user.affiliate_id
   });
   
-  // Sử dụng includes() thay vì so sánh chính xác
-  return normalizedRole.includes(normalizedExpectedRole);
+  // Sử dụng includes() thay vì so sánh chính xác và yêu cầu có affiliate_id
+  return normalizedRole.includes(normalizedExpectedRole) && hasAffiliateId;
 }
 
 /**
@@ -163,6 +169,7 @@ export function getApiForRole(user: any | null, apiType: string): string | undef
 
 /**
  * Lấy route tương ứng với vai trò người dùng
+ * Giờ đây kiểm tra cả affiliate_id để đảm bảo chuyển hướng đúng
  * @param user Thông tin người dùng
  * @returns Route tương ứng hoặc '/dashboard' nếu không tìm thấy
  */
@@ -174,19 +181,34 @@ export function getDashboardForRole(user: any | null): string {
     ? user.role.toUpperCase() 
     : String(user.role).toUpperCase();
   
+  // Kiểm tra affiliate_id
+  const hasAffiliateId = hasValidAffiliateId(user);
+  
   console.log("getDashboardForRole for:", { 
     role: user.role,
     normalizedRole,
-    route: ROLE_ROUTES[normalizedRole as keyof typeof ROLE_ROUTES] || '/dashboard'
+    route: ROLE_ROUTES[normalizedRole as keyof typeof ROLE_ROUTES] || '/dashboard',
+    hasAffiliateId,
+    affiliateId: user.affiliate_id
   });
   
-  // Xử lý trực tiếp dựa trên role đã chuẩn hóa sử dụng includes() thay vì so sánh chính xác
-  if (normalizedRole.includes("KOL")) {
-    console.log("Returning KOL dashboard path directly for KOL/VIP role:", normalizedRole);
-    return '/kol-dashboard';
-  } else {
-    // Tất cả các vai trò khác (kể cả ADMIN) đều chuyển đến dashboard thông thường
+  // Xử lý đặc biệt cho ADMIN role - không yêu cầu affiliate_id
+  if (normalizedRole.includes(ADMIN_ROLE)) {
+    // Admin có thể xem cả hai loại dashboard, mặc định chuyển về dashboard thường
     return '/dashboard';
+  }
+  
+  // Xử lý trực tiếp dựa trên role đã chuẩn hóa và affiliate_id
+  if (normalizedRole.includes("KOL") && hasAffiliateId) {
+    console.log("Returning KOL dashboard path for KOL/VIP role with valid affiliate_id:", normalizedRole);
+    return '/kol-dashboard';
+  } else if ((normalizedRole.includes("AFFILIATE") || normalizedRole.includes("MANAGER")) && hasAffiliateId) {
+    console.log("Returning normal dashboard path for Affiliate role with valid affiliate_id:", normalizedRole);
+    return '/dashboard';
+  } else {
+    // Trường hợp không có affiliate_id, chuyển về trang chọn chế độ
+    console.log("No valid affiliate_id found, redirecting to select-mode:", normalizedRole);
+    return '/select-mode';
   }
 }
 
