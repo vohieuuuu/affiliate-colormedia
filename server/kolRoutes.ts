@@ -1522,24 +1522,20 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       try {
         console.log("Bắt đầu xử lý ảnh card visit với OCR...");
         
-        // Import Tesseract.js - phiên bản 6.0.1 yêu cầu cách sử dụng khác
-        const Tesseract = await import('tesseract.js');
+        // Sử dụng API Tesseract.js v6.0.1
+        console.log("Chuẩn bị thực hiện OCR...");
+        const { recognize } = await import('tesseract.js');
         
-        // Khởi tạo Tesseract worker với cấu hình đơn giản nhất
-        console.log("Khởi tạo Tesseract worker...");
-        const worker = await Tesseract.createWorker();
-        
-        // Với phiên bản 6.0.1, cần sử dụng API mới
-        console.log("Đang thực hiện OCR...");
-        // Sử dụng trực tiếp hàm recognize không cần tải và khởi tạo ngôn ngữ riêng biệt
-        const result = await worker.recognize(`data:image/jpeg;base64,${image_base64}`);
+        // Sử dụng hàm recognize trực tiếp (API mới của v6.0.1)
+        console.log("Đang thực hiện OCR với recognize...");
+        const { data } = await recognize(
+          `data:image/jpeg;base64,${image_base64}`,
+          'eng+vie'
+        );
         console.log("OCR hoàn thành");
         
-        // Dừng worker sau khi hoàn thành
-        await worker.terminate();
-        
         // Phân tích văn bản trích xuất
-        const extractedText = result.data.text;
+        const extractedText = data.text;
         console.log("Văn bản trích xuất: ", extractedText.substring(0, 100) + "...");
         
         // Trích xuất thông tin liên hệ
