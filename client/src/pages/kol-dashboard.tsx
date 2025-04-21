@@ -372,6 +372,7 @@ const KolDashboard = () => {
 
   return (
     <div className="bg-gradient-to-b from-slate-50 to-white min-h-screen">
+      <KolHeader />
       <div className="p-6 max-w-7xl mx-auto">
         <div className="flex flex-col space-y-6">
           {/* Thông tin cá nhân KOL */}
@@ -727,6 +728,9 @@ const KolDashboard = () => {
             onSubmit={handleProcessCardImage}
           />
         )}
+        {/* Thêm các thành phần video và tài liệu bán hàng */}
+        <KolVideosSection />
+        <KolSalesMaterials />
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ import { Link, useLocation } from "wouter";
 export default function KolHeader() {
   const { logoutMutation, user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [_, setLocation] = useLocation();
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -24,7 +24,7 @@ export default function KolHeader() {
           title: "Đăng xuất thành công",
           description: "Bạn đã đăng xuất khỏi hệ thống",
         });
-        navigate("/auth");
+        setLocation("/auth");
       },
       onError: (error) => {
         toast({
