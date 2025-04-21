@@ -709,25 +709,21 @@ const KolDashboard = () => {
           </Tabs>
         </div>
 
-        {/* Modal thêm liên hệ mới */}
-        {showAddContactModal && (
-          <AddContactModal
-            isOpen={showAddContactModal}
-            onClose={() => setShowAddContactModal(false)}
-            onSubmit={handleAddContact}
-            kolId={typeof kolInfo.id === 'string' ? kolInfo.id : kolInfo.id.toString()}
-            initialData={extractedContactData || undefined}
-          />
-        )}
+        {/* Modal thêm liên hệ mới - Loại bỏ điều kiện && để hiển thị mọi lúc */}
+        <AddContactModal
+          isOpen={showAddContactModal}
+          onClose={() => setShowAddContactModal(false)}
+          onSubmit={handleAddContact}
+          kolId={kolInfo?.affiliate_id || ''}
+          initialData={extractedContactData || undefined}
+        />
 
-        {/* Modal quét card visit */}
-        {showScanCardModal && (
-          <ScanCardModal
-            isOpen={showScanCardModal}
-            onClose={() => setShowScanCardModal(false)}
-            onSubmit={handleProcessCardImage}
-          />
-        )}
+        {/* Modal quét card visit - Loại bỏ điều kiện && để hiển thị mọi lúc */}
+        <ScanCardModal
+          isOpen={showScanCardModal}
+          onClose={() => setShowScanCardModal(false)}
+          onSubmit={handleProcessCardImage}
+        />
         {/* Thêm các thành phần video và tài liệu bán hàng */}
         <KolVideosSection />
         <KolSalesMaterials />
