@@ -78,30 +78,21 @@ export default function ChangePasswordPage() {
         description: "Mật khẩu của bạn đã được cập nhật, bạn sẽ được chuyển hướng đến trang chính.",
       });
       
-      // Chuyển hướng về trang phù hợp với vai trò sau khi đổi mật khẩu
+      // Chuyển hướng về trang chọn vai trò sau khi đổi mật khẩu
       setTimeout(() => {
         try {
           // Đánh dấu không còn yêu cầu đổi mật khẩu
           clearPasswordChangeRequirement();
           
-          // Lấy vai trò người dùng và chuẩn hóa
-          const userRole = typeof user?.role === 'string' 
-            ? user.role.toUpperCase() 
-            : String(user?.role).toUpperCase();
-          
-          console.log("Change password success: redirecting based on role", userRole);
-          
-          // Chuyển hướng trực tiếp dựa vào vai trò được chuẩn hóa
-          if (userRole === "KOL_VIP") {
-            console.log("Redirecting KOL/VIP user directly to KOL dashboard");
-            window.location.href = "/kol-dashboard";
-          } else if (userRole === "ADMIN") {
-            console.log("Redirecting admin user");
-            window.location.href = "/admin-dashboard";
-          } else {
-            console.log("Redirecting regular affiliate user");
-            window.location.href = "/dashboard";
+          // Xóa chế độ đã chọn trước đó (nếu có) sau khi đổi mật khẩu
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem("selected_mode");
           }
+          
+          console.log("Change password success: redirecting to select-mode page");
+          
+          // Chuyển hướng đến trang chọn chế độ thay vì dashboard cụ thể
+          window.location.href = "/select-mode";
         } catch (error) {
           console.error("Error during redirect:", error);
           // Fallback nếu có lỗi
