@@ -58,12 +58,10 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
           email: req.user.username,
           phone: "0987654321",
           level: "LEVEL_1",
-          monthly_salary: 5000000,
-          kpi_status: "Pending",
+          current_base_salary: 5000000,
           total_contacts: 0,
           potential_contacts: 0,
-          contracts_signed: 0,
-          created_at: new Date().toISOString()
+          total_contracts: 0
         });
         
         kolVip = defaultKolVip;

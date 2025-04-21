@@ -1009,6 +1009,8 @@ export class DatabaseStorage implements IStorage {
   // Phương thức quản lý KOL/VIP Affiliate
   async createKolVipAffiliate(kolVipData: InsertKolVipAffiliate): Promise<KolVipAffiliate> {
     try {
+      console.log("Creating new KOL/VIP affiliate with ID:", kolVipData.affiliate_id);
+      
       // Kiểm tra xem affiliate_id đã tồn tại chưa
       const existingKolVip = await this.getKolVipAffiliateByAffiliateId(kolVipData.affiliate_id);
       if (existingKolVip) {
@@ -1016,25 +1018,52 @@ export class DatabaseStorage implements IStorage {
         return existingKolVip;
       }
       
-      // Tạo mới KOL/VIP Affiliate
-      const [newKolVipAffiliate] = await db.insert(kolVipAffiliates)
-        .values({
-          ...kolVipData,
-          level: kolVipData.level || "LEVEL_1",
-          current_base_salary: kolVipData.current_base_salary || 5000000,
-          join_date: kolVipData.join_date || new Date(),
-          consecutive_failures: kolVipData.consecutive_failures || 0,
-          total_contacts: kolVipData.total_contacts || 0,
-          potential_contacts: kolVipData.potential_contacts || 0,
-          total_contracts: kolVipData.total_contracts || 0,
-          contract_value: kolVipData.contract_value || 0,
-          received_balance: kolVipData.received_balance || 0,
-          paid_balance: kolVipData.paid_balance || 0,
-          remaining_balance: kolVipData.remaining_balance || 0
-        })
-        .returning();
+      console.log("No KOL/VIP found with affiliate_id:", kolVipData.affiliate_id);
       
-      return newKolVipAffiliate;
+      // Chuẩn bị dữ liệu cơ bản cho việc chèn
+      const insertData = {
+        user_id: kolVipData.user_id,
+        affiliate_id: kolVipData.affiliate_id,
+        full_name: kolVipData.full_name,
+        email: kolVipData.email,
+        phone: kolVipData.phone,
+        bank_account: kolVipData.bank_account,
+        bank_name: kolVipData.bank_name,
+        level: kolVipData.level || "LEVEL_1",
+        current_base_salary: kolVipData.current_base_salary || 5000000
+      };
+      
+      console.log("Inserting KOL/VIP with basic data:", insertData);
+      
+      // Thử chèn với ít trường dữ liệu hơn
+      try {
+        const [newKolVipAffiliate] = await db.insert(kolVipAffiliates)
+          .values(insertData)
+          .returning();
+        
+        console.log("KOL/VIP created successfully:", newKolVipAffiliate);
+        return newKolVipAffiliate;
+      } catch (insertError) {
+        console.error("Error during insert operation:", insertError);
+        
+        // Thử lại với truy vấn SQL trực tiếp
+        console.log("Attempting direct SQL insert");
+        const result = await db.execute(`
+          INSERT INTO kol_vip_affiliates (user_id, affiliate_id, full_name, email, phone, bank_account, bank_name, level, current_base_salary)
+          VALUES (${kolVipData.user_id}, '${kolVipData.affiliate_id}', '${kolVipData.full_name}', '${kolVipData.email}', 
+                 '${kolVipData.phone}', '${kolVipData.bank_account}', '${kolVipData.bank_name}', 
+                 '${kolVipData.level || "LEVEL_1"}', ${kolVipData.current_base_salary || 5000000})
+          RETURNING *
+        `);
+        
+        console.log("Direct SQL insert result:", result);
+        
+        if (result.rows && result.rows.length > 0) {
+          return result.rows[0] as KolVipAffiliate;
+        } else {
+          throw new Error("Failed to create KOL/VIP affiliate using direct SQL");
+        }
+      }
     } catch (error) {
       console.error("Error creating KOL/VIP affiliate:", error);
       throw new Error("Failed to create KOL/VIP affiliate");
