@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
+const { createHash } = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -58,8 +59,9 @@ app.use(cors({
   credentials: true  // Quan trọng: cho phép cookies trong cross-origin requests
 }));
 
-// Khởi tạo cookie-parser để đọc cookies
-app.use(cookieParser());
+// Khởi tạo cookie-parser để đọc cookies 
+// Sử dụng secret key để tăng cường bảo mật cho cookies
+app.use(cookieParser(process.env.COOKIE_SECRET || 'colormedia-affiliate-system-secret'));
 
 app.use(express.json());
 
@@ -94,6 +96,23 @@ const extractToken = (req, res, next) => {
     
     if (process.env.NODE_ENV === 'development') {
       console.log("Authenticating with token from cookie");
+    }
+  } else if (req.signedCookies && req.signedCookies.auth_token) {
+    // Nếu sử dụng signed cookies
+    token = req.signedCookies.auth_token;
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Authenticating with token from signed cookie");
+    }
+  }
+  
+  // Debug cookies
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Available cookies:", Object.keys(req.cookies || {}));
+    console.log("Available signed cookies:", Object.keys(req.signedCookies || {}));
+    
+    if (req.headers.cookie) {
+      console.log("Raw cookie header:", req.headers.cookie);
     }
   }
   
@@ -221,10 +240,16 @@ app.all('/api/*', async (req, res) => {
           secure: process.env.NODE_ENV === 'production',         // Chỉ gửi qua HTTPS trong production
           maxAge: 24 * 60 * 60 * 1000,                           // 1 ngày
           sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Lax là cần thiết cho dev
-          path: '/'                                              // Cookie sẽ được gửi cho mọi request
+          path: '/',                                             // Cookie sẽ được gửi cho mọi request
+          signed: true                                           // Ký cookie để tăng bảo mật
         };
         
+        // Thiết lập cả cookie thường và cookie đã ký để đảm bảo tương thích
         res.cookie('auth_token', token, cookieOptions);
+        
+        // Cũng thiết lập cookie không ký để đảm bảo tương thích ngược
+        const unsignedCookieOptions = {...cookieOptions, signed: false};
+        res.cookie('auth_token_unsigned', token, unsignedCookieOptions);
         
         if (process.env.NODE_ENV === 'development') {
           console.log('Cookie options:', cookieOptions);
