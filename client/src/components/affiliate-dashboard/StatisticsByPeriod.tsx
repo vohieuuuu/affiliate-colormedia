@@ -38,6 +38,7 @@ import {
 
 interface StatisticsByPeriodProps {
   defaultPeriod?: StatisticsPeriodType;
+  affiliate?: any; // Affiliate data passed from parent
 }
 
 type ChartData = {
@@ -47,53 +48,165 @@ type ChartData = {
   count: number;
 };
 
-export default function StatisticsByPeriod({ defaultPeriod = "month" }: StatisticsByPeriodProps) {
+export default function StatisticsByPeriod({ defaultPeriod = "month", affiliate }: StatisticsByPeriodProps) {
   const [period, setPeriod] = useState<StatisticsPeriodType>(defaultPeriod);
   const [chartType, setChartType] = useState<"line" | "bar">("bar");
   const [chartData, setChartData] = useState<ChartData[]>([]);
   
-  // Fetch statistics based on selected period
-  const { data: statisticsData, isLoading: isStatisticsLoading } = useQuery({
-    queryKey: ['/api/affiliate/customer-statistics', { period }],
-    enabled: true
+  // Fetch affiliate data if not provided
+  const { data: affiliateData, isLoading: isAffiliateLoading } = useQuery({
+    queryKey: ['/api/affiliate'],
+    enabled: !affiliate
   });
   
-  // Fetch time series data for chart
-  const { data: timeSeriesData, isLoading: isChartLoading } = useQuery({
-    queryKey: ['/api/affiliate/time-series', { period }],
-    enabled: true
-  });
+  // Use provided affiliate data or the one fetched from API
+  const currentAffiliate = affiliate || (affiliateData?.status === "success" ? affiliateData.data : null);
+  const isLoading = !affiliate && isAffiliateLoading;
   
-  // Process time series data for chart
+  // Generate statistics and chart data from affiliate data
   useEffect(() => {
-    if (timeSeriesData?.status === "success" && timeSeriesData.data?.data) {
-      const formattedData = timeSeriesData.data.data.map((item: any) => {
-        // Format date label based on period
-        let name = item.period;
-        if (period === "month" || period === "week") {
-          // For month and week, show day
-          const date = new Date(item.period);
-          name = date.getDate().toString();
-        } else if (period === "year") {
-          // For year, show month
-          const date = new Date(item.period + "-01"); // Add day for valid date
-          name = date.toLocaleString('default', { month: 'short' });
+    if (currentAffiliate) {
+      // Generate statistics
+      const customers = currentAffiliate.referred_customers || [];
+      let filteredCustomers = [...customers];
+      
+      // Apply time period filtering
+      let periodStart = new Date();
+      let periodEnd = new Date();
+      
+      // Define period ranges similar to server-side filtering
+      switch (period) {
+        case "week":
+          periodStart = new Date();
+          periodStart.setDate(periodStart.getDate() - periodStart.getDay() + (periodStart.getDay() === 0 ? -6 : 1));
+          periodStart.setHours(0, 0, 0, 0);
+          
+          periodEnd = new Date(periodStart);
+          periodEnd.setDate(periodEnd.getDate() + 6);
+          periodEnd.setHours(23, 59, 59, 999);
+          break;
+          
+        case "month":
+          periodStart = new Date();
+          periodStart.setDate(1);
+          periodStart.setHours(0, 0, 0, 0);
+          
+          periodEnd = new Date(periodStart);
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+          periodEnd.setDate(0);
+          periodEnd.setHours(23, 59, 59, 999);
+          break;
+          
+        case "year":
+          periodStart = new Date();
+          periodStart.setMonth(0, 1);
+          periodStart.setHours(0, 0, 0, 0);
+          
+          periodEnd = new Date(periodStart);
+          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          periodEnd.setDate(0);
+          periodEnd.setHours(23, 59, 59, 999);
+          break;
+          
+        default: // all - all time
+          periodStart = new Date(0);
+          periodEnd = new Date();
+      }
+      
+      // Filter customers by period
+      if (period !== "all") {
+        filteredCustomers = customers.filter(customer => {
+          const createdDate = new Date(customer.created_at);
+          return createdDate >= periodStart && createdDate <= periodEnd;
+        });
+      }
+      
+      // Calculate statistics
+      const totalCustomers = filteredCustomers.length;
+      const contractSignedCustomers = filteredCustomers.filter(c => c.status === "Đã chốt hợp đồng");
+      const totalContracts = contractSignedCustomers.length;
+      const totalContractValue = contractSignedCustomers.reduce((sum, c) => sum + (c.contract_value || 0), 0);
+      const totalCommission = contractSignedCustomers.reduce((sum, c) => sum + (c.commission || 0), 0);
+      
+      // Generate chart data
+      // Group by day, week, or month depending on period
+      const chartDataMap = new Map();
+      
+      filteredCustomers.forEach(customer => {
+        if (customer.status === "Đã chốt hợp đồng" && customer.contract_value) {
+          const date = new Date(customer.created_at);
+          let periodKey;
+          
+          if (period === "week" || period === "month") {
+            // Group by day
+            periodKey = date.toISOString().slice(0, 10); // YYYY-MM-DD
+          } else if (period === "year") {
+            // Group by month
+            periodKey = date.toISOString().slice(0, 7); // YYYY-MM
+          } else {
+            // Group by month for all time
+            periodKey = date.toISOString().slice(0, 7); // YYYY-MM
+          }
+          
+          if (!chartDataMap.has(periodKey)) {
+            chartDataMap.set(periodKey, {
+              period: periodKey,
+              contractValue: 0,
+              commission: 0,
+              contractCount: 0,
+            });
+          }
+          
+          const data = chartDataMap.get(periodKey);
+          data.contractValue += customer.contract_value;
+          data.commission += customer.commission || 0;
+          data.contractCount += 1;
         }
-        
-        return {
-          name,
-          contractValue: item.contractValue / 1000000, // Convert to million
-          commission: item.commission / 1000000, // Convert to million
-          count: item.contractCount
-        };
       });
       
-      setChartData(formattedData);
+      // Convert to array and format for display
+      const formattedChartData = Array.from(chartDataMap.values())
+        .sort((a, b) => a.period.localeCompare(b.period))
+        .map(item => {
+          // Format date label based on period
+          let name = item.period;
+          if (period === "month" || period === "week") {
+            // For month and week, show day
+            const date = new Date(item.period);
+            name = date.getDate().toString();
+          } else if (period === "year") {
+            // For year, show month
+            const date = new Date(item.period + "-01"); // Add day for valid date
+            name = date.toLocaleString('default', { month: 'short' });
+          }
+          
+          return {
+            name,
+            contractValue: item.contractValue / 1000000, // Convert to million
+            commission: item.commission / 1000000, // Convert to million
+            count: item.contractCount
+          };
+        });
+      
+      setChartData(formattedChartData);
+      
+      // Update stats in state
+      const statsData = {
+        totalCustomers,
+        totalContracts,
+        totalContractValue,
+        totalCommission,
+        periodType: period,
+        periodStart: periodStart.toISOString(),
+        periodEnd: periodEnd.toISOString()
+      };
+      
+      setStats(statsData);
     }
-  }, [timeSeriesData, period]);
+  }, [currentAffiliate, period]);
   
-  // Extract statistics data
-  const stats = statisticsData?.status === "success" ? statisticsData.data : null;
+  // Local stats state
+  const [stats, setStats] = useState<any>(null);
   
   // Determine appropriate chart height
   const chartHeight = period === "year" ? 300 : period === "month" ? 350 : 250;
@@ -134,7 +247,7 @@ export default function StatisticsByPeriod({ defaultPeriod = "month" }: Statisti
       </div>
       
       {/* Statistics Cards */}
-      {isStatisticsLoading ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="h-32 animate-pulse">
@@ -260,7 +373,7 @@ export default function StatisticsByPeriod({ defaultPeriod = "month" }: Statisti
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          {isChartLoading ? (
+          {isLoading ? (
             <div className="animate-pulse flex flex-col space-y-4">
               <div className="h-[300px] bg-gray-200 dark:bg-gray-700 rounded"></div>
             </div>
