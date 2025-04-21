@@ -47,7 +47,7 @@ type ContactFormValues = z.infer<typeof contactFormSchema>;
 interface ScanCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { image_base64: string }) => void;
+  onSubmit: (data: any) => void;
 }
 
 const ScanCardModal = ({ isOpen, onClose, onSubmit }: ScanCardModalProps) => {
