@@ -116,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Auth error detected, clearing session data");
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem("auth_token");
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("selected_mode");
           // Không tự động chuyển hướng để tránh vòng lặp
         }
       }
