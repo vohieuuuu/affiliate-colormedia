@@ -14,6 +14,7 @@ import {
   isAffiliateRole, 
   getDashboardForRole 
 } from "../middleware/role-middleware";
+import { useLocation } from "wouter";
 
 // Định nghĩa kiểu dữ liệu cho chế độ được chọn
 export type SelectedMode = 'normal' | 'kol' | null;
@@ -89,6 +90,7 @@ export const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   
   // Kiểm tra xem người dùng có yêu cầu đổi mật khẩu hay không
   const storedRequiresPasswordChange = typeof window !== 'undefined' ? sessionStorage.getItem("requires_password_change") : null;
@@ -245,7 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (needsPasswordChange) {
         // Nếu cần đổi mật khẩu, chuyển đến trang đổi mật khẩu trước
         console.log("Login success: redirecting to change-password page");
-        window.location.href = "/change-password";
+        // Sử dụng navigate để tránh làm mới trang
+        navigate("/change-password");
       } else {
         // Nếu không cần đổi mật khẩu, chuyển đến trang chọn vai trò
         console.log("Login success: redirecting to select-mode page");
@@ -256,10 +259,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSelectedMode(null);
         }
         
-        // Chuyển hướng sử dụng setTimeout để đảm bảo mọi thứ đã xử lý xong
-        setTimeout(() => {
-          window.location.href = "/select-mode";
-        }, 100);
+        // Sử dụng navigate thay vì window.location.href để tránh làm mới trang và mất trạng thái
+        navigate("/select-mode");
       }
     },
     onError: (error: Error) => {
