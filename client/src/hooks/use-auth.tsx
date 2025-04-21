@@ -166,7 +166,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         // Cập nhật thông tin người dùng trong query cache
-        queryClient.setQueryData(["/api/auth/me"], response.user);
+        // Đóng gói thông tin người dùng theo đúng định dạng phản hồi từ API
+        queryClient.setQueryData(["/api/auth/me"], {
+          status: "success",
+          data: {
+            user: response.user
+          }
+        });
       } else {
         console.error("Login response missing token!");
       }
