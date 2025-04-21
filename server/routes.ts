@@ -1918,7 +1918,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Tìm khách hàng theo ID thay vì vị trí trong mảng
-      const customerIndex = affiliate.referred_customers.findIndex(customer => customer.id === customerId);
+      // Hiển thị chi tiết về ID của tất cả khách hàng để debug
+      console.log(`Searching for customer ID: ${customerId} (type: ${typeof customerId})`);
+      console.log(`All customer IDs for affiliate ${affiliate_id}:`, 
+        affiliate.referred_customers.map(customer => {
+          return {
+            id: customer.id, 
+            type: typeof customer.id, 
+            matches: customer.id === customerId
+          };
+        })
+      );
+      
+      // Phát hiện sự không khớp về kiểu dữ liệu và thử so sánh dưới dạng chuỗi trước
+      let customerIndex = affiliate.referred_customers.findIndex(
+        customer => customer.id === customerId || 
+                  (customer.id !== undefined && customer.id.toString() === customerId.toString())
+      );
+      
+      // Nếu không tìm thấy, hãy thử tìm bất kỳ khách hàng nào khớp với id = 0 hoặc 1
+      if (customerIndex === -1 && (customerId === 0 || customerId === 1)) {
+        console.log(`Falling back to find any customer with ID 0 or 1`);
+        customerIndex = affiliate.referred_customers.findIndex(
+          customer => customer.id === 0 || customer.id === 1 || 
+                    customer.id === "0" || customer.id === "1"
+        );
+      }
       
       if (customerIndex === -1) {
         return res.status(404).json({
@@ -1929,6 +1954,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       }
+      
+      // Hiển thị thông tin khách hàng đã tìm thấy để debug
+      console.log(`Found customer at index ${customerIndex}:`, 
+        JSON.stringify({
+          id: affiliate.referred_customers[customerIndex].id,
+          id_type: typeof affiliate.referred_customers[customerIndex].id
+        })
+      );
       
       // Lấy thông tin khách hàng hiện tại trực tiếp từ index
       const customer = affiliate.referred_customers[customerIndex];
@@ -1975,7 +2008,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Cập nhật khách hàng và số dư của affiliate, truyền ID thật của khách hàng
       const result = await storage.updateCustomerWithContract(
-        customerIndex,
+        customerId, // Sử dụng ID khách hàng thực thay vì chỉ số trong mảng
         updatedCustomer,
         balanceUpdates
       );

@@ -595,10 +595,11 @@ export class DatabaseStorage implements IStorage {
       
       // Cập nhật giá trị mới bằng cách cộng dồn chênh lệch
       const newTotalContractValue = currentContractValue + contractValueDifference;
-      const newReceivedBalance = (affiliate.received_balance || 0) + commissionDifference;
-      const newRemainingBalance = (affiliate.remaining_balance || 0) + commissionDifference;
+      // Làm tròn số và chuyển về số nguyên để tránh lỗi khi lưu vào database
+      const newReceivedBalance = Math.round((affiliate.received_balance || 0) + commissionDifference);
+      const newRemainingBalance = Math.round((affiliate.remaining_balance || 0) + commissionDifference);
       
-      console.log(`New values after adding differences: contract_value=${newTotalContractValue}, received_balance=${newReceivedBalance}, remaining_balance=${newRemainingBalance}`);
+      console.log(`New values after adding differences (rounded): contract_value=${newTotalContractValue}, received_balance=${newReceivedBalance}, remaining_balance=${newRemainingBalance}`);
       
       // Thực hiện cập nhật vào cơ sở dữ liệu
       await db.update(affiliates)
