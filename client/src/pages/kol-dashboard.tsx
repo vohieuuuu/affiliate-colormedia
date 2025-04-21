@@ -389,8 +389,8 @@ const KolDashboard = () => {
         <div className="flex flex-col space-y-6">
           {/* Thông tin cá nhân KOL */}
           <Card className="border-0 shadow-lg overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 z-0"></div>
-            <CardContent className="p-8 relative z-10">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5" style={{ zIndex: 0 }}></div>
+            <CardContent className="p-8 relative" style={{ zIndex: 10 }}>
               <div className="flex flex-col md:flex-row justify-between gap-6">
                 <div className="flex gap-5 items-center">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-primary to-blue-500 text-white shadow-md">
@@ -458,17 +458,19 @@ const KolDashboard = () => {
           </Card>
 
           {/* Tabs chính */}
-          <Tabs defaultValue="contacts" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full md:w-[400px] grid-cols-2 bg-white/60 backdrop-blur-sm shadow-sm rounded-lg">
+          <Tabs defaultValue="contacts" value={activeTab} onValueChange={setActiveTab} className="relative" style={{ zIndex: 20 }}>
+            <TabsList className="grid w-full md:w-[400px] grid-cols-2 bg-white/60 backdrop-blur-sm shadow-sm rounded-lg relative" style={{ zIndex: 20 }}>
               <TabsTrigger 
                 value="contacts" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/80 data-[state=active]:to-blue-500/80 data-[state=active]:text-white"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/80 data-[state=active]:to-blue-500/80 data-[state=active]:text-white pointer-events-auto"
+                style={{ pointerEvents: 'auto' }}
               >
                 Danh sách liên hệ
               </TabsTrigger>
               <TabsTrigger 
                 value="kpi" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/80 data-[state=active]:to-blue-500/80 data-[state=active]:text-white"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/80 data-[state=active]:to-blue-500/80 data-[state=active]:text-white pointer-events-auto"
+                style={{ pointerEvents: 'auto' }}
               >
                 Theo dõi KPI
               </TabsTrigger>
