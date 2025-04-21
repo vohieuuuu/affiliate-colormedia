@@ -134,11 +134,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     },
     onSuccess: (response: LoginResponse) => {
-      queryClient.setQueryData(["/api/auth/me"], response.user);
-      
-      // Lưu token vào session storage để sử dụng trong các API calls
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem("auth_token", response.token);
+      // Lưu thông tin người dùng và token
+      if (response.token) {
+        console.log("Login successful, token received, length:", response.token.length);
+        
+        // Lưu token vào cả localStorage và sessionStorage để đảm bảo tính nhất quán
+        if (typeof window !== 'undefined') {
+          // Lưu token vào session storage để sử dụng trong các API calls
+          sessionStorage.setItem("auth_token", response.token);
+          localStorage.setItem("auth_token", response.token);
+        }
+        
+        // Cập nhật thông tin người dùng trong query cache
+        queryClient.setQueryData(["/api/auth/me"], response.user);
+      } else {
+        console.error("Login response missing token!");
       }
       
       // Lưu và cập nhật trạng thái yêu cầu đổi mật khẩu
@@ -216,8 +226,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem("requires_password_change");
         sessionStorage.removeItem("auth_token");
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("selected_mode");
       }
       setRequiresPasswordChange(false);
+      setSelectedMode(null);
       queryClient.setQueryData(["/api/auth/me"], null);
       
       toast({

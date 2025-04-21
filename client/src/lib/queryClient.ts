@@ -18,10 +18,13 @@ export async function apiRequest(
 ): Promise<Response> {
   const headers: Record<string, string> = {};
   
-  // Sử dụng token từ session storage nếu có, nếu không sử dụng API_TOKEN mặc định
-  const authToken = typeof window !== 'undefined' 
-    ? sessionStorage.getItem("auth_token") || API_TOKEN
-    : API_TOKEN;
+  // Sử dụng token từ session storage hoặc localStorage nếu có, nếu không sử dụng API_TOKEN mặc định
+  let authToken = API_TOKEN;
+  if (typeof window !== 'undefined') {
+    authToken = sessionStorage.getItem("auth_token") || 
+                localStorage.getItem("auth_token") || 
+                API_TOKEN;
+  }
   
   headers["Authorization"] = `Bearer ${authToken}`;
   headers["Accept"] = "application/json";
@@ -62,10 +65,13 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // Sử dụng token từ session storage nếu có, nếu không sử dụng API_TOKEN mặc định
-    const authToken = typeof window !== 'undefined' 
-      ? sessionStorage.getItem("auth_token") || API_TOKEN
-      : API_TOKEN;
+    // Sử dụng token từ session storage hoặc localStorage nếu có, nếu không sử dụng API_TOKEN mặc định
+    let authToken = API_TOKEN;
+    if (typeof window !== 'undefined') {
+      authToken = sessionStorage.getItem("auth_token") || 
+                  localStorage.getItem("auth_token") || 
+                  API_TOKEN;
+    }
     
     // Cần chuyển đổi URL cho môi trường production
     const url = queryKey[0] as string;
