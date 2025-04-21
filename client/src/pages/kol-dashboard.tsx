@@ -560,7 +560,7 @@ const KolDashboard = () => {
                       }}
                       onUpdateContact={handleUpdateContact}
                       onAddContract={handleAddContract}
-                      kolId={typeof kolInfo.id === 'string' ? kolInfo.id : kolInfo.id.toString()}
+                      kolId={kolInfo?.affiliate_id || ''}
                     />
                   </CardContent>
                 </Card>
