@@ -115,8 +115,28 @@ function authenticateToken(req: Request, res: Response, next: NextFunction) {
 
 // Middleware xác thực người dùng dựa trên token
 export async function authenticateUser(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  // Lấy token từ header hoặc cookie
+  let token = req.headers['authorization']?.split(' ')[1];
+  
+  // Nếu không có token trong header, kiểm tra cookies
+  if (!token && req.headers.cookie) {
+    const cookies = req.headers.cookie.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    if (cookies.auth_token) {
+      token = cookies.auth_token;
+      console.log("Middleware: Found token in cookies");
+    }
+  }
+  
+  // Nếu request có token từ proxy
+  if (!token && (req as any).authToken) {
+    token = (req as any).authToken;
+    console.log("Middleware: Using token from proxy request object");
+  }
 
   // Kiểm tra nếu không có token
   if (token == null) {

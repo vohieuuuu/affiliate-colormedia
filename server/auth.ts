@@ -126,7 +126,7 @@ export async function createUserForAffiliate(
 /**
  * Thiết lập routes xác thực (đăng nhập, đăng ký, đăng xuất)
  */
-import { LoginSchema, RegisterSchema, users, insertUserSchema } from "@shared/schema";
+import { LoginSchema, RegisterSchema, insertUserSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export function setupAuthRoutes(app: any, db: any) {
@@ -481,6 +481,12 @@ export function setupAuthRoutes(app: any, db: any) {
           console.log("Found token in cookies");
         }
       }
+      
+      // Nếu request có token từ proxy
+      if (!token && (req as any).authToken) {
+        token = (req as any).authToken;
+        console.log("Using token from proxy request object");
+      }
 
       if (!token) {
         return res.status(401).json({
@@ -493,11 +499,7 @@ export function setupAuthRoutes(app: any, db: any) {
       }
 
       // Log debug
-      console.log("Checking token (from cookies or Authorization header)");
-      
-      // Sử dụng createHash từ module crypto thay vì đối tượng crypto
-      const hash = require('crypto').createHash('sha256').update(token.slice(0, 5)).digest('hex');
-      console.log("Token hash:", hash);
+      console.log("Checking token (auth header, cookies, or request object)");
       
       // Kiểm tra admin API token (chỉ khớp 8 ký tự đầu)
       const adminApiToken = process.env.API_TOKEN || "1ee19664de4bcbd354400cfe0000078cac0618835772f112858183e5ec9b94dc";
