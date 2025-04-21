@@ -15,6 +15,9 @@ import {
   getDashboardForRole 
 } from "../middleware/role-middleware";
 
+// Định nghĩa kiểu dữ liệu cho chế độ được chọn
+export type SelectedMode = 'normal' | 'kol' | null;
+
 // Định nghĩa kiểu dữ liệu cho user
 interface User {
   id: number;
@@ -47,10 +50,12 @@ interface AuthContextType {
   isLoading: boolean;
   error: Error | null;
   requiresPasswordChange: boolean;
+  selectedMode: SelectedMode;
   loginMutation: UseMutationResult<LoginResponse, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
   clearPasswordChangeRequirement: () => void;
+  selectMode: (mode: SelectedMode) => void;
 }
 
 // Khởi tạo context mặc định
@@ -59,10 +64,12 @@ const defaultAuthContext: AuthContextType = {
   isLoading: false,
   error: null,
   requiresPasswordChange: false,
+  selectedMode: null,
   loginMutation: {} as UseMutationResult<LoginResponse, Error, LoginData>,
   logoutMutation: {} as UseMutationResult<void, Error, void>,
   registerMutation: {} as UseMutationResult<User, Error, RegisterData>,
-  clearPasswordChangeRequirement: () => {}
+  clearPasswordChangeRequirement: () => {},
+  selectMode: () => {}
 };
 
 // Tạo context
@@ -76,6 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [requiresPasswordChange, setRequiresPasswordChange] = useState<boolean>(
     storedRequiresPasswordChange === "true"
   );
+  
+  // Lấy chế độ đã chọn từ localStorage
+  const storedMode = typeof window !== 'undefined' ? localStorage.getItem("selected_mode") as SelectedMode : null;
+  const [selectedMode, setSelectedMode] = useState<SelectedMode>(storedMode);
   
   // Query để lấy thông tin người dùng hiện tại và bổ sung thông tin vai trò
   const {
@@ -148,35 +159,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Login success: redirecting to change-password page");
         window.location.href = "/change-password";
       } else {
-        // Nếu không cần đổi mật khẩu, chuyển trực tiếp đến dashboard dựa vào vai trò
-        const userRole = typeof response.user.role === 'string' 
-          ? response.user.role.toUpperCase() 
-          : String(response.user.role).toUpperCase();
+        // Nếu không cần đổi mật khẩu, chuyển đến trang chọn vai trò
+        console.log("Login success: redirecting to select-mode page");
         
-        console.log("Login success: redirecting based on role", userRole);
-        
-        // Thêm một kiểm tra rõ ràng cho vai trò KOL_VIP
-        if (userRole === "KOL_VIP") {
-          console.log("Redirecting KOL/VIP user directly to KOL dashboard");
-          // Thêm log để debug
-          console.log("DEBUG - KOL/VIP redirect: ", {
-            role: response.user.role,
-            normalizedRole: userRole,
-            dashboard: "/kol-dashboard",
-            comparison: userRole === "KOL_VIP"
-          });
-          
-          // Chuyển hướng sử dụng setTimeout để đảm bảo mọi thứ đã xử lý xong
-          setTimeout(() => {
-            window.location.href = "/kol-dashboard";
-          }, 100);
-        } else if (userRole === "ADMIN") {
-          console.log("Redirecting admin user");
-          window.location.href = "/admin-dashboard";
-        } else {
-          console.log("Redirecting regular affiliate user");
-          window.location.href = "/dashboard";
+        // Xóa chế độ đã chọn trước đó (nếu có) khi đăng nhập thành công
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem("selected_mode");
+          setSelectedMode(null);
         }
+        
+        // Chuyển hướng sử dụng setTimeout để đảm bảo mọi thứ đã xử lý xong
+        setTimeout(() => {
+          window.location.href = "/select-mode";
+        }, 100);
       }
     },
     onError: (error: Error) => {
@@ -250,6 +245,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Chuyển hướng được xử lý tại component ChangePasswordPage
     // để tránh xung đột và đảm bảo đúng luồng
   }, []);
+  
+  // Xử lý chọn chế độ (mode)
+  const selectMode = useCallback((mode: SelectedMode) => {
+    console.log("Selecting mode:", mode);
+    setSelectedMode(mode);
+    
+    // Lưu chế độ đã chọn vào localStorage để duy trì giữa các phiên
+    if (typeof window !== 'undefined' && mode) {
+      localStorage.setItem("selected_mode", mode);
+    } else if (typeof window !== 'undefined' && mode === null) {
+      localStorage.removeItem("selected_mode");
+    }
+  }, []);
+  
+  // Cập nhật AuthContext khi đăng xuất để xóa selected_mode
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !user) {
+      localStorage.removeItem("selected_mode");
+      setSelectedMode(null);
+    }
+  }, [user]);
 
   return (
     <AuthContext.Provider
@@ -258,10 +274,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         requiresPasswordChange,
+        selectedMode,
         loginMutation,
         logoutMutation,
         registerMutation,
-        clearPasswordChangeRequirement
+        clearPasswordChangeRequirement,
+        selectMode
       }}
     >
       {children}

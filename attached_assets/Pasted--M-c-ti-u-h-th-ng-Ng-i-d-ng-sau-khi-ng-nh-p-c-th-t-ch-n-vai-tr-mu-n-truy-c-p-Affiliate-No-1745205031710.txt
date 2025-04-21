@@ -1,0 +1,125 @@
+🎯 Mục tiêu hệ thống
+Người dùng sau khi đăng nhập có thể tự chọn vai trò muốn truy cập: Affiliate Normal hoặc KOL/VIP.
+
+Hệ thống chỉ cho phép người dùng truy cập dashboard phù hợp với role được phân.
+
+Ngăn chặn truy cập trái phép (cả frontend và backend).
+
+Tách biệt hoàn toàn dữ liệu giữa 2 role.
+
+🗂️ Phân loại vai trò người dùng
+
+Role (Phân quyền)	Dashboard truy cập được	Dữ liệu được phép xem
+normal	/dashboard	Chỉ dữ liệu liên quan đến affiliate thường
+kol	/kol-dashboard	Chỉ dữ liệu liên quan đến KOL/VIP
+🔐 Chi tiết Requirement chức năng
+1. Quy trình đăng nhập & chọn vai trò
+a. Khi đăng nhập thành công:
+Backend trả về thông tin user (JWT, user info trong payload hoặc response):
+
+userId
+
+email
+
+role: "normal" hoặc "kol"
+
+b. Sau đăng nhập:
+Redirect đến một trang chọn vai trò: /select-mode
+
+Hiển thị UI:
+👉 Bạn muốn vào dashboard nào?
+
+[Affiliate thường]
+
+[Affiliate KOL/VIP]
+
+c. Kiểm tra trước khi cho vào:
+Nếu role !== modeSelected → thông báo lỗi:
+❌ "Bạn không có quyền truy cập chế độ này"
+
+Nếu hợp lệ → redirect đến dashboard tương ứng:
+
+Normal: /dashboard
+
+KOL/VIP: /kol-dashboard
+
+2. Bảo vệ route trên frontend
+a. Mỗi dashboard cần wrapper để kiểm tra:
+auth.user.role === selectedMode
+
+Nếu không hợp lệ → redirect về /unauthorized
+
+b. Wrapper example (giả lập):
+tsx
+Copy
+Edit
+if (auth.user.role !== selectedMode) {
+  return <Redirect to="/unauthorized" />
+}
+3. Ngăn truy cập thủ công bằng URL
+a. Ví dụ:
+User role normal cố truy cập /kol-dashboard → bị chặn.
+
+Xử lý trong ProtectedRoute hoặc ngay trong từng dashboard.
+
+b. Trang /unauthorized:
+Nội dung:
+❌ "Bạn không có quyền truy cập vào trang này"
+
+Có nút trở về /select-mode
+
+4. Bảo mật ở Backend
+a. Mỗi API cần kiểm tra role trước khi trả dữ liệu.
+Ví dụ:
+
+ts
+Copy
+Edit
+// ExpressJS middleware giả lập
+if (user.role !== 'kol') {
+  return res.status(403).json({ message: "Forbidden" });
+}
+b. Dữ liệu truy vấn từ DB cũng cần phân theo role, ví dụ:
+sql
+Copy
+Edit
+SELECT * FROM affiliate_data WHERE type = 'normal' AND user_id = ?
+5. Lưu trạng thái lựa chọn mode
+a. Lưu vào:
+Context (AuthContext)
+
+Hoặc LocalStorage/SessionStorage: selectedMode
+
+b. Khi user logout:
+Xoá cả auth + selectedMode
+
+6. User trải nghiệm rõ ràng và bảo mật
+
+Tình huống	Phản hồi hệ thống
+Đăng nhập thành công → hiển thị chọn chế độ	OK, redirect đến /select-mode
+Chọn sai mode (khác role)	Thông báo lỗi, không redirect
+Gõ thủ công URL không thuộc quyền	Chuyển đến /unauthorized
+Gọi API không đúng quyền	Backend trả 403 Forbidden
+Truy cập đúng mode + role	Cho phép vào, hiển thị đúng dashboard và dữ liệu
+🛠️ Kỹ thuật đề xuất
+✅ Tạo AuthContext hoặc useAuth hook để chứa user + selectedMode.
+
+✅ Wrapper ProtectedRoute để check cả 2 điều kiện:
+
+Đã đăng nhập
+
+Role phù hợp với mode đã chọn
+
+✅ Middleware backend kiểm tra JWT + role cho mỗi endpoint.
+
+✅ Route /select-mode và /unauthorized đơn giản, dễ xử lý UX.
+
+Nếu bạn cần mình hỗ trợ viết các đoạn code mẫu như:
+
+ProtectedRoute nâng cao
+
+Middleware backend check role
+
+Trang chọn mode (/select-mode)
+
+Context quản lý auth + mode

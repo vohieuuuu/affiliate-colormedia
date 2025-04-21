@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import KolDashboard from "@/pages/kol-dashboard";
+import SelectModePage from "@/pages/select-mode";
 import AuthPage from "@/pages/auth-page";
 import ChangePasswordPage from "@/pages/change-password";
 import RoleRouter from "@/pages/RoleRouter";
