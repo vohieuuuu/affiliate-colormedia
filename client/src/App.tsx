@@ -96,6 +96,8 @@ function AuthenticatedRoutes() {
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
+      {/* Đã loại bỏ route admin-dashboard, mọi admin sẽ sử dụng dashboard thông thường */}
+      
       {/* Route mặc định nếu không tìm thấy trang */}
       <Route component={NotFound} />
     </Switch>

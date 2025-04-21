@@ -14,7 +14,7 @@ const ROLE_API_MAPPING = {
     affiliate: '/api/affiliate',
     customers: '/api/admin/affiliates',
     statistics: '/api/admin/statistics',
-    dashboard: '/admin-dashboard',
+    dashboard: '/dashboard', // Chuyển hướng về dashboard thông thường thay vì admin-dashboard
   },
   [KOL_VIP_ROLE]: {
     profile: '/api/kol/me',
@@ -42,7 +42,7 @@ const ROLE_API_MAPPING = {
  * Các route cho mỗi vai trò
  */
 const ROLE_ROUTES = {
-  [ADMIN_ROLE]: '/admin-dashboard',
+  [ADMIN_ROLE]: '/dashboard', // Thay đổi thành dashboard thông thường 
   [KOL_VIP_ROLE]: '/kol-dashboard',
   [AFFILIATE_ROLE]: '/dashboard',
   [MANAGER_ROLE]: '/dashboard',
@@ -173,9 +173,8 @@ export function getDashboardForRole(user: any | null): string {
   if (normalizedRole.includes("KOL")) {
     console.log("Returning KOL dashboard path directly for KOL/VIP role:", normalizedRole);
     return '/kol-dashboard';
-  } else if (normalizedRole.includes("ADMIN")) {
-    return '/admin-dashboard';
   } else {
+    // Tất cả các vai trò khác (kể cả ADMIN) đều chuyển đến dashboard thông thường
     return '/dashboard';
   }
 }
