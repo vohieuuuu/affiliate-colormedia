@@ -684,21 +684,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Lấy danh sách tất cả các affiliate
       const affiliates = [];
       
-      // Trong môi trường development, tạo danh sách từ dữ liệu mẫu
-      if (process.env.NODE_ENV === "development" || !(process.env.USE_DATABASE === "true")) {
-        // Lấy affiliate từ storage.topAffiliates có thể được sử dụng ở đây
-        const topAffiliates = await storage.getTopAffiliates();
-        
-        // Truy xuất thông tin chi tiết cho mỗi affiliate
-        for (const topAffiliate of topAffiliates) {
-          const affiliate = await storage.getAffiliateByAffiliateId(`AFF${100 + topAffiliate.id}`);
-          if (affiliate) {
-            affiliates.push(affiliate);
-          }
+      // Lấy tất cả affiliate từ storage (bây giờ sẽ luôn sử dụng DatabaseStorage)
+      const topAffiliates = await storage.getTopAffiliates();
+      
+      // Truy xuất thông tin chi tiết cho mỗi affiliate
+      for (const topAffiliate of topAffiliates) {
+        const affiliate = await storage.getAffiliateByAffiliateId(`AFF${100 + topAffiliate.id}`);
+        if (affiliate) {
+          affiliates.push(affiliate);
         }
-      } else {
-        // Trong môi trường production, lấy từ database
-        // (Phần triển khai database sẽ được thêm sau)
       }
       
       res.status(200).json({
@@ -1533,125 +1527,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Nếu chưa tồn tại, tạo user mới rồi tạo affiliate
           try {
-            // Import environment sử dụng database
-            if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
-              const { db } = await import("./db");
-              const { createUserForAffiliate } = await import("./auth");
+            // Import để sử dụng database
+            const { db } = await import("./db");
+            const { createUserForAffiliate } = await import("./auth");
+            
+            // Tạo user mới cho affiliate
+            const { user } = await createUserForAffiliate(
+              db,
+              affiliateData.email,
+              affiliateData.full_name
+            );
               
-              // Tạo user mới cho affiliate
-              const { user } = await createUserForAffiliate(
-                db,
-                affiliateData.email,
-                affiliateData.full_name
-              );
-              
-              // Tạo affiliate mới liên kết với user
-              const newAffiliateWithUser = await storage.createAffiliate({
-                ...affiliateData,
-                user_id: user.id
-              });
-              
-              return res.status(201).json({
-                status: "success",
-                data: {
-                  ...newAffiliateWithUser,
-                  message: "New affiliate created with user account"
-                }
-              });
-            } else {
-              // Mô phỏng hành vi trong môi trường sử dụng database
-              // Giả định tạo user
-              console.log("=== TEST MODE: Creating user account and sending activation email ===");
-
-              try {
-                // Import để sử dụng hàm sendAccountActivationEmail và hashPassword
-                const { sendAccountActivationEmail } = await import("./email");
-                const { hashPassword } = await import("./auth");
-                
-                // Mật khẩu mặc định
-                const temporaryPassword = "color1234@";
-                
-                // Kiểm tra xem email đã được sử dụng cho affiliate nào chưa
-                const existingAffiliateByEmail = await storage.getAffiliateByEmail(affiliateData.email);
-                
-                if (existingAffiliateByEmail) {
-                  // Email đã được sử dụng cho một affiliate khác
-                  console.log(`Email ${affiliateData.email} is already used by affiliate ${existingAffiliateByEmail.affiliate_id}`);
-                  return res.status(400).json({
-                    status: "error",
-                    error: {
-                      code: "EMAIL_ALREADY_IN_USE",
-                      message: `Email ${affiliateData.email} đã được sử dụng bởi affiliate khác. Vui lòng sử dụng email khác.`
-                    }
-                  });
-                }
-                
-                // Kiểm tra xem email đã tồn tại trong hệ thống người dùng chưa
-                const existingUser = await storage.getUserByUsername(affiliateData.email);
-                
-                let userId;
-                
-                try {
-                  // Nếu đã qua được kiểm tra bên trên, hoặc là email chưa tồn tại, hoặc là tồn tại nhưng chưa kết hợp với affiliate nào
-                  if (existingUser) {
-                    userId = existingUser.id;
-                  } else {
-                    // Mã hóa mật khẩu
-                    const hashedPassword = await hashPassword(temporaryPassword);
-                    
-                    // Tạo tài khoản người dùng mới
-                    const newUser = await storage.createUser({
-                      username: affiliateData.email,
-                      password: hashedPassword,
-                      role: "AFFILIATE",
-                      is_first_login: true // sẽ được chuyển thành 1 trong hàm createUser
-                    });
-                    
-                    userId = newUser.id;
-                    
-                    // Gửi email kích hoạt
-                    await sendAccountActivationEmail(
-                      affiliateData.full_name,
-                      affiliateData.email,
-                      temporaryPassword
-                    );
-                  }
-                } catch (emailError) {
-                  console.error("Error sending activation email:", emailError);
-                  // Trường hợp gửi email thất bại nhưng vẫn tạo được tài khoản người dùng
-                  if (!userId && existingUser) {
-                    userId = existingUser.id;
-                  } else if (!userId) {
-                    // Không tạo được người dùng hoặc không gửi được email
-                    throw new Error("Không thể tạo tài khoản hoặc gửi email kích hoạt");
-                  }
-                }
-                
-                // Tạo affiliate mới và liên kết với user
-                const newAffiliate = await storage.createAffiliate({
-                  ...affiliateData,
-                  user_id: userId
-                });
-                
-                return res.status(201).json({
-                  status: "success",
-                  data: {
-                    ...newAffiliate,
-                    message: "New affiliate created with simulated user account (DEV mode)"
-                  }
-                });
-              } catch (error) {
-                console.error("Error creating affiliate or sending email:", error);
-                
-                return res.status(500).json({
-                  status: "error",
-                  error: {
-                    code: "AFFILIATE_CREATION_ERROR",
-                    message: "Không thể tạo affiliate. " + (error instanceof Error ? error.message : "Unknown error")
-                  }
-                });
+            // Tạo affiliate mới liên kết với user
+            const newAffiliateWithUser = await storage.createAffiliate({
+              ...affiliateData,
+              user_id: user.id
+            });
+            
+            return res.status(201).json({
+              status: "success",
+              data: {
+                ...newAffiliateWithUser,
+                message: "New affiliate created with user account"
               }
-            }
+            });
           } catch (userError) {
             console.error("Error creating user for affiliate:", userError);
             return res.status(500).json({
@@ -2314,40 +2213,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let storageType = "In-memory";
       let tablesInfo = {};
       
-      // Kiểm tra loại storage đang sử dụng
-      if (process.env.USE_DATABASE === "true" || process.env.NODE_ENV === "production") {
-        storageType = "PostgreSQL";
+      // Kiểm tra kết nối database
+      storageType = "PostgreSQL";
+      
+      // Kiểm tra kết nối đến cơ sở dữ liệu
+      try {
+        // Thực hiện truy vấn kiểm tra đơn giản
+        const { db } = await import("./db");
+        const result = await db.execute('SELECT NOW()');
+        dbStatus = "Connected";
         
-        // Kiểm tra kết nối đến cơ sở dữ liệu
-        try {
-          // Thực hiện truy vấn kiểm tra đơn giản
-          const { db } = await import("./db");
-          const result = await db.execute('SELECT NOW()');
-          dbStatus = "Connected";
-          
-          // Kiểm tra các bảng hiện có
-          const tablesResult = await db.execute(`
-            SELECT 
-              table_name, 
-              (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
-            FROM 
-              information_schema.tables t
-            WHERE 
-              table_schema = 'public'
-          `);
-          
-          if (tablesResult.rows) {
-            tablesInfo = tablesResult.rows.reduce((acc: Record<string, any>, row: any) => {
-              acc[row.table_name] = {
-                column_count: parseInt(row.column_count)
-              };
-              return acc;
-            }, {});
-          }
-        } catch (dbError: any) {
-          console.error("Database connection error:", dbError);
-          dbStatus = `Error: ${dbError.message || 'Unknown error'}`;
+        // Kiểm tra các bảng hiện có
+        const tablesResult = await db.execute(`
+          SELECT 
+            table_name, 
+            (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
+          FROM 
+            information_schema.tables t
+          WHERE 
+            table_schema = 'public'
+        `);
+        
+        if (tablesResult.rows) {
+          tablesInfo = tablesResult.rows.reduce((acc: Record<string, any>, row: any) => {
+            acc[row.table_name] = {
+              column_count: parseInt(row.column_count)
+            };
+            return acc;
+          }, {});
         }
+      } catch (dbError: any) {
+        console.error("Database connection error:", dbError);
+        dbStatus = `Error: ${dbError.message || 'Unknown error'}`;
       }
       
       res.json({
@@ -2356,7 +2253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storage_type: storageType,
           database_status: dbStatus,
           environment: process.env.NODE_ENV || "development",
-          use_database: process.env.USE_DATABASE === "true",
+          use_database: true,
           database_tables: tablesInfo
         }
       });
