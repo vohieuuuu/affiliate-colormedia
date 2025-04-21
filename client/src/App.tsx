@@ -16,7 +16,8 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import { RoleBasedRoute } from "@/lib/role-based-route";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
+import { Loader2 } from "lucide-react";
 
 // Thêm một component mới để xử lý điều hướng một cách thông minh
 // Component này sẽ giúp điều hướng người dùng đúng cách dựa trên trạng thái hiện tại
@@ -109,9 +110,27 @@ function AuthenticatedRoutes() {
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       {/* Admin routes */}
-      <ProtectedRoute path="/admin/commission" component={() => 
-        <RoleBasedRoute roles={["ADMIN"]} component={() => import("@/pages/admin/commission-management")} />
-      } />
+      <ProtectedRoute 
+        path="/admin/commission" 
+        component={() => {
+          // Sử dụng dynamic import để lazy load trang quản lý hoa hồng
+          const CommissionManagement = lazy(() => import("@/pages/admin/commission-management"));
+          
+          return (
+            <Suspense fallback={
+              <div className="flex flex-col gap-2 items-center justify-center min-h-screen">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Đang tải trang quản lý hoa hồng...</p>
+              </div>
+            }>
+              <RoleBasedRoute 
+                roles={["ADMIN"]} 
+                component={CommissionManagement} 
+              />
+            </Suspense>
+          );
+        }} 
+      />
       
       {/* Route mặc định nếu không tìm thấy trang */}
       <Route component={NotFound} />

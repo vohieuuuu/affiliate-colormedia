@@ -479,23 +479,24 @@ const KolDashboard = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold">Quản lý liên hệ</h2>
                 <div className="flex flex-wrap gap-2">
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => setShowScanCardModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-200 bg-white hover:bg-gray-50"
+                    className="flex items-center gap-2"
                   >
                     <Camera className="h-4 w-4" />
                     Quét card visit
-                  </button>
-                  <button 
+                  </Button>
+                  <Button 
                     onClick={() => {
                       setExtractedContactData(null);
                       setShowAddContactModal(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white hover:bg-primary/90"
+                    className="flex items-center gap-2"
                   >
                     <PlusCircle className="h-4 w-4" />
                     Thêm liên hệ mới
-                  </button>
+                  </Button>
                 </div>
               </div>
 

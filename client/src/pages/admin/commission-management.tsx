@@ -29,9 +29,9 @@ import { Loader2 } from "lucide-react";
 
 // Định nghĩa schema validation cho form thêm bonus
 const addBonusSchema = z.object({
-  user_id: z.string().transform(val => parseInt(val)),
+  user_id: z.coerce.number(),
   user_type: z.enum(["partner", "kol_vip", "sme"]),
-  bonus_amount: z.string().transform(val => parseInt(val)),
+  bonus_amount: z.coerce.number(),
   description: z.string().optional(),
 });
 
@@ -55,9 +55,9 @@ export default function CommissionManagementPage() {
   const addBonusForm = useForm<AddBonusFormData>({
     resolver: zodResolver(addBonusSchema),
     defaultValues: {
-      user_id: "",
+      user_id: 0,
       user_type: "partner",
-      bonus_amount: "",
+      bonus_amount: 0,
       description: "",
     },
   });
@@ -85,9 +85,9 @@ export default function CommissionManagementPage() {
         });
         
         addBonusForm.reset({
-          user_id: "",
+          user_id: 0,
           user_type: "partner",
-          bonus_amount: "",
+          bonus_amount: 0,
           description: "",
         });
       } else {

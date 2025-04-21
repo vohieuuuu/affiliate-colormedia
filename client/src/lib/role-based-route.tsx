@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, useParams } from "wouter";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { isKolVipRole, isAdminRole, isAffiliateRole } from "@/middleware/role-middleware";
 
@@ -14,7 +14,13 @@ import { isKolVipRole, isAdminRole, isAffiliateRole } from "@/middleware/role-mi
  * 3. Nếu chưa chọn chế độ, chuyển hướng đến trang chọn chế độ
  * 4. Nếu đã chọn chế độ, kiểm tra quyền truy cập vào chế độ đó và chuyển hướng phù hợp
  */
-export function RoleBasedRoute() {
+// Component for handling routes based on user roles
+type RoleBasedRouteProps = {
+  roles?: string[];
+  component?: React.ComponentType<any> | (() => Promise<any>);
+};
+
+export function RoleBasedRoute({ roles = [], component: Component }: RoleBasedRouteProps = {}) {
   const { user, isLoading, requiresPasswordChange, selectedMode } = useAuth();
   const params = useParams();
   const shouldRefresh = params.refresh === "refresh";
@@ -26,7 +32,9 @@ export function RoleBasedRoute() {
     mode: selectedMode,
     isLoading,
     requiresPasswordChange,
-    shouldRefresh
+    shouldRefresh,
+    hasRolesParam: roles.length > 0,
+    hasComponent: !!Component
   });
 
   // Làm mới dữ liệu người dùng nếu có tham số refresh
@@ -69,12 +77,8 @@ export function RoleBasedRoute() {
   });
   
   // Kiểm tra các vai trò của người dùng - lưu ý rằng chúng ta sử dụng includes thay vì so sánh chính xác
-  // Bỏ vai trò ADMIN riêng biệt như yêu cầu, chỉ tập trung vào NORMAL và KOL
-  // ADMIN không còn được tự động truy cập vào KOL dashboard
   const isKolVip = normalizedRole.includes("KOL") && !normalizedRole.includes("ADMIN");
-  // ADMIN chỉ có quyền truy cập affiliate normal
   const isAffiliate = normalizedRole.includes("AFFILIATE") || normalizedRole.includes("ADMIN");
-  // Tạo biến isAdmin chỉ để tương thích với code hiện tại, sẽ loại bỏ sau
   const isAdmin = normalizedRole.includes("ADMIN");
   
   console.log("RoleBasedRoute: Role check results", {
@@ -83,6 +87,38 @@ export function RoleBasedRoute() {
     isAdmin
   });
   
+  // Nếu được chỉ định các vai trò và component, kiểm tra quyền truy cập
+  if (roles.length > 0) {
+    const hasRequiredRole = roles.some(role => 
+      normalizedRole.includes(role.toUpperCase())
+    );
+    
+    if (!hasRequiredRole) {
+      console.log(`User does not have any of the required roles: ${roles.join(', ')}`);
+      return <Redirect to="/unauthorized" />;
+    }
+    
+    // Nếu người dùng có quyền và component được cung cấp
+    if (Component) {
+      console.log(`User has required role, rendering component`);
+      const LoadedComponent = typeof Component === 'function' && 'then' in Component 
+        ? lazy(() => Component()) 
+        : Component;
+      
+      return (
+        <Suspense fallback={
+          <div className="flex flex-col gap-2 items-center justify-center min-h-screen">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Đang tải trang...</p>
+          </div>
+        }>
+          <LoadedComponent />
+        </Suspense>
+      );
+    }
+  }
+  
+  // Nếu không có component được chỉ định, tiếp tục với logic chuyển hướng dựa trên chế độ
   // Kiểm tra chế độ đã chọn
   if (!selectedMode) {
     console.log("No mode selected, redirecting to select-mode page");
