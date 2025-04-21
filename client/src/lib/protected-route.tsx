@@ -16,12 +16,11 @@ export function ProtectedRoute({
   // Phần này đã được thay thế bằng RoleRouter, nên không cần thiết logic điều hướng vai trò ở đây
   // Chỉ ghi log thông tin để debug
   useEffect(() => {
-    if (user && !isLoading && !requiresPasswordChange) {
-      console.log("ProtectedRoute: user authenticated", {
-        userRole: user.role,
+    if (user && !isLoading && !requiresPasswordChange && process.env.NODE_ENV === 'development') {
+      console.log("ProtectedRoute: authenticated path access", {
         path,
         currentPath: window.location.pathname,
-        mode: selectedMode
+        hasSelectedMode: !!selectedMode
       });
     }
   }, [user, isLoading, requiresPasswordChange, path, selectedMode]);
@@ -64,7 +63,9 @@ export function ProtectedRoute({
   // chuyển hướng đến trang chọn chế độ
   const skipModeCheckRoutes = ["/select-mode", "/change-password", "/unauthorized"];
   if (!requiresPasswordChange && !selectedMode && !skipModeCheckRoutes.includes(path)) {
-    console.log("ProtectedRoute: Mode selection required for path:", path);
+    if (process.env.NODE_ENV === 'development') {
+      console.log("ProtectedRoute: Mode selection required for path:", path);
+    }
     return (
       <Route path={path}>
         <Redirect to="/select-mode" />

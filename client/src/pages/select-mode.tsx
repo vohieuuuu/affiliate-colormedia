@@ -22,10 +22,14 @@ export default function SelectModePage() {
     // Chỉ kiểm tra khi không còn đang tải dữ liệu
     if (!isLoading) {
       if (!user) {
-        console.log("SelectModePage: User not logged in after loading, redirecting to auth");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("SelectModePage: User not logged in after loading, redirecting to auth");
+        }
         navigate("/auth", { replace: true });
       } else {
-        console.log("SelectModePage: User logged in successfully:", user.username);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("SelectModePage: User logged in successfully");
+        }
       }
     }
   }, [user, isLoading, navigate]);
@@ -44,34 +48,25 @@ export default function SelectModePage() {
   // Chuẩn hóa role để so sánh không phân biệt hoa thường
   const normalizedRole = user?.role ? String(user.role).toUpperCase() : '';
   
-  console.log("SelectModePage: User role check", {
-    role: user?.role,
-    normalizedRole,
-    roleType: typeof user?.role,
-    user: user
-  });
-  
-  // Force log to console để theo dõi vấn đề
-  console.warn(`[Debug] user role: "${user?.role}", normalized: "${normalizedRole}"`);
-  
   // Sử dụng normalizedRole để kiểm tra vai trò
   // Điều này giúp tránh lỗi khi các thuộc tính isAdmin, isAffiliate, isKolVip chưa được tính toán đúng
   const hasNormalAccess = normalizedRole.includes("AFFILIATE") || normalizedRole.includes("ADMIN");
   // Admin không được truy cập KOL dashboard
   const hasKolAccess = normalizedRole.includes("KOL") && !normalizedRole.includes("ADMIN");
   
-  // Thêm log chi tiết về quyết định
-  console.warn(`[Debug] Access check: hasNormalAccess=${hasNormalAccess}, hasKolAccess=${hasKolAccess}`);
-  
-  console.log("SelectModePage: Access check result", {
-    hasNormalAccess,
-    hasKolAccess,
-    showNoAccessMessage: !hasNormalAccess && !hasKolAccess
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log("SelectModePage: Role check", {
+      normalizedRole,
+      hasNormalAccess,
+      hasKolAccess
+    });
+  }
 
   // Chọn chế độ và chuyển hướng đến trang chủ
   const handleSelectMode = (mode: 'normal' | 'kol') => {
-    console.log("SelectModePage: Selecting mode", mode);
+    if (process.env.NODE_ENV === 'development') {
+      console.log("SelectModePage: Selecting mode", mode);
+    }
     selectMode(mode);
     
     // Chuyển hướng đến trang chủ để RoleRouter xử lý việc điều hướng tiếp theo

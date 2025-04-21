@@ -110,7 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Nếu không có token nào, đảm bảo thông tin người dùng được xóa
     if (!localToken && !sessionToken) {
-      console.log("No auth token found, clearing user data");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("No auth token found, clearing user data");
+      }
       localStorage.removeItem("selected_mode");
       sessionStorage.removeItem("requires_password_change");
     }
