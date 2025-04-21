@@ -1,9 +1,9 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
-import * as drizzleOrm from 'drizzle-orm';
+import { neon, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import * as schema from '../shared/schema.js';
+import * as schema from '../shared/schema';
 
+// Cấu hình Neon PostgreSQL với websocket
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
@@ -12,5 +12,6 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Khởi tạo kết nối
+const sql = neon(process.env.DATABASE_URL!);
+export const db = drizzle(sql, { schema });
