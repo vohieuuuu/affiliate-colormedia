@@ -6,6 +6,11 @@ export const KOL_VIP_ROLE = 'KOL_VIP';
 export const AFFILIATE_ROLE = 'AFFILIATE';
 export const MANAGER_ROLE = 'MANAGER';
 
+// Kiểm tra xem user có tồn tại affiliate_id không
+export function hasValidAffiliateId(user: any): boolean {
+  return user && user.affiliate_id && user.affiliate_id.trim() !== '';
+}
+
 /**
  * Các mapping giữa vai trò và API endpoint tương ứng
  */
@@ -74,6 +79,7 @@ export function isAdminRole(user?: any | null): boolean {
 
 /**
  * Kiểm tra xem một người dùng có phải là KOL/VIP hay không
+ * Giờ đây cũng kiểm tra affiliate_id để đảm bảo có dữ liệu phù hợp
  * @param user Thông tin người dùng
  * @returns true nếu là KOL/VIP, ngược lại false
  */
@@ -84,16 +90,21 @@ export function isKolVipRole(user?: any | null): boolean {
   const normalizedRole = typeof user.role === 'string' ? user.role.toUpperCase() : String(user.role).toUpperCase();
   const normalizedExpectedRole = KOL_VIP_ROLE.toUpperCase();
   
+  // Kiểm tra thêm affiliate_id
+  const hasAffiliateId = hasValidAffiliateId(user);
+  
   console.log("isKolVipRole checking:", { 
     role: user.role,
     normalizedRole, 
     normalizedExpectedRole, 
     isEqual: normalizedRole.includes(normalizedExpectedRole), 
-    user_role_type: typeof user.role 
+    user_role_type: typeof user.role,
+    hasAffiliateId,
+    affiliateId: user.affiliate_id
   });
   
   // Sử dụng includes() thay vì so sánh chính xác
-  return normalizedRole.includes("KOL");
+  return normalizedRole.includes("KOL") && hasAffiliateId;
 }
 
 /**

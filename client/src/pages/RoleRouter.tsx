@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
  * - Điều hướng đến dashboard phù hợp dựa trên vai trò người dùng và chế độ đã chọn
  * - Chuyển hướng đến trang chọn chế độ nếu người dùng chưa chọn
  * - Sử dụng replace: true để tránh lỗi quay lại / rồi redirect lại
+ * - Kiểm tra affiliate_id để đảm bảo hiển thị dữ liệu đúng
  */
 export default function RoleRouter() {
   const [, navigate] = useLocation();
@@ -21,7 +22,8 @@ export default function RoleRouter() {
     isLoading,
     user,
     userRole: user?.role,
-    selectedMode
+    selectedMode,
+    affiliateId: user?.affiliate_id // Log affiliate_id để theo dõi
   });
 
   useEffect(() => {
@@ -49,16 +51,31 @@ export default function RoleRouter() {
     const normalizedRole = user?.role ? String(user.role).toUpperCase() : '';
     console.log("RoleRouter: Normalized role for redirection", normalizedRole, "Selected mode:", selectedMode);
 
+    // Kiểm tra vai trò KOL/VIP dựa trên cả vai trò và affiliate_id (nếu có)
+    const isKolVipWithId = normalizedRole.includes("KOL") && user.affiliate_id;
+    
+    // Kiểm tra vai trò AFFILIATE dựa trên cả vai trò và affiliate_id
+    const isAffiliateWithId = (normalizedRole.includes("AFFILIATE") || normalizedRole.includes("ADMIN")) && user.affiliate_id;
+    
+    // Log thông tin kiểm tra quyền truy cập
+    console.log("RoleRouter: Access check", {
+      isKolVipWithId,
+      isAffiliateWithId,
+      normalizedRole,
+      affiliateId: user.affiliate_id,
+      selectedMode
+    });
+
     // Kiểm tra xem chế độ đã chọn có phù hợp với vai trò không
     // Nếu chọn chế độ KOL nhưng không có quyền KOL_VIP và không phải ADMIN
-    if (selectedMode === 'kol' && normalizedRole !== "KOL_VIP" && normalizedRole !== "ADMIN") {
+    if (selectedMode === 'kol' && !normalizedRole.includes("KOL") && !normalizedRole.includes("ADMIN")) {
       console.log("RoleRouter: User does not have KOL_VIP role but selected KOL mode, redirecting to unauthorized");
       navigate("/unauthorized", { replace: true });
       return;
     }
     
     // Nếu chọn chế độ normal nhưng không có quyền AFFILIATE hoặc ADMIN
-    if (selectedMode === 'normal' && normalizedRole !== "AFFILIATE" && normalizedRole !== "ADMIN" && normalizedRole !== "MANAGER") {
+    if (selectedMode === 'normal' && !normalizedRole.includes("AFFILIATE") && !normalizedRole.includes("ADMIN") && !normalizedRole.includes("MANAGER")) {
       console.log("RoleRouter: User selected normal mode but doesn't have permission, redirecting to unauthorized");
       navigate("/unauthorized", { replace: true });
       return;

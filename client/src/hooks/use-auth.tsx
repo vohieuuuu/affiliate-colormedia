@@ -30,6 +30,7 @@ interface ApiUser {
   username: string;
   role: string;
   is_first_login?: boolean;
+  affiliate_id?: string; // Thêm affiliate_id để kiểm tra khi đăng nhập
 }
 
 // Định nghĩa kiểu dữ liệu cho user với thông tin bổ sung
@@ -140,7 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       normalizedRole: apiUser.role ? String(apiUser.role).toUpperCase() : "",
       isAdmin: user?.isAdmin,
       isKolVip: user?.isKolVip,
-      isAffiliate: user?.isAffiliate
+      isAffiliate: user?.isAffiliate,
+      affiliate_id: apiUser.affiliate_id || 'unknown' // Log affiliate_id để debug
     });
   }
 
