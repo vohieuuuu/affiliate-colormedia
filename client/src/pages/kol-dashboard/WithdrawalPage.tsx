@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { WithdrawalRequest } from "@/components/kol-dashboard/WithdrawalRequest";
 import KolWithdrawalFlow from "@/components/withdrawal/KolWithdrawalFlow";
+import KolWithdrawalModalFixed from "@/components/kol-dashboard/KolWithdrawalModalFixed";
 
 export default function WithdrawalPage() {
   const { user } = useAuth();
@@ -298,9 +299,9 @@ export default function WithdrawalPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Sử dụng component KolWithdrawalFlow để quản lý luồng rút tiền */}
+      {/* Sử dụng component KolWithdrawalModalFixed (phiên bản đã sửa lỗi xác thực OTP) */}
       {showWithdrawalModal && (
-        <KolWithdrawalFlow
+        <KolWithdrawalModalFixed
           isOpen={showWithdrawalModal}
           onClose={() => setShowWithdrawalModal(false)}
           onSuccess={handleWithdrawalSuccess}
