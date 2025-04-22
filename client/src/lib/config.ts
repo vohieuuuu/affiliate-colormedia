@@ -7,7 +7,7 @@ const isProd = import.meta.env.PROD;
 
 // API URL tùy thuộc vào môi trường
 export const API_URL = isProd 
-  ? 'https://affclm.replit.app' // URL production đã deployed
+  ? '' // Để trống để sử dụng URL tương đối (gọi API từ cùng origin với ứng dụng)
   : ''; // URL trống để sử dụng URL tương đối (base URL) trong môi trường development
 
 // Token mặc định khi chưa đăng nhập - được thiết lập thành chuỗi rỗng
