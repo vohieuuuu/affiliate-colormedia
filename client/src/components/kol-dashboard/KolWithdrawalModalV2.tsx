@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { DollarSign, AlertTriangle, Loader2, Mail, RotateCcw, LockKeyhole } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { formatCurrency, formatNumberWithCommas } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 interface KolWithdrawalModalProps {
   isOpen: boolean;
@@ -44,6 +45,21 @@ export default function KolWithdrawalModalV2({
   const [maskedEmail, setMaskedEmail] = useState<string>("");
   const [withdrawalData, setWithdrawalData] = useState<any>(null);
   const [otpTimer, setOtpTimer] = useState<number>(300); // 5 minutes
+
+  // OTP timer countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (currentStep === "verification" && otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [currentStep, otpTimer]);
 
   // Daily limits
   const DAILY_WITHDRAWAL_LIMIT = 20000000; // 20 million VND
@@ -136,6 +152,7 @@ export default function KolWithdrawalModalV2({
         setWithdrawalData(data);
         setMaskedEmail(data.data.email_masked);
         setCurrentStep("verification");
+        setOtpTimer(300); // Set timer to 5 minutes
         toast({
           title: "Mã OTP đã được gửi",
           description: `${data.data.message}. Mã OTP có hiệu lực đến ${new Date(data.data.otpExpires).toLocaleTimeString()}`,

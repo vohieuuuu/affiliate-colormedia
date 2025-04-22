@@ -217,7 +217,7 @@ export default function DirectWithdrawalPage() {
                       <KolWithdrawalModalV2
                         isOpen={modalOpen}
                         onClose={handleCloseModal}
-                        onSubmit={handleSuccess}
+                        onSuccess={handleSuccess}
                         kolData={kolData || {}}
                         balance={currentBalance || 0}
                       />
