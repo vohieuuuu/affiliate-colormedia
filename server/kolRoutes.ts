@@ -298,6 +298,23 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
+      // Kiểm tra xem contact có tồn tại không
+      const contacts = await storage.getKolVipContacts(kolId);
+      const existingContact = contacts.find(c => c.id === parseInt(contactId));
+      
+      if (!existingContact) {
+        console.error(`Contact with ID ${contactId} not found for KOL/VIP ${kolId}`);
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "CONTACT_NOT_FOUND",
+            message: "Không tìm thấy liên hệ"
+          }
+        });
+      }
+      
+      console.log(`Found existing contact:`, JSON.stringify(existingContact, null, 2));
+      
       // Cập nhật thông tin liên hệ với cấu trúc mới đơn giản hơn
       const updateData: { status?: CustomerStatusType, description?: string } = {};
       
@@ -366,20 +383,44 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
+      // Kiểm tra xem contact có tồn tại không
+      const contacts = await storage.getKolVipContacts(kolId);
+      const existingContact = contacts.find(c => c.id === parseInt(contactId));
+      
+      if (!existingContact) {
+        console.error(`Contact with ID ${contactId} not found for KOL/VIP ${kolId}`);
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "CONTACT_NOT_FOUND",
+            message: "Không tìm thấy liên hệ"
+          }
+        });
+      }
+      
+      console.log(`Found existing contact for contract:`, JSON.stringify(existingContact, null, 2));
+      
       // Tính hoa hồng 3%
       const contractValueNum = parseFloat(contractValue);
       const commission = contractValueNum * 0.03;
       
+      console.log(`Contract value: ${contractValueNum}, Commission: ${commission}`);
+      
       // Cập nhật thông tin hợp đồng cho liên hệ
       const updatedContact = await storage.updateKolVipContactWithContract(
-        kolId,
         parseInt(contactId),
         {
+          ...existingContact,
           status: "Đã chốt hợp đồng",
           contract_value: contractValueNum,
           commission,
           note: note || "",
           updated_at: new Date().toISOString()
+        },
+        {
+          contract_value: contractValueNum,
+          commission,
+          remaining_balance: 0 // Sẽ được cập nhật bởi hàm updateKolVipContactWithContract
         }
       );
       
