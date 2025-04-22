@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -189,12 +189,22 @@ export function WithdrawalForm({ kolData }: { kolData: any }) {
       // Chuyển đổi số tiền từ chuỗi thành số
       const amount = Number(values.amount.replace(/,/g, ""));
       
+      // Lấy số dư hiện tại từ financial summary API
+      const financialSummaryResponse = await apiRequest(
+        "GET", 
+        `/api/kol/${kolData.affiliate_id}/financial-summary?period=month`
+      );
+      const financialSummaryData = await financialSummaryResponse.json();
+      const currentBalance = financialSummaryData.status === "success" 
+        ? financialSummaryData.data.currentBalance
+        : kolData.remaining_balance;
+      
       // Kiểm tra xem số tiền có lớn hơn số dư không
-      if (amount > kolData.remaining_balance) {
+      if (amount > currentBalance) {
         toast({
           variant: "destructive",
           title: "Số tiền không hợp lệ",
-          description: `Số tiền rút không thể lớn hơn số dư hiện tại (${formatCurrency(kolData.remaining_balance)})`,
+          description: `Số tiền rút không thể lớn hơn số dư hiện tại (${formatCurrency(currentBalance)})`,
         });
         return;
       }
@@ -241,7 +251,7 @@ export function WithdrawalForm({ kolData }: { kolData: any }) {
                     Số dư hiện tại:
                   </span>
                   <span className="font-bold text-primary">
-                    {formatCurrency(kolData.remaining_balance)}
+                    <CurrentBalanceDisplay kolData={kolData} />
                   </span>
                 </div>
 

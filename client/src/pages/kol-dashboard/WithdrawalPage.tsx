@@ -5,16 +5,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2 } from "lucide-react";
 import { WithdrawalForm } from "@/components/kol-dashboard/WithdrawalForm";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function WithdrawalPage() {
   const { user } = useAuth();
 
   // Lấy thông tin KOL/VIP
-  const { data: kolData, isLoading } = useQuery({
+  const { data: kolData, isLoading: isLoadingKolData } = useQuery({
     queryKey: ["/api/kol/me"],
     enabled: !!user,
   });
+  
+  // Lấy thông tin tài chính
+  const { data: financialSummary, isLoading: isLoadingFinancialSummary } = useQuery({
+    queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary"],
+    queryFn: async () => {
+      try {
+        if (!kolData?.affiliate_id) {
+          throw new Error("Không tìm thấy ID của KOL/VIP để tải thông tin tài chính");
+        }
+        
+        const period = "month"; // Mặc định tính giai đoạn 30 ngày gần nhất
+        const response = await apiRequest("GET", `/api/kol/${kolData.affiliate_id}/financial-summary?period=${period}`);
+        const data = await response.json();
+        if (data.status === "success") {
+          return data.data;
+        }
+        return null;
+      } catch (error) {
+        console.error("Error fetching financial summary:", error);
+        return null;
+      }
+    },
+    enabled: !!kolData?.affiliate_id,
+  });
 
+  // Kiểm tra trạng thái tải dữ liệu
+  const isLoading = isLoadingKolData || isLoadingFinancialSummary;
+  
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -180,7 +208,7 @@ export default function WithdrawalPage() {
                     Số dư tích lũy:
                   </span>
                   <span className="text-sm font-bold text-primary">
-                    {formatCurrency(kolData.remaining_balance)}
+                    {formatCurrency(financialSummary?.currentBalance || kolData.remaining_balance || 0)}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 items-center gap-2">
@@ -188,7 +216,7 @@ export default function WithdrawalPage() {
                     Đã rút:
                   </span>
                   <span className="text-sm font-medium">
-                    {formatCurrency(kolData.paid_balance || 0)}
+                    {formatCurrency(financialSummary?.expenseSources?.withdrawal || kolData.paid_balance || 0)}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 items-center gap-2">
@@ -196,9 +224,8 @@ export default function WithdrawalPage() {
                     Tổng thu nhập:
                   </span>
                   <span className="text-sm font-medium">
-                    {formatCurrency(
-                      (kolData.remaining_balance || 0) +
-                        (kolData.paid_balance || 0)
+                    {formatCurrency(financialSummary?.totalIncome || 
+                      ((kolData.remaining_balance || 0) + (kolData.paid_balance || 0))
                     )}
                   </span>
                 </div>
