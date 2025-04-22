@@ -330,13 +330,13 @@ export type MonthlyKpi = z.infer<typeof MonthlyKpiSchema>;
 
 // Schema tạo KOL/VIP mới
 export const CreateKolVipSchema = z.object({
-  affiliate_id: z.string(),
-  full_name: z.string(),
+  affiliate_id: z.string().min(3).max(20),
+  full_name: z.string().min(3).max(100),
   email: z.string().email(),
-  phone: z.string(),
+  phone: z.string().min(10).max(15),
   level: KolVipLevel,
-  bank_account: z.string(),
-  bank_name: z.string()
+  bank_account: z.string().min(5).max(20),
+  bank_name: z.string().min(3).max(100)
 });
 
 export type CreateKolVip = z.infer<typeof CreateKolVipSchema>;

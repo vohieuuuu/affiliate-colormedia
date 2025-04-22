@@ -477,18 +477,140 @@ hoặc cookie `auth_token`
 }
 ```
 
-## API Quét Card Visit 
-Hiện tại chưa có endpoint `/api/kol/:kolId/scan-card` trong server. Endpoint này được sử dụng trong frontend nhưng chưa được triển khai.
+## API quét Card Visit 
+**Endpoint**: `POST /api/kol/:kolId/scan-card`
+
+**Mô tả**: Quét và xử lý card visit bằng OCR để trích xuất thông tin liên hệ.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+hoặc cookie `auth_token`
+
+**Params**:
+- `kolId`: ID của KOL/VIP
+
+**Request Body**:
+```json
+{
+  "image_base64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/4..."
+}
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "raw_text": "Nguyễn Văn A\nGiám đốc Marketing\nCông ty XYZ\nĐiện thoại: 0912345678\nEmail: nguyena@xyz.com",
+    "contact_data": {
+      "contact_name": "Nguyễn Văn A",
+      "company": "Công ty XYZ",
+      "position": "Giám đốc Marketing",
+      "phone": "0912345678",
+      "email": "nguyena@xyz.com"
+    }
+  }
+}
+```
 
 ## API admin KOL/VIP
-Hiện tại chưa có endpoint `/api/admin/kol/create` trong server. API này được gọi trong hệ thống nhưng chưa được triển khai.
+### Tạo tài khoản KOL/VIP mới
+**Endpoint**: `POST /api/admin/kol/create`
 
-## Các endpoints cần được triển khai
-1. `POST /api/kol/:kolId/scan-card` - API quét card visit
-2. `POST /api/admin/kol/create` - API tạo tài khoản KOL/VIP mới (dành cho admin)
-3. `GET /api/admin/kol` - API lấy danh sách tất cả KOL/VIP (dành cho admin)
-4. `PUT /api/admin/kol/:kolId` - API cập nhật thông tin KOL/VIP (dành cho admin)
-5. `GET /api/admin/kol/:kolId/kpi` - API lấy lịch sử KPI của KOL/VIP (dành cho admin)
+**Mô tả**: Tạo tài khoản KOL/VIP mới (chỉ dành cho admin).
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+hoặc cookie `auth_token`
+
+**Request Body**:
+```json
+{
+  "affiliate_id": "KOL003",
+  "full_name": "Lê Quang I",
+  "email": "kol3456@colormedia.vn",
+  "phone": "0927890123",
+  "level": "LEVEL_1",
+  "bank_account": "1234567890",
+  "bank_name": "VietinBank"
+}
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "kol": {
+      "id": 3,
+      "user_id": 12,
+      "affiliate_id": "KOL003",
+      "full_name": "Lê Quang I",
+      "email": "kol3456@colormedia.vn",
+      "level": "LEVEL_1",
+      "current_base_salary": 5000000,
+      "join_date": "2025-04-22T02:15:00Z"
+    },
+    "user": {
+      "id": 12,
+      "username": "kol3456@colormedia.vn",
+      "role": "KOL_VIP",
+      "is_first_login": 1
+    },
+    "default_password": "color1234@"
+  }
+}
+```
+
+### API lấy danh sách KOL/VIP
+**Endpoint**: `GET /api/admin/kol`
+
+**Mô tả**: Lấy danh sách tất cả KOL/VIP (chỉ dành cho admin).
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+hoặc cookie `auth_token`
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "kols": [
+      {
+        "id": 1,
+        "affiliate_id": "KOL001",
+        "full_name": "Nguyễn Văn A",
+        "email": "kol1@colormedia.vn",
+        "level": "LEVEL_2",
+        "current_base_salary": 10000000,
+        "total_contacts": 15,
+        "total_contracts": 2
+      },
+      {
+        "id": 2,
+        "affiliate_id": "KOL002",
+        "full_name": "Trần Thị B",
+        "email": "kol2@colormedia.vn",
+        "level": "LEVEL_1",
+        "current_base_salary": 5000000,
+        "total_contacts": 8,
+        "total_contracts": 0
+      }
+    ]
+  }
+}
+```
+
+## Các endpoints có thể triển khai thêm
+1. `PUT /api/admin/kol/:kolId` - API cập nhật thông tin KOL/VIP (dành cho admin)
+2. `GET /api/admin/kol/:kolId/kpi` - API lấy lịch sử KPI của KOL/VIP (dành cho admin)
 
 ## Mã lỗi
 - `UNAUTHORIZED` - Người dùng chưa xác thực

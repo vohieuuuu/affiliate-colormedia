@@ -1,159 +1,164 @@
 /**
  * API quản lý KOL/VIP dành cho admin
  */
-
 import { Router, Request, Response } from "express";
-import { IStorage } from "../storage";
-import { CreateKolVipSchema, UserRoleType } from "@shared/schema";
-import { createUserForAffiliate } from "../auth";
 import { authenticateUser } from "../routes";
+import {
+  CreateKolVip,
+  CreateKolVipSchema,
+  KolVipAffiliate,
+  KolVipLevel,
+  User
+} from "@shared/schema";
+import { IStorage } from "../storage";
+import { hashPassword } from "../auth";
+import { z } from "zod";
 
-// Constants
-const KOL_VIP_LEVEL_SALARY = {
-  "LEVEL_1": 5000000,   // Fresher
-  "LEVEL_2": 10000000,  // Advanced
-  "LEVEL_3": 15000000,  // Elite
-};
-
+/**
+ * Middleware để kiểm tra quyền admin
+ */
 function requireAdmin(req: Request, res: Response, next: Function) {
   if (!req.user || req.user.role !== "ADMIN") {
     return res.status(403).json({
       status: "error",
       error: {
         code: "FORBIDDEN",
-        message: "Bạn không có quyền truy cập tài nguyên này"
+        message: "Bạn không có quyền truy cập."
       }
     });
   }
   next();
 }
 
-export function setupAdminKolRoutes(router: Router, storage: IStorage) {
+/**
+ * Thiết lập routes cho admin quản lý KOL/VIP
+ */
+export function setupAdminKolRoutes(router: Router, storage: IStorage): Router {
   /**
    * API tạo tài khoản KOL/VIP mới
    * POST /api/admin/kol/create
    */
   router.post("/kol/create", authenticateUser, requireAdmin, async (req: Request, res: Response) => {
     try {
+      console.log("Creating new KOL/VIP account with data:", JSON.stringify(req.body, null, 2));
+      
       // Xác thực dữ liệu đầu vào
-      const kolData = CreateKolVipSchema.parse(req.body);
+      const validationResult = CreateKolVipSchema.safeParse(req.body);
       
-      // Kiểm tra affiliate_id đã tồn tại chưa
-      const existingKol = await storage.getKolVipAffiliateByAffiliateId(kolData.affiliate_id);
-      if (existingKol) {
+      if (!validationResult.success) {
+        const errorMessages = validationResult.error.errors.map(err => 
+          `${err.path.join('.')}: ${err.message}`
+        ).join(', ');
+        
         return res.status(400).json({
           status: "error",
           error: {
-            code: "DUPLICATE_AFFILIATE_ID",
-            message: `Affiliate ID '${kolData.affiliate_id}' đã tồn tại trong hệ thống`
+            code: "VALIDATION_ERROR",
+            message: "Dữ liệu không hợp lệ",
+            details: errorMessages
           }
         });
       }
       
-      // Kiểm tra email đã tồn tại chưa
-      const existingKolByEmail = await storage.getKolVipAffiliateByEmail(kolData.email);
-      if (existingKolByEmail) {
-        return res.status(400).json({
-          status: "error",
-          error: {
-            code: "DUPLICATE_EMAIL",
-            message: `Email '${kolData.email}' đã tồn tại trong hệ thống`
-          }
-        });
-      }
+      const kolVipData = validationResult.data;
       
-      // Kiểm tra username (email) đã tồn tại dưới dạng user chưa
-      const existingUser = await storage.getUserByUsername(kolData.email);
+      // Kiểm tra xem email đã tồn tại chưa
+      const existingUser = await storage.getUserByUsername(kolVipData.email);
       if (existingUser) {
         return res.status(400).json({
           status: "error",
           error: {
-            code: "DUPLICATE_USERNAME",
-            message: `Username '${kolData.email}' đã tồn tại trong hệ thống`
+            code: "EMAIL_EXISTS",
+            message: "Email đã được sử dụng trong hệ thống"
           }
         });
       }
       
-      // Tạo user account với role KOL_VIP
-      const { user, password } = await createUserForAffiliate(
-        kolData.full_name,
-        kolData.email,
-        "KOL_VIP" as UserRoleType
-      );
+      // Kiểm tra xem affiliate_id đã tồn tại chưa
+      const existingKol = await storage.getKolVipByAffiliateId(kolVipData.affiliate_id);
+      if (existingKol) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "AFFILIATE_ID_EXISTS",
+            message: "Affiliate ID đã được sử dụng trong hệ thống"
+          }
+        });
+      }
       
-      // Xác định mức lương cơ bản dựa trên level
-      const baseSalary = KOL_VIP_LEVEL_SALARY[kolData.level] || 5000000;
+      // Mật khẩu mặc định
+      const defaultPassword = "color1234@";
+      const hashedPassword = await hashPassword(defaultPassword);
       
-      // Tạo KOL/VIP affiliate record
-      const newKolVip = await storage.createKolVipAffiliate({
-        user_id: user.id,
-        affiliate_id: kolData.affiliate_id,
-        full_name: kolData.full_name,
-        email: kolData.email,
-        phone: kolData.phone,
-        bank_account: kolData.bank_account,
-        bank_name: kolData.bank_name,
-        level: kolData.level,
-        current_base_salary: baseSalary,
-        join_date: new Date(),
-        remaining_balance: 0,
-        paid_balance: 0,
-        received_balance: 0,
-        accumulated_commission: 0,
-        contract_value: 0,
-        monthly_contract_value: 0,
-        total_contacts: 0,
-        potential_contacts: 0,
-        total_contracts: 0,
-        consecutive_failures: 0,
-        kpi_history: [],
-        referred_customers: [],
-        withdrawal_history: []
+      // Tạo tài khoản người dùng
+      const user = await storage.createUser({
+        username: kolVipData.email,
+        password: hashedPassword,
+        role: "KOL_VIP" as const,
+        is_active: 1,
+        is_first_login: 1, // Yêu cầu đổi mật khẩu khi đăng nhập lần đầu
+        created_at: new Date()
       });
       
-      // Trả về thông tin KOL/VIP mới tạo
+      // Xác định mức lương cơ bản dựa trên cấp độ
+      let baseSalary: number;
+      switch (kolVipData.level) {
+        case "LEVEL_1":
+          baseSalary = 5000000; // 5 triệu VND
+          break;
+        case "LEVEL_2":
+          baseSalary = 10000000; // 10 triệu VND
+          break;
+        case "LEVEL_3":
+          baseSalary = 15000000; // 15 triệu VND
+          break;
+        default:
+          baseSalary = 5000000; // Mặc định level 1
+      }
+      
+      // Tạo tài khoản KOL/VIP
+      const kolVip = await storage.createKolVipAffiliate({
+        user_id: user.id,
+        affiliate_id: kolVipData.affiliate_id,
+        full_name: kolVipData.full_name,
+        email: kolVipData.email,
+        phone: kolVipData.phone,
+        level: kolVipData.level,
+        current_base_salary: baseSalary,
+        join_date: new Date(),
+        bank_account: kolVipData.bank_account,
+        bank_name: kolVipData.bank_name,
+        total_contacts: 0,
+        total_potential_contacts: 0,
+        total_contracts: 0,
+        total_commission: 0
+      });
+      
+      // Ghi log
+      console.log(`Created new KOL/VIP account: ${kolVipData.email} with role KOL_VIP and affiliate_id ${kolVipData.affiliate_id}`);
+      
+      // Trả về thông tin tài khoản đã tạo
       res.status(201).json({
         status: "success",
         data: {
-          kol: {
-            id: newKolVip.id,
-            user_id: user.id,
-            affiliate_id: newKolVip.affiliate_id,
-            full_name: newKolVip.full_name,
-            email: newKolVip.email,
-            level: newKolVip.level,
-            current_base_salary: newKolVip.current_base_salary,
-            join_date: newKolVip.join_date
-          },
+          kol: kolVip,
           user: {
             id: user.id,
             username: user.username,
             role: user.role,
             is_first_login: user.is_first_login
           },
-          default_password: password
+          default_password: defaultPassword
         }
       });
     } catch (error) {
       console.error("Error creating KOL/VIP account:", error);
-      
-      // Xử lý lỗi validate từ Zod
-      if (error.errors) {
-        return res.status(400).json({
-          status: "error",
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Dữ liệu không hợp lệ",
-            details: error.errors
-          }
-        });
-      }
-      
       res.status(500).json({
         status: "error",
         error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Có lỗi xảy ra khi tạo tài khoản KOL/VIP"
+          code: "SERVER_ERROR",
+          message: "Lỗi khi tạo tài khoản KOL/VIP",
+          details: error instanceof Error ? error.message : "Unknown error"
         }
       });
     }
@@ -165,20 +170,23 @@ export function setupAdminKolRoutes(router: Router, storage: IStorage) {
    */
   router.get("/kol", authenticateUser, requireAdmin, async (req: Request, res: Response) => {
     try {
-      // TODO: Implement get all KOL/VIPs
+      // Lấy danh sách tất cả KOL/VIP
+      const kolVips = await storage.getAllKolVips();
+      
       res.status(200).json({
         status: "success",
         data: {
-          kols: []
+          kols: kolVips
         }
       });
     } catch (error) {
-      console.error("Error getting KOL/VIP list:", error);
+      console.error("Error fetching KOL/VIP list:", error);
       res.status(500).json({
         status: "error",
         error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Có lỗi xảy ra khi lấy danh sách KOL/VIP"
+          code: "SERVER_ERROR", 
+          message: "Lỗi khi lấy danh sách KOL/VIP",
+          details: error instanceof Error ? error.message : "Unknown error"
         }
       });
     }
