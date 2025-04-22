@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { DollarSign, AlertTriangle, Loader2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { DollarSign, AlertTriangle, Loader2, Mail, RotateCcw, LockKeyhole } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatNumberWithCommas } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
@@ -15,25 +15,35 @@ import { useToast } from "@/hooks/use-toast";
 interface KolWithdrawalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void; // Change: use onSubmit instead of onSuccess
+  onSuccess?: () => void; // Optional success callback
   kolData: any;
   balance: number;
 }
 
+type WithdrawalStep = "initial" | "verification";
+
 export default function KolWithdrawalModalV2({ 
   isOpen, 
   onClose, 
-  onSubmit, // Change: use onSubmit instead of onSuccess 
+  onSuccess, 
   kolData,
   balance
 }: KolWithdrawalModalProps) {
   const { toast } = useToast();
+  // Form states
   const [amount, setAmount] = useState<string>("");
   const [formattedAmount, setFormattedAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [taxId, setTaxId] = useState<string>("");
   const [confirmBankInfo, setConfirmBankInfo] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // OTP verification states
+  const [currentStep, setCurrentStep] = useState<WithdrawalStep>("initial");
+  const [otpInput, setOtpInput] = useState<string>("");
+  const [maskedEmail, setMaskedEmail] = useState<string>("");
+  const [withdrawalData, setWithdrawalData] = useState<any>(null);
+  const [otpTimer, setOtpTimer] = useState<number>(300); // 5 minutes
 
   // Daily limits
   const DAILY_WITHDRAWAL_LIMIT = 20000000; // 20 million VND

@@ -1,57 +1,58 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { DollarSign, AlertTriangle, Loader2 } from "lucide-react";
+import { DollarSign, AlertTriangle, Loader2, Mail, RotateCcw, LockKeyhole } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatNumberWithCommas } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import KolWithdrawalOtpModal from "./KolWithdrawalOtpModal";
 
 interface KolWithdrawalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
   kolData: any;
   balance: number;
+  onSuccess?: () => void; // Optional callback for success
 }
+
+type WithdrawalStep = "initial" | "verification";
 
 export default function KolWithdrawalModalV2({ 
   isOpen, 
   onClose, 
-  onSuccess, 
   kolData,
-  balance
+  balance,
+  onSuccess
 }: KolWithdrawalModalProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Form states
   const [amount, setAmount] = useState<string>("");
   const [formattedAmount, setFormattedAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [taxId, setTaxId] = useState<string>("");
   const [confirmBankInfo, setConfirmBankInfo] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Tách thành 2 modal riêng biệt
-  const [showOtpModal, setShowOtpModal] = useState<boolean>(false);
-  const [withdrawalDataForOtp, setWithdrawalDataForOtp] = useState<any>(null);
   
-  // Daily limits
-  const DAILY_WITHDRAWAL_LIMIT = 20000000; // 20 million VND
-  const today = new Date().toISOString().split('T')[0];
-  const withdrawnToday = (kolData?.withdrawal_history || [])
-    .filter((w: any) => {
-      const requestDate = new Date(w.request_date).toISOString().split('T')[0];
-      return requestDate === today && 
-        (w.status === "Completed" || w.status === "Processing" || w.status === "Pending");
-    })
-    .reduce((sum: number, w: any) => sum + w.amount, 0);
+  // OTP verification states
+  const [currentStep, setCurrentStep] = useState<WithdrawalStep>("initial");
+  const [otpInput, setOtpInput] = useState<string>("");
+  const [maskedEmail, setMaskedEmail] = useState<string>("");
+  const [withdrawalData, setWithdrawalData] = useState<any>(null);
+  const [otpTimer, setOtpTimer] = useState<number>(300); // 5 minutes
   
-  // Remaining available amount to withdraw today
+  // Withdrawal limits
+  const DAILY_WITHDRAWAL_LIMIT = 20000000; // 20M VND
+  const MIN_TAXABLE_AMOUNT = 2000000; // 2M VND
+  
+  // Simulated data for demo purposes
+  const withdrawnToday = 0; // Retrieve from the server in a real app
   const remainingDailyLimit = Math.max(0, DAILY_WITHDRAWAL_LIMIT - withdrawnToday);
   const maxAmount = balance || 0;
   
@@ -72,20 +73,10 @@ export default function KolWithdrawalModalV2({
       console.log("Check limit success:", data);
       if (data.status === "success") {
         if (!data.data.exceeds) {
-          // If limit is not exceeded, prepare for OTP modal
+          // If limit is not exceeded, send OTP
           const amountValue = parseFloat(amount);
-          console.log("Limit not exceeded, preparing for OTP", amountValue);
-          
-          // Set up data for OTP modal
-          setWithdrawalDataForOtp({
-            amount: amountValue,
-            note: note || "",
-            tax_id: taxId || ""
-          });
-          
-          // Close current modal and open OTP modal
-          onClose();
-          setShowOtpModal(true);
+          console.log("Limit not exceeded, sending OTP for amount:", amountValue);
+          sendOtp();
         } else {
           const errorMsg = `Vượt quá giới hạn rút tiền trong ngày. Bạn đã rút ${formatCurrency(data.data.totalWithdrawn)} VND và chỉ có thể rút thêm ${formatCurrency(data.data.remainingLimit)} VND cho đến 9:00 sáng ngày mai.`;
           console.log("Limit exceeded:", errorMsg);
@@ -117,6 +108,133 @@ export default function KolWithdrawalModalV2({
     }
   });
   
+  // Gửi yêu cầu OTP
+  const { mutate: sendOtp, isPending: isSendingOtp } = useMutation({
+    mutationFn: async () => {
+      const amountValue = parseFloat(amount);
+      const response = await apiRequest(
+        "POST",
+        "/api/kol/withdrawal-request/send-otp",
+        {
+          amount: amountValue,
+          note: note || "",
+          tax_id: taxId || ""
+        }
+      );
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      console.log("Send OTP success:", data);
+      if (data.status === "success") {
+        // Vì số dư được trừ ngay khi tạo yêu cầu rút tiền, làm mới dữ liệu để hiển thị số dư mới
+        queryClient.invalidateQueries({ queryKey: ['/api/kol/me'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/kol', kolData.affiliate_id, 'financial-summary'] });
+        
+        setWithdrawalData(data);
+        setMaskedEmail(data.data.email_masked);
+        setCurrentStep("verification");
+        toast({
+          title: "Mã OTP đã được gửi",
+          description: `${data.data.message}. Mã OTP có hiệu lực đến ${new Date(data.data.otpExpires).toLocaleTimeString()}`,
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Send OTP error:", error);
+      setError(error.message);
+      toast({
+        title: "Lỗi",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Xác thực OTP và hoàn tất yêu cầu rút tiền
+  const { mutate: verifyOtp, isPending: isVerifyingOtp } = useMutation({
+    mutationFn: async () => {
+      if (!otpInput || otpInput.length !== 6) {
+        throw new Error("Vui lòng nhập đầy đủ mã OTP 6 chữ số");
+      }
+      
+      const response = await apiRequest(
+        "POST",
+        "/api/kol/withdrawal-request/verify",
+        {
+          otp: otpInput,
+          amount: parseFloat(amount),
+          note: note || "",
+          tax_id: taxId || ""
+        }
+      );
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      console.log("Verify OTP success:", data);
+      if (data.status === "success") {
+        // Làm mới dữ liệu sau khi xác thực OTP thành công
+        queryClient.invalidateQueries({ queryKey: ['/api/kol/me'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/kol', kolData.affiliate_id, 'financial-summary'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/kol', kolData.affiliate_id, 'transactions'] });
+        
+        toast({
+          title: "Yêu cầu rút tiền thành công",
+          description: data.data.message || "Yêu cầu rút tiền của bạn đã được tạo thành công và đang chờ xử lý.",
+        });
+        
+        // Đóng modal và gọi callback thành công nếu có
+        resetForm();
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Verify OTP error:", error);
+      setError(error.message);
+      toast({
+        title: "Lỗi xác thực OTP",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Gửi lại OTP
+  const { mutate: resendOtp, isPending: isResendingOtp } = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest(
+        "POST",
+        "/api/kol/withdrawal-request/resend-otp",
+        { amount: parseFloat(amount) }
+      );
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      console.log("Resend OTP success:", data);
+      if (data.status === "success") {
+        setOtpInput("");
+        setMaskedEmail(data.data.email_masked);
+        setOtpTimer(300); // Reset timer
+        
+        toast({
+          title: "Đã gửi lại mã OTP",
+          description: `${data.data.message}. Mã OTP có hiệu lực đến ${new Date(data.data.otpExpires).toLocaleTimeString()}`,
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Resend OTP error:", error);
+      setError(error.message);
+      toast({
+        title: "Lỗi gửi lại OTP",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
   // Reset form
   const resetForm = () => {
     setAmount("");
@@ -125,8 +243,10 @@ export default function KolWithdrawalModalV2({
     setTaxId("");
     setConfirmBankInfo(false);
     setError(null);
-    setShowOtpModal(false);
-    setWithdrawalDataForOtp(null);
+    setCurrentStep("initial");
+    setOtpInput("");
+    setMaskedEmail("");
+    setWithdrawalData(null);
   };
   
   // Form submission handlers
@@ -134,7 +254,16 @@ export default function KolWithdrawalModalV2({
     e.preventDefault();
     setError(null);
     
+    // Đảm bảo amount là chuỗi hợp lệ
+    if (!amount || amount.trim() === '') {
+      setError(`Vui lòng nhập số tiền rút`);
+      return;
+    }
+    
+    // Chuyển đổi an toàn sang số
     const amountValue = parseFloat(amount);
+    console.log("Amount parsed:", amountValue, "from string:", amount);
+    
     if (isNaN(amountValue) || amountValue <= 0 || amountValue > maxAmount) {
       setError(`Vui lòng nhập số tiền hợp lệ (từ 1 đến ${formatCurrency(maxAmount)} VND)`);
       return;
@@ -156,30 +285,17 @@ export default function KolWithdrawalModalV2({
     checkLimit(amountValue);
   };
   
+  // OTP verification form handler
+  const handleOtpVerifySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    verifyOtp();
+  };
+  
   // UI event handlers
   const handleClose = () => {
     resetForm();
     onClose();
-  };
-  
-  // Handle OTP modal completion
-  const handleOtpSuccess = () => {
-    // Clean up state
-    setShowOtpModal(false);
-    setWithdrawalDataForOtp(null);
-    
-    // Refresh data
-    queryClient.invalidateQueries({ queryKey: ['/api/kol/me'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/kol', kolData.affiliate_id, 'financial-summary'] });
-    
-    // Notify success
-    toast({
-      title: "Thành công",
-      description: "Yêu cầu rút tiền đã được xử lý thành công",
-    });
-    
-    // Call parent success handler
-    onSuccess();
   };
   
   // Reset form when modal opens
@@ -189,20 +305,49 @@ export default function KolWithdrawalModalV2({
     }
   }, [isOpen]);
   
+  // OTP Timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (currentStep === "verification" && otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [currentStep, otpTimer]);
+  
+  // Format OTP timer
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+  
+  // Check if we're loading
+  const isLoading = isCheckingLimit || isSendingOtp;
+  
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <DialogTitle>Yêu cầu rút tiền</DialogTitle>
-            </div>
-            <DialogDescription>
-              Điền thông tin bên dưới để yêu cầu rút tiền
-            </DialogDescription>
-          </DialogHeader>
-          
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            <DialogTitle>
+              {currentStep === "initial" ? "Yêu cầu rút tiền" : "Xác thực rút tiền"}
+            </DialogTitle>
+          </div>
+          <DialogDescription>
+            {currentStep === "initial" 
+              ? "Điền thông tin bên dưới để yêu cầu rút tiền" 
+              : "Nhập mã OTP đã được gửi đến email của bạn"}
+          </DialogDescription>
+        </DialogHeader>
+        
+        {currentStep === "initial" ? (
           <form onSubmit={handleInitialSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -348,30 +493,113 @@ export default function KolWithdrawalModalV2({
               </Button>
               <Button 
                 type="submit" 
-                disabled={isCheckingLimit || maxAmount <= 0 || parseFloat(amount) <= 0 || parseFloat(amount) > maxAmount}
+                disabled={
+                  isLoading || 
+                  maxAmount <= 0 || 
+                  !amount || 
+                  amount.trim() === '' || 
+                  isNaN(parseFloat(amount)) || 
+                  parseFloat(amount) <= 0 || 
+                  parseFloat(amount) > maxAmount ||
+                  !confirmBankInfo
+                }
               >
-                {isCheckingLimit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
                 Gửi yêu cầu
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Separate OTP verification modal */}
-      {withdrawalDataForOtp && (
-        <KolWithdrawalOtpModal
-          isOpen={showOtpModal}
-          onClose={() => {
-            setShowOtpModal(false);
-            // Optionally re-open the first modal if user cancels OTP verification
-            // setIsOpen(true);
-          }}
-          onSuccess={handleOtpSuccess}
-          kolData={kolData}
-          withdrawalData={withdrawalDataForOtp}
-        />
-      )}
-    </>
+        ) : (
+          <form onSubmit={handleOtpVerifySubmit}>
+            <div className="grid gap-4 py-4">
+              <Alert>
+                <Mail className="h-4 w-4" />
+                <AlertDescription>
+                  Mã OTP đã được gửi đến email {maskedEmail || "của bạn"}. Vui lòng kiểm tra hộp thư và nhập mã OTP vào ô bên dưới.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="otp">Mã OTP (6 chữ số)</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  placeholder="Nhập mã OTP 6 chữ số"
+                  value={otpInput}
+                  onChange={(e) => {
+                    // Only allow digits and limit to 6 characters
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtpInput(value);
+                  }}
+                  maxLength={6}
+                  className="text-center tracking-[0.5em] text-lg"
+                />
+                <div className="flex justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Mã OTP hết hạn sau: <span className="font-medium">{formatTime(otpTimer)}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Số ký tự: <span className="font-medium">{otpInput.length}/6</span>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <LockKeyhole className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">
+                  Yêu cầu rút tiền sẽ được hoàn tất sau khi bạn nhập đúng mã OTP. Số tiền sẽ được chuyển vào tài khoản của bạn trong 1-3 ngày làm việc.
+                </p>
+              </div>
+              
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+            
+            <DialogFooter className="flex-col gap-3 sm:flex-row">
+              <div className="mr-auto">
+                <Button variant="ghost" type="button" onClick={() => setCurrentStep("initial")}>
+                  <span className="mr-2">←</span>
+                  Quay lại
+                </Button>
+              </div>
+              <div className="flex gap-3 sm:gap-2">
+                <Button 
+                  variant="outline" 
+                  type="button" 
+                  onClick={() => resendOtp()} 
+                  disabled={isResendingOtp || isVerifyingOtp || otpTimer > 270}
+                >
+                  {isResendingOtp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {otpTimer > 270 ? (
+                    <>
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Gửi lại sau ({formatTime(otpTimer - 270)})
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Gửi lại OTP
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isVerifyingOtp || otpInput.length !== 6}
+                >
+                  {isVerifyingOtp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Xác nhận
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
