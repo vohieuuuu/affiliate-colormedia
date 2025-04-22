@@ -349,17 +349,27 @@ export default function BaseWithdrawalFlow({
   // Handle back to initial step
   const handleBackToInitial = () => {
     setCurrentStep('initial');
+    currentStepRef.current = 'initial';
     setOtpInput("");
     setError(null);
   };
   
+  // Effect to synchronize currentStep with currentStepRef
+  useEffect(() => {
+    console.log(`[DEBUG] currentStep changed to: ${currentStep}`);
+    currentStepRef.current = currentStep;
+  }, [currentStep]);
+  
   // Loading state
   const isLoading = isCheckingLimit || isSendingOtp || isVerifyingOtp || isResendingOtp;
+  
+  // For debugging
+  console.log(`[DEBUG] Rendering component with currentStep = ${currentStep}, currentStepRef = ${currentStepRef.current}`);
   
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
-        {currentStep === 'initial' ? (
+        {currentStepRef.current === 'initial' ? (
           // Initial withdrawal request form
           <>
             <DialogHeader>
