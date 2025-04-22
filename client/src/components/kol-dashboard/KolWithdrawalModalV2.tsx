@@ -311,12 +311,13 @@ export default function KolWithdrawalModalV2({
     onClose();
   };
   
-  // Reset form when modal opens
+  // Reset form only when modal first opens, not when it's already open
   useEffect(() => {
-    if (isOpen) {
+    // Chỉ reset form khi modal mở lần đầu, không reset khi đang trong quá trình xác thực
+    if (isOpen && currentStep === "initial") {
       resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, currentStep]);
   
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
