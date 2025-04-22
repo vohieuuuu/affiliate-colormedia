@@ -1956,6 +1956,9 @@ function extractPositionFromText(text: string): string | null {
       // Lấy lịch sử giao dịch từ storage
       const transactions = await storage.getKolVipTransactionHistory(kolId, startDate);
       
+      // In ra dữ liệu để debug
+      console.log("DEBUG - Transactions for financial summary:", JSON.stringify(transactions, null, 2));
+      
       // Tính toán tổng quan tài chính
       let totalIncome = 0;
       let totalExpense = 0;
@@ -1974,13 +1977,17 @@ function extractPositionFromText(text: string): string | null {
         other: 0
       };
       
-      transactions.forEach(transaction => {
+      // Xác định các loại giao dịch thu nhập
+      const incomeTypes = ['SALARY', 'COMMISSION', 'BONUS'];
+      
+      transactions.forEach((transaction, index) => {
+        console.log(`DEBUG - Processing transaction ${index + 1}:`, JSON.stringify(transaction, null, 2));
         const amount = transaction.amount;
         const transactionType = transaction.transaction_type;
         
         // Xác định loại giao dịch là thu nhập hay chi tiêu
-        const incomeTypes = ['SALARY', 'COMMISSION', 'BONUS'];
         const isIncome = incomeTypes.includes(transactionType);
+        console.log(`DEBUG - Transaction type: ${transactionType}, isIncome: ${isIncome}, amount: ${amount}`);
         
         if (isIncome) {
           totalIncome += amount;
@@ -2012,7 +2019,17 @@ function extractPositionFromText(text: string): string | null {
       
       // Lấy số dư hiện tại
       const kolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
-      const currentBalance = kolVip?.current_balance || 0;
+      const currentBalance = kolVip?.remaining_balance || 0;
+      
+      // In ra thông tin để debug
+      console.log("DEBUG - Financial summary calculation results:", {
+        totalIncome,
+        totalExpense,
+        totalTax,
+        incomeSources,
+        expenseSources,
+        currentBalance
+      });
       
       res.status(200).json({
         status: "success",
@@ -2086,7 +2103,7 @@ function extractPositionFromText(text: string): string | null {
         status: "success",
         data: {
           transaction,
-          updatedBalance: updatedKolVip?.current_balance || 0
+          updatedBalance: updatedKolVip?.remaining_balance || 0
         }
       });
     } catch (error) {

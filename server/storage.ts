@@ -27,7 +27,7 @@ import { DatabaseStorage } from "./databaseStorage";
 
 export interface IStorage {
   // Phương thức quản lý giao dịch tài chính KOL/VIP
-  getKolVipTransactionHistory(kolId: string, startDate?: Date, endDate?: Date): Promise<TransactionHistory[]>;
+  getKolVipTransactionHistory(kolId: string, startDate?: Date, endDate?: Date, type?: TransactionTypeValue): Promise<TransactionHistory[]>;
   addKolVipTransaction(transaction: Omit<TransactionHistory, 'id'>): Promise<TransactionHistory>;
   
   // Phương thức quản lý Affiliate thông thường
