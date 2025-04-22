@@ -1132,7 +1132,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       
       // Kiểm tra giới hạn rút tiền trong ngày (được đặt lại vào 9:00 sáng mỗi ngày)
       const amountValue = parseFloat(amount);
-      const dailyLimitCheck = await storage.checkDailyWithdrawalLimit(kolVip.affiliate_id, amountValue);
+      const dailyLimitCheck = await storage.checkKolVipDailyWithdrawalLimit(kolVip.affiliate_id, amountValue);
       
       if (dailyLimitCheck.exceeds) {
         return res.status(400).json({
