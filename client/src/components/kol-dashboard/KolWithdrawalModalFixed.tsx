@@ -6,89 +6,64 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { DollarSign, AlertTriangle, Loader2 } from "lucide-react";
+import { Affiliate } from "@shared/schema";
+import { DollarSign, Key, LockKeyhole, RotateCcw, Mail, AlertTriangle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { formatCurrency, formatNumberWithCommas } from "@/lib/utils";
+import { formatCurrency, formatNumberWithCommas, parseFormattedNumber } from "@/lib/formatters";
+import { OtpInput } from "@/components/OtpInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useToastNotification } from "@/components/notification/ToastNotificationProvider";
 
-interface KolWithdrawalModalProps {
+interface WithdrawalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void; // Optional success callback
-  kolData: any;
-  balance: number;
+  onSuccess: () => void;
+  affiliate: Affiliate;
 }
 
-// Chỉ định giá trị duy nhất cho trạng thái modal
-type WithdrawalStep = "initial";
+type WithdrawalStep = "initial" | "verification";
 
-export default function KolWithdrawalModalFixed({ 
+export default function WithdrawalModal({ 
   isOpen, 
   onClose, 
-  onSuccess,
-  kolData,
-  balance 
-}: KolWithdrawalModalProps) {
+  onSuccess, 
+  affiliate 
+}: WithdrawalModalProps) {
   const { toast } = useToast();
-  const { showOtpVerification } = useToastNotification();
   const [amount, setAmount] = useState<string>("");
   const [formattedAmount, setFormattedAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
-  const [taxId, setTaxId] = useState<string>("");
+  const [taxId, setTaxId] = useState<string>(""); // Mã số thuế cá nhân (nếu có)
   const [confirmBankInfo, setConfirmBankInfo] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isCheckingLimit, setIsCheckingLimit] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<WithdrawalStep>("initial");
+  const [maskedEmail, setMaskedEmail] = useState<string>("");
   const [withdrawalData, setWithdrawalData] = useState<any>(null);
+  const [otpInput, setOtpInput] = useState<string>("");
+  const [attemptsLeft, setAttemptsLeft] = useState<number>(5);
 
   // Giới hạn số tiền có thể rút: Min(20M VND hoặc số dư khả dụng)
   const DAILY_WITHDRAWAL_LIMIT = 20000000; // 20 triệu VND
-  
-  // Mặc định số dư lấy từ prop
-  const maxAmount = balance || 0;
-  
-  // State cho thông tin giới hạn
-  const [withdrawnToday, setWithdrawnToday] = useState<number>(0);
-  const [remainingDailyLimit, setRemainingDailyLimit] = useState<number>(DAILY_WITHDRAWAL_LIMIT);
 
-  // Kiểm tra giới hạn rút tiền
-  const checkWithdrawalLimit = async () => {
-    if (!amount || amount.trim() === '' || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      return;
-    }
-    
-    try {
-      setIsCheckingLimit(true);
-      const response = await apiRequest("POST", "/api/kol/withdrawal-request/check-limit", {
-        amount: parseFloat(amount)
-      });
-      const data = await response.json();
-      
-      if (data.status === "success") {
-        setWithdrawnToday(data.data.totalWithdrawn);
-        setRemainingDailyLimit(data.data.remainingLimit);
-      }
-    } catch (error) {
-      console.error("Error checking withdrawal limit:", error);
-    } finally {
-      setIsCheckingLimit(false);
-    }
-  };
+  // Tính toán số tiền đã rút trong ngày hôm nay
+  const today = new Date().toISOString().split('T')[0]; // format YYYY-MM-DD
+  const withdrawnToday = (affiliate?.withdrawal_history || [])
+    .filter(w => {
+      const requestDate = new Date(w.request_date).toISOString().split('T')[0];
+      return requestDate === today && 
+        (w.status === "Completed" || w.status === "Processing" || w.status === "Pending");
+    })
+    .reduce((sum, w) => sum + w.amount, 0);
 
-  // Kiểm tra giới hạn khi số tiền thay đổi
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0) {
-        checkWithdrawalLimit();
-      }
-    }, 500); // Debounce 500ms
+  // Đã loại bỏ kiểm tra lệnh rút tiền đang chờ xử lý theo yêu cầu
 
-    return () => clearTimeout(timeoutId);
-  }, [amount]);
+  // Số tiền còn có thể rút trong ngày
+  const remainingDailyLimit = Math.max(0, DAILY_WITHDRAWAL_LIMIT - withdrawnToday);
 
+  // Số tiền tối đa có thể rút (số dư khả dụng, không bị giới hạn bởi giới hạn rút tiền trong ngày)
+  const maxAmount = affiliate?.remaining_balance || 0;
 
+  // Không cần sử dụng state này vì chúng ta đã kiểm tra trực tiếp khi hiển thị cảnh báo
 
   // Gửi yêu cầu OTP
   const { mutate: requestOtp, isPending: isRequestingOtp } = useMutation({
@@ -97,69 +72,41 @@ export default function KolWithdrawalModalFixed({
       if (isNaN(amountValue) || amountValue <= 0 || amountValue > maxAmount) {
         throw new Error(`Vui lòng nhập số tiền hợp lệ (từ 1 đến ${formatCurrency(maxAmount)} VND)`);
       }
-      
+
       if (amountValue > remainingDailyLimit) {
         throw new Error(`Vượt quá giới hạn rút tiền trong ngày. Bạn chỉ có thể rút tối đa ${formatCurrency(remainingDailyLimit)} VND cho đến 9:00 sáng ngày mai.`);
       }
-      
+
       if (!confirmBankInfo) {
         throw new Error("Vui lòng xác nhận thông tin tài khoản ngân hàng của bạn");
       }
-      
-      const response = await apiRequest("POST", "/api/kol/withdrawal-request/send-otp", {
+
+      const response = await apiRequest("POST", "/api/withdrawal-request/send-otp", {
         amount: amountValue,
         note,
-        tax_id: taxId.trim()
+        tax_id: taxId.trim() // Thêm MST cá nhân (nếu có)
       });
-      
+
       return response.json();
     },
     onSuccess: (data) => {
       if (data.status === "success") {
         // Vì số dư được trừ ngay khi tạo yêu cầu rút tiền, làm mới dữ liệu để hiển thị số dư mới
-        queryClient.invalidateQueries({ queryKey: ['/api/kol/me'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/kol/financial-summary'] });
-        
-        // Force refetch ngay lập tức
-        queryClient.refetchQueries({ queryKey: ['/api/kol/me'] });
-        queryClient.refetchQueries({ queryKey: ['/api/kol/financial-summary'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
 
-        // Lưu dữ liệu rút tiền
+        // Force refetch ngay lập tức
+        queryClient.refetchQueries({ queryKey: ['/api/affiliate'] });
+        queryClient.refetchQueries({ queryKey: ['/api/withdrawals'] });
+
         setWithdrawalData(data.data.withdrawal_data);
-        
-        // Hiển thị màn hình xác thực OTP độc lập
-        showOtpVerification({
-          email: data.data.email,
-          otpData: {
-            otpExpires: data.data.otpExpires
-          },
-          verifyEndpoint: "/api/kol/withdrawal-request/verify",
-          resendEndpoint: "/api/kol/withdrawal-request/resend-otp",
-          requestData: {
-            withdrawal_data: data.data.withdrawal_data
-          },
-          refreshQueries: ['/api/kol/me', '/api/kol/financial-summary'],
-          onSuccess: () => {
-            toast({
-              title: "Thành công",
-              description: "Yêu cầu rút tiền đã được xử lý thành công",
-              variant: "default"
-            });
-            resetForm();
-            if (onSuccess) onSuccess();
-            onClose();
-          },
-          onCancel: () => {
-            toast({
-              title: "Hủy xác thực",
-              description: "Bạn đã hủy quá trình xác thực rút tiền",
-              variant: "default"
-            });
-          }
+        setMaskedEmail(data.data.email_masked);
+        setCurrentStep("verification");
+        toast({
+          title: "Mã OTP đã được gửi",
+          description: `Vui lòng kiểm tra email của bạn để lấy mã xác thực`,
+          variant: "default"
         });
-        
-        // Đóng modal rút tiền
-        onClose();
       }
     },
     onError: (error: Error) => {
@@ -171,55 +118,150 @@ export default function KolWithdrawalModalFixed({
       });
     }
   });
-  
 
-  
+  // Xác thực OTP và hoàn tất yêu cầu rút tiền
+  const { mutate: verifyOtp, isPending: isVerifyingOtp } = useMutation({
+    mutationFn: async (otp: string) => {
+      if (!otp || otp.length !== 6) {
+        throw new Error("Vui lòng nhập đầy đủ mã OTP");
+      }
+
+      if (!withdrawalData) {
+        throw new Error("Dữ liệu rút tiền không hợp lệ, vui lòng thử lại");
+      }
+
+      const response = await apiRequest("POST", "/api/withdrawal-request/verify", {
+        otp,
+        withdrawal_data: withdrawalData
+      });
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.status === "success") {
+        // Invalidate affiliate data cache và buộc refresh để cập nhật số dư mới
+        queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
+
+        // Buộc refresh ngay lập tức
+        queryClient.refetchQueries({ queryKey: ['/api/affiliate'] });
+        queryClient.refetchQueries({ queryKey: ['/api/withdrawals'] });
+
+        toast({
+          title: "Thành công",
+          description: "Yêu cầu rút tiền đã được xử lý thành công",
+          variant: "default"
+        });
+        resetForm();
+        onSuccess();
+      }
+    },
+    onError: (error: any) => {
+      if (error.response?.data?.error?.code === "INVALID_OTP") {
+        setAttemptsLeft(error.response.data.error.attempts_left || 0);
+      }
+      setError(error.message);
+      toast({
+        title: "Lỗi",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Gửi lại mã OTP
+  const { mutate: resendOtp, isPending: isResendingOtp } = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/withdrawal-request/resend-otp", {});
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.status === "success") {
+        setMaskedEmail(data.data.email_masked);
+        setOtpInput("");
+        toast({
+          title: "Đã gửi lại mã OTP",
+          description: `Mã OTP mới đã được gửi đến ${data.data.email_masked}`,
+          variant: "default"
+        });
+      }
+    },
+    onError: (error: Error) => {
+      setError(error.message);
+      toast({
+        title: "Lỗi",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   const resetForm = () => {
     setAmount("");
     setFormattedAmount("");
     setNote("");
-    setTaxId("");
+    setTaxId(""); // Đặt lại MST cá nhân
     setConfirmBankInfo(false);
     setError(null);
     setCurrentStep("initial");
+    setMaskedEmail("");
     setWithdrawalData(null);
+    setOtpInput("");
+    setAttemptsLeft(5);
   };
-  
+
   const handleInitialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     requestOtp();
   };
-  
+
+  const handleOtpComplete = (otp: string) => {
+    setOtpInput(otp);
+    verifyOtp(otp);
+  };
+
+  const handleOtpVerifySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    verifyOtp(otpInput);
+
+    // Hỗ trợ làm mới dữ liệu UI ngay lập tức
+    queryClient.invalidateQueries({ queryKey: ['/api/affiliate'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/withdrawals'] });
+
+    // Force refresh
+    queryClient.refetchQueries({ queryKey: ['/api/affiliate'] });
+    queryClient.refetchQueries({ queryKey: ['/api/withdrawals'] });
+  };
+
   const handleClose = () => {
     resetForm();
     onClose();
   };
-  
-  // Khi mở modal, reset form
-  useEffect(() => {
-    if (isOpen && currentStep === "initial") {
-      resetForm();
-    }
-  }, [isOpen]);
-  
+
+  const handleBackToInitial = () => {
+    setCurrentStep("initial");
+    setError(null);
+  };
+
+  const isLoading = isRequestingOtp || isVerifyingOtp || isResendingOtp;
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) handleClose();
-    }}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
-            <DialogTitle>
-              Yêu cầu rút tiền
-            </DialogTitle>
+            <DollarSign className="h-5 w-5 text-primary-500" />
+            <DialogTitle>Yêu cầu rút tiền hoa hồng</DialogTitle>
           </div>
           <DialogDescription>
-            Điền thông tin bên dưới để yêu cầu rút tiền
+            {currentStep === "initial" 
+              ? "Điền thông tin bên dưới để yêu cầu rút tiền hoa hồng"
+              : "Nhập mã OTP đã được gửi đến email của bạn để xác thực yêu cầu rút tiền"}
           </DialogDescription>
         </DialogHeader>
-        
+
         {currentStep === "initial" ? (
           <form onSubmit={handleInitialSubmit}>
             <div className="grid gap-4 py-4">
@@ -232,10 +274,10 @@ export default function KolWithdrawalModalFixed({
                     placeholder="0"
                     value={formattedAmount}
                     onChange={(e) => {
-                      // Only allow numbers and commas
+                      // Chỉ cho phép nhập số và dấu phẩy
                       const inputValue = e.target.value.replace(/[^\d,]/g, '');
                       setFormattedAmount(formatNumberWithCommas(inputValue));
-                      // Store the actual numeric value without commas for processing
+                      // Lưu giá trị số thực không có dấu phẩy để xử lý
                       setAmount(inputValue.replace(/,/g, ''));
                     }}
                     className="text-right pr-14"
@@ -247,7 +289,7 @@ export default function KolWithdrawalModalFixed({
                 </div>
                 <div className="space-y-1">
                   <p className={`text-xs ${maxAmount > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400 font-medium'}`}>
-                    Số dư khả dụng: {formatCurrency(maxAmount)} VND
+                    Số dư khả dụng: {formatCurrency(affiliate?.remaining_balance || 0)} VND
                     {maxAmount <= 0 && " (không thể rút tiền)"}
                   </p>
                   <p className="text-xs text-amber-600 dark:text-amber-400">
@@ -260,7 +302,7 @@ export default function KolWithdrawalModalFixed({
                     Còn có thể rút hôm nay: {formatCurrency(remainingDailyLimit)} VND
                     {remainingDailyLimit <= 0 && " (đã đạt giới hạn)"}
                   </p>
-                  
+
                   {amount && parseFloat(amount) > 2000000 && (
                     <>
                       <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
@@ -284,7 +326,7 @@ export default function KolWithdrawalModalFixed({
                     <div className="flex items-center gap-1 mt-1">
                       <AlertTriangle className="h-3 w-3 text-red-500" />
                       <p className="text-xs text-red-600 dark:text-red-400 font-medium">
-                        Bạn không thể rút tiền khi số dư bằng 0.
+                        Bạn không thể rút tiền khi số dư hoa hồng tích lũy bằng 0.
                       </p>
                     </div>
                   )}
@@ -296,12 +338,13 @@ export default function KolWithdrawalModalFixed({
                       </p>
                     </div>
                   )}
+                  {/* Đã loại bỏ thông báo về lệnh đang chờ xử lý */}
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     <span className="italic">Lưu ý: Giới hạn sẽ được đặt lại vào 9:00 sáng mỗi ngày</span>
                   </p>
                 </div>
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="note">Ghi chú (không bắt buộc)</Label>
                 <Textarea
@@ -311,83 +354,194 @@ export default function KolWithdrawalModalFixed({
                   onChange={(e) => setNote(e.target.value)}
                 />
               </div>
-              
-              {parseFloat(amount) > 2000000 && (
-                <div className="grid gap-2">
-                  <Label htmlFor="taxId">Mã số thuế cá nhân (nếu có)</Label>
-                  <Input
-                    id="taxId"
-                    type="text"
-                    placeholder="Nhập MST cá nhân nếu có"
-                    value={taxId}
-                    onChange={(e) => setTaxId(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Nhập mã số thuế cá nhân (nếu có) để thuận tiện cho việc kê khai thuế TNCN.
-                    <br />Không bắt buộc nhưng được khuyến khích khi số tiền rút trên 2 triệu VND.
-                  </p>
-                </div>
-              )}
-              
+
+              <div className="grid gap-2">
+                <Label htmlFor="taxId">Mã số thuế cá nhân (nếu có)</Label>
+                <Input
+                  id="taxId"
+                  placeholder="Nhập MST cá nhân của bạn"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="italic">Lưu ý: MST cá nhân sẽ được sử dụng cho mục đích kê khai thuế thu nhập cá nhân khi số tiền rút vượt quá 2 triệu VND. Thuế thu nhập cá nhân 10% sẽ tự động được áp dụng.</span>
+                </p>
+              </div>
+
               <div className="flex items-start space-x-2 pt-2">
                 <Checkbox
                   id="confirmBankInfo"
                   checked={confirmBankInfo}
                   onCheckedChange={(checked) => setConfirmBankInfo(checked as boolean)}
                 />
-                <div className="grid gap-1 leading-none">
+                <div className="grid gap-1.5 leading-none">
                   <Label
                     htmlFor="confirmBankInfo"
-                    className="text-sm font-medium leading-none"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
                     Xác nhận thông tin ngân hàng
                   </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Số tài khoản: <span className="font-medium">{kolData?.bank_account}</span>
-                    <br/>
-                    Ngân hàng: <span className="font-medium">{kolData?.bank_name}</span>
+                  <p className="text-sm text-muted-foreground">
+                    Tôi xác nhận thông tin tài khoản ngân hàng của tôi là chính xác và cập nhật.
                   </p>
                 </div>
               </div>
-              
+
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Ngân hàng:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {affiliate?.bank_name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Số tài khoản:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {affiliate?.bank_account}
+                  </span>
+                </div>
+              </div>
+
               {error && (
-                <Alert variant="destructive" className="mt-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    {error}
-                  </AlertDescription>
-                </Alert>
+                <p className="text-sm text-red-500">{error}</p>
               )}
             </div>
-            
-            <DialogFooter className="gap-3 sm:gap-0">
+
+            <DialogFooter>
               <Button variant="outline" type="button" onClick={handleClose}>
                 Hủy
               </Button>
               <Button 
                 type="submit" 
-                disabled={
-                  isCheckingLimit || 
-                  maxAmount <= 0 || 
-                  !amount || 
-                  amount.trim() === '' || 
-                  isNaN(parseFloat(amount)) || 
-                  parseFloat(amount) <= 0 || 
-                  parseFloat(amount) > maxAmount ||
-                  !confirmBankInfo
-                }
+                disabled={isLoading || !amount || Number(amount) <= 0 || parseFloat(amount) > maxAmount || maxAmount <= 0}
               >
-                {isCheckingLimit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
-                Gửi yêu cầu
+                {isLoading ? "Đang xử lý..." : "Tiếp tục"}
               </Button>
             </DialogFooter>
           </form>
         ) : (
-          <div className="p-4 text-center">
-            <p className="text-muted-foreground text-sm">
-              Xác thực OTP sẽ xuất hiện trong cửa sổ thông báo riêng biệt.
-            </p>
-          </div>
+          <form onSubmit={handleOtpVerifySubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <LockKeyhole className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold">Xác thực OTP</h3>
+                <p className="text-sm text-muted-foreground">
+                  Nhập mã 6 chữ số đã được gửi đến <span className="font-medium">{maskedEmail}</span>
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center space-y-4">
+                <OtpInput 
+                  length={6}
+                  onComplete={handleOtpComplete}
+                  disabled={isLoading || attemptsLeft <= 0}
+                />
+
+                <div className="flex items-center space-x-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => resendOtp()}
+                    disabled={isLoading}
+                  >
+                    <RotateCcw className="mr-2 h-3 w-3" />
+                    Gửi lại OTP
+                  </Button>
+                </div>
+              </div>
+
+              {attemptsLeft < 5 && (
+                <Alert variant={attemptsLeft > 0 ? "default" : "destructive"}>
+                  <AlertDescription>
+                    {attemptsLeft > 0 
+                      ? `Bạn còn ${attemptsLeft} lần thử còn lại.` 
+                      : "Mã OTP đã bị vô hiệu hóa do nhập sai quá 5 lần. Vui lòng yêu cầu mã mới."}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Alert variant="default" className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <div className="flex">
+                  <Mail className="h-4 w-4 text-blue-500 mr-2" />
+                  <AlertDescription className="text-xs text-blue-700 dark:text-blue-300">
+                    Mã OTP sẽ hết hạn sau 5 phút. Nếu bạn không nhận được email, hãy kiểm tra thư mục spam hoặc nhấn "Gửi lại OTP".
+                  </AlertDescription>
+                </div>
+              </Alert>
+
+              {error && (
+                <p className="text-sm text-red-500">{error}</p>
+              )}
+
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                <h4 className="text-sm font-medium mb-2">Chi tiết yêu cầu rút tiền:</h4>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Số tiền yêu cầu:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {formatCurrency(parseFloat(amount))} VND
+                  </span>
+                </div>
+
+                {parseFloat(amount) > 2000000 && (
+                  <>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Thuế TNCN (10%):</span>
+                      <span className="text-sm font-medium text-amber-600">
+                        - {formatCurrency(parseFloat(amount) * 0.1)} VND
+                      </span>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Thực nhận:</span>
+                      <span className="text-sm font-medium text-green-600">
+                        {formatCurrency(parseFloat(amount) * 0.9)} VND
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Ngân hàng:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {affiliate?.bank_name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Số tài khoản:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {affiliate?.bank_account}
+                  </span>
+                </div>
+
+                {taxId && (
+                  <div className="flex justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Mã số thuế:</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{taxId}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={handleBackToInitial}
+                disabled={isLoading}
+              >
+                Quay lại
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isLoading || !otpInput || otpInput.length !== 6 || attemptsLeft <= 0}
+              >
+                {isLoading ? "Đang xác thực..." : "Xác nhận rút tiền"}
+              </Button>
+            </DialogFooter>
+          </form>
         )}
       </DialogContent>
     </Dialog>
