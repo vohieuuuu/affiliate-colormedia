@@ -724,7 +724,7 @@ export class MemStorage implements IStorage {
     console.log(`Evaluating KPI for KOL/VIP ${kolId} for ${year}-${month} with performance: ${performance}`);
     
     // Kiểm tra KOL/VIP tồn tại
-    const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+    const kolVip = await this.getKolVipByAffiliateId(kolId);
     if (!kolVip) {
       console.error(`KOL/VIP with ID ${kolId} not found`);
       return { success: false };
