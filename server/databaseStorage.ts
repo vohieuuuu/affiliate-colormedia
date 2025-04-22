@@ -85,16 +85,36 @@ export class DatabaseStorage implements IStorage {
     transaction: Omit<TransactionHistory, 'id'>
   ): Promise<TransactionHistory> {
     try {
+      console.log(`Adding KOL/VIP transaction - Type: ${transaction.transaction_type}, Amount: ${transaction.amount}, KOL ID: ${transaction.kol_id}`);
+      
       // Cập nhật số dư của KOL/VIP (nếu cần)
       let balanceAfter = 0;
+      const incomeTypes = ['SALARY', 'COMMISSION', 'BONUS'];
+      
+      // Xác định xem giao dịch này là thêm hay trừ tiền
+      const isIncomeTransaction = incomeTypes.includes(transaction.transaction_type);
+      
       if (transaction.transaction_type !== "WITHDRAWAL" && transaction.transaction_type !== "TAX") {
         const kolVip = await this.getKolVipAffiliateByAffiliateId(transaction.kol_id);
         if (kolVip) {
-          await this.updateKolVipAffiliateBalance(transaction.kol_id, transaction.amount);
+          console.log(`Current KOL balance before transaction: ${kolVip.remaining_balance}`);
+          
+          // Sử dụng isIncreasing=true cho các giao dịch thu nhập
+          await this.updateKolVipAffiliateBalance(
+            transaction.kol_id, 
+            transaction.amount, 
+            isIncomeTransaction // true cho thu nhập, false cho chi tiêu
+          );
+          
           // Lấy dữ liệu mới nhất sau khi cập nhật số dư
           const updatedKolVip = await this.getKolVipAffiliateByAffiliateId(transaction.kol_id);
           balanceAfter = updatedKolVip?.remaining_balance || 0;
+          console.log(`Updated KOL balance after transaction: ${balanceAfter}`);
+        } else {
+          console.log(`KOL with ID ${transaction.kol_id} not found, cannot update balance`);
         }
+      } else {
+        console.log(`Transaction type ${transaction.transaction_type} doesn't update balance`);
       }
       
       // Chuẩn bị dữ liệu giao dịch
@@ -108,6 +128,8 @@ export class DatabaseStorage implements IStorage {
         balance_after: transaction.balance_after !== undefined ? transaction.balance_after : balanceAfter
       };
       
+      console.log(`Inserting transaction with data:`, JSON.stringify(transactionData));
+      
       // Thêm giao dịch vào bảng
       const [newTransaction] = await db.insert(kolVipTransactions)
         .values(transactionData)
@@ -116,6 +138,8 @@ export class DatabaseStorage implements IStorage {
       if (!newTransaction) {
         throw new Error("Failed to insert transaction");
       }
+      
+      console.log(`Transaction inserted successfully with ID: ${newTransaction.id}`);
       
       // Chuyển đổi đối tượng trả về theo đúng định dạng
       return {
