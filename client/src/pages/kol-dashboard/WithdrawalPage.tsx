@@ -21,6 +21,7 @@ export default function WithdrawalPage() {
     queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary"],
     queryFn: async () => {
       try {
+        console.log("Fetching financial summary in WithdrawalPage with affiliate_id:", kolData?.affiliate_id);
         if (!kolData?.affiliate_id) {
           throw new Error("Không tìm thấy ID của KOL/VIP để tải thông tin tài chính");
         }
@@ -28,7 +29,9 @@ export default function WithdrawalPage() {
         const period = "month"; // Mặc định tính giai đoạn 30 ngày gần nhất
         const response = await apiRequest("GET", `/api/kol/${kolData.affiliate_id}/financial-summary?period=${period}`);
         const data = await response.json();
+        console.log("Financial summary API response in WithdrawalPage:", data);
         if (data.status === "success") {
+          console.log("Current balance in summary:", data.data.currentBalance);
           return data.data;
         }
         return null;
@@ -87,7 +90,7 @@ export default function WithdrawalPage() {
               <TabsTrigger value="history">Lịch sử rút tiền</TabsTrigger>
             </TabsList>
             <TabsContent value="request" className="mt-6">
-              <WithdrawalForm kolData={{...kolData, remaining_balance: financialSummary?.currentBalance || 0}} />
+              <WithdrawalForm kolData={{...kolData, remaining_balance: financialSummary?.currentBalance || 0, affiliate_id: kolData?.affiliate_id}} />
             </TabsContent>
             <TabsContent value="history" className="mt-6">
               <Card>

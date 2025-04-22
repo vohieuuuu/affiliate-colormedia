@@ -65,53 +65,13 @@ interface OtpResponse {
   otpExpires: string;
 }
 
-// Component hiển thị số dư hiện tại từ API
+// Component hiển thị số dư hiện tại từ giá trị trực tiếp
 function CurrentBalanceDisplay({ kolData }: { kolData: any }) {
-  const [currentBalance, setCurrentBalance] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchCurrentBalance() {
-      try {
-        if (!kolData?.affiliate_id) {
-          console.log("No affiliate_id found, using remaining_balance:", kolData.remaining_balance);
-          setCurrentBalance(kolData.remaining_balance || 0);
-          setIsLoading(false);
-          return;
-        }
-
-        console.log("Fetching financial summary for affiliate:", kolData.affiliate_id);
-        const response = await apiRequest(
-          "GET",
-          `/api/kol/${kolData.affiliate_id}/financial-summary?period=month`
-        );
-        const data = await response.json();
-        console.log("Financial summary response:", data);
-        
-        if (data.status === "success") {
-          console.log("Setting currentBalance to:", data.data.currentBalance);
-          setCurrentBalance(data.data.currentBalance);
-        } else {
-          console.log("API returned error, using remaining_balance:", kolData.remaining_balance);
-          setCurrentBalance(kolData.remaining_balance || 0);
-        }
-      } catch (error) {
-        console.error("Failed to fetch current balance:", error);
-        setCurrentBalance(kolData.remaining_balance || 0);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchCurrentBalance();
-  }, [kolData]);
-
-  if (isLoading) {
-    return <Loader2 className="h-4 w-4 animate-spin" />;
-  }
-
-  console.log("Rendering balance:", currentBalance);
-  return <>{formatCurrency(currentBalance || 0)}</>;
+  console.log("CurrentBalanceDisplay received kolData:", kolData);
+  console.log("Current balance from remaining_balance:", kolData.remaining_balance);
+  
+  // Trực tiếp sử dụng giá trị remaining_balance từ prop thay vì gọi lại API
+  return <>{formatCurrency(kolData.remaining_balance || 0)}</>;
 }
 
 export function WithdrawalForm({ kolData }: { kolData: any }) {
