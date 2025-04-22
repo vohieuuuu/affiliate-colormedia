@@ -267,11 +267,16 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
 
+      console.log(`Đang cập nhật trạng thái contact ${contactId} cho KOL ${kolId}:`, { status, note });
+
+      // Truyền đúng cấu trúc dữ liệu vào hàm updateKolVipContactStatus
       const updatedContact = await storage.updateKolVipContactStatus(
         kolId,
         parseInt(contactId),
-        status,
-        note || ""
+        { 
+          status: status, 
+          description: note || ""
+        }
       );
 
       if (!updatedContact) {
