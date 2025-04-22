@@ -21,7 +21,9 @@ import {
   ListFilter,
   Wallet,
   DollarSign,
-  LineChart
+  LineChart,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import KolContactsTable from "@/components/kol-vip/kol-contacts-table";
@@ -801,6 +803,98 @@ const KolDashboard = () => {
                       </div>
                     </div>
                   )}
+                </>
+              )}
+            </TabsContent>
+
+            {/* Tab Tài chính */}
+            <TabsContent value="finance" className="space-y-6 mt-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Quản lý tài chính</h2>
+              </div>
+
+              {financialSummaryError && typeof financialSummaryError === 'object' && 'message' in financialSummaryError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Lỗi</AlertTitle>
+                  <AlertDescription>
+                    {(financialSummaryError as Error).message || "Không thể tải thông tin tài chính. Vui lòng thử lại sau."}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {isLoadingFinancialSummary ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <>
+                  {/* Tổng quan tài chính */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="md:col-span-1 shadow-md border-0 bg-gradient-to-br from-[#07ADB8]/10 to-white">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-xl flex items-center gap-2">
+                          <Wallet className="h-5 w-5 text-[#07ADB8]" />
+                          Số dư hiện tại
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold bg-gradient-to-r from-[#07ADB8] to-[#FFC919] bg-clip-text text-transparent">
+                          {formatCurrency(kolInfo?.balance || 0)}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">Số dư khả dụng để rút</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="md:col-span-3 shadow-md border-0">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Thống kê tài chính</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">Tổng thu nhập tháng này</p>
+                            <p className="text-2xl font-semibold text-green-600">
+                              {formatCurrency(financialSummary?.totalIncome || 0)}
+                            </p>
+                            <div className="flex items-center text-sm">
+                              <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
+                              <span>Bao gồm lương cơ bản và hoa hồng</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">Đã rút trong tháng</p>
+                            <p className="text-2xl font-semibold text-amber-600">
+                              {formatCurrency(financialSummary?.totalExpense || 0)}
+                            </p>
+                            <div className="flex items-center text-sm">
+                              <ArrowDown className="h-4 w-4 text-amber-500 mr-1" />
+                              <span>Bao gồm thuế thu nhập</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">Lợi nhuận ròng</p>
+                            <p className="text-2xl font-semibold text-blue-600">
+                              {formatCurrency(financialSummary?.netProfit || 0)}
+                            </p>
+                            <div className="flex items-center text-sm">
+                              <LineChart className="h-4 w-4 text-blue-500 mr-1" />
+                              <span>Thu nhập sau chi phí</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Lịch sử giao dịch */}
+                  <div className="mt-6">
+                    <TransactionHistoryComponent 
+                      kolId={kolInfo?.affiliate_id || ''} 
+                    />
+                  </div>
                 </>
               )}
             </TabsContent>
