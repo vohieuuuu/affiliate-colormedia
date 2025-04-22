@@ -1,4 +1,4 @@
-// Sao chép của file kolRoutes.ts với sửa đổi cho API kpi-stats
+// Sao chép của file kolRoutes.ts với sửa đổi cho API kpi-stats và phân tích danh thiếp
 import { Express, Request, Response, NextFunction } from "express";
 import { IStorage } from "./storage";
 import { authenticateUser } from "./routes";
@@ -6,6 +6,7 @@ import { MonthlyKpi, KolVipLevelType, KolContact } from "@shared/schema";
 import * as tesseract from "tesseract.js";
 import path from "path";
 import fs from "fs";
+import { extractBusinessCardInfo } from "./yescale"; // Import module YesScale API
 
 // Đường dẫn tới file dữ liệu đã train cho Tesseract
 const TESSERACT_VIE_PATH = path.join(process.cwd(), "vie.traineddata");
@@ -448,8 +449,31 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       
       console.log("Kết quả OCR:", rawText);
       
-      // Xử lý trích xuất thông tin liên hệ từ văn bản
-      const contactData = extractContactInfo(rawText);
+      // Sử dụng YesScale API để phân tích thông tin danh thiếp
+      let contactData = extractContactInfo(rawText); // Sử dụng phương thức cũ làm backup
+      
+      try {
+        // Phân tích thông tin bằng YesScale API
+        console.log("Đang gửi văn bản OCR đến YesScale API để phân tích...");
+        const aiAnalyzedData = await extractBusinessCardInfo(rawText);
+        
+        // Nếu YesScale trả về thông tin có ý nghĩa, sử dụng nó
+        if (aiAnalyzedData.name || aiAnalyzedData.phone || aiAnalyzedData.email) {
+          contactData = {
+            contact_name: aiAnalyzedData.name || contactData.contact_name,
+            phone: aiAnalyzedData.phone || contactData.phone,
+            email: aiAnalyzedData.email || contactData.email,
+            position: aiAnalyzedData.position || contactData.position,
+            company: aiAnalyzedData.company || contactData.company,
+          };
+          console.log("Đã phân tích thông tin danh thiếp thành công với YesScale API:", aiAnalyzedData);
+        } else {
+          console.log("YesScale API không trả về thông tin hữu ích, sử dụng phương thức phân tích cũ.");
+        }
+      } catch (aiError) {
+        console.error("Lỗi khi sử dụng YesScale API:", aiError);
+        console.log("Sử dụng phương thức phân tích cũ do lỗi YesScale API.");
+      }
       
       // Giải phóng worker
       await tesseractWorker.terminate();
