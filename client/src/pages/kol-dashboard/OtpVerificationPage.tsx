@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "wouter";
+import { useState, useEffect, startTransition } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { OtpInput } from "@/components/OtpInput";
@@ -20,7 +20,7 @@ export default function OtpVerificationPage() {
   const queryClient = useQueryClient();
   
   // Parse query params from URL
-  const params = new URLSearchParams(location.search);
+  const params = new URLSearchParams(window.location.search);
   const amount = params.get("amount") || "";
   const affiliateId = params.get("affiliateId") || "";
   const requestId = params.get("requestId") || "";
@@ -56,8 +56,10 @@ export default function OtpVerificationPage() {
         queryClient.invalidateQueries({ queryKey: ["/api/kol/me"] });
         queryClient.invalidateQueries({ queryKey: ["/api/kol", affiliateId, "financial-summary"] });
         
-        // Navigate back to withdrawal page
-        navigate("/kol/withdrawal");
+        // Navigate back to withdrawal page with startTransition để tránh lỗi suspense
+        startTransition(() => {
+          navigate("/kol/withdrawal");
+        });
       } else if (data.error) {
         setError(data.error.message || "Mã OTP không chính xác");
         toast({
@@ -141,7 +143,9 @@ export default function OtpVerificationPage() {
       
       // Redirect back to withdrawal page after delay
       const timeout = setTimeout(() => {
-        navigate("/kol/withdrawal");
+        startTransition(() => {
+          navigate("/kol/withdrawal");
+        });
       }, 3000);
       
       return () => clearTimeout(timeout);
@@ -163,7 +167,9 @@ export default function OtpVerificationPage() {
   
   // Cancel verification and go back
   const handleCancel = () => {
-    navigate("/kol/withdrawal");
+    startTransition(() => {
+      navigate("/kol/withdrawal");
+    });
   };
   
   if (!hasRequiredParams) {
@@ -175,7 +181,7 @@ export default function OtpVerificationPage() {
           Không tìm thấy thông tin cần thiết để xác thực OTP. 
           Bạn sẽ được chuyển hướng về trang rút tiền trong vài giây.
         </p>
-        <Button onClick={() => navigate("/kol/withdrawal")}>
+        <Button onClick={() => startTransition(() => navigate("/kol/withdrawal"))}>
           Quay lại trang rút tiền
         </Button>
       </div>

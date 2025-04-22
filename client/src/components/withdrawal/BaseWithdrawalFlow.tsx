@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, startTransition } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -215,8 +215,10 @@ export default function BaseWithdrawalFlow({
             description: "Bạn đang được chuyển hướng đến trang xác thực OTP",
           });
           
-          // Navigate to OTP verification page
-          navigate(otpVerificationUrl);
+          // Navigate to OTP verification page with startTransition để tránh lỗi suspense
+          startTransition(() => {
+            navigate(otpVerificationUrl);
+          });
         } else {
           console.error("Missing required parameters for OTP verification:", { requestId, affiliateId });
           setError("Lỗi xử lý yêu cầu. Vui lòng thử lại sau.");
