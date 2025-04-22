@@ -6,6 +6,19 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import cookieParser from 'cookie-parser';
 
+// Thiết lập xử lý lỗi toàn cục để ngăn không cho ứng dụng tắt đột ngột
+process.on('uncaughtException', (error) => {
+  console.error('UNHANDLED EXCEPTION! 💥');
+  console.error(error.name, error.message, error.stack);
+  // Không tắt server ngay lập tức, ghi log và tiếp tục chạy
+});
+
+process.on('unhandledRejection', (error) => {
+  console.error('UNHANDLED REJECTION! 💥');
+  console.error(error);
+  // Không tắt server ngay lập tức, ghi log và tiếp tục chạy
+});
+
 // Đọc biến môi trường từ file .env
 dotenv.config();
 
@@ -99,27 +112,28 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Luôn sử dụng xác thực database
   try {
-    // Import các module cần thiết cho xác thực với database
-    const authModule = await import("./auth");
-    const dbModule = await import("./db");
-    log("Using database authentication in production mode");
-    authModule.setupAuthRoutes(app, dbModule.db);
-  } catch (error) {
-    console.error("Failed to set up database authentication routes:", error);
-    // Chỉ fallback tới dev auth nếu được yêu cầu rõ ràng
-    if (process.env.USE_DEV_AUTH === "true") {
-      log("Using dev authentication as requested by USE_DEV_AUTH");
-      const devAuthModule = await import("./devAuth");
-      const storageModule = await import("./storage");
-      devAuthModule.setupDevAuthRoutes(app, storageModule.storage);
-    } else {
-      throw new Error("Failed to set up authentication routes: " + error.message);
+    // Luôn sử dụng xác thực database
+    try {
+      // Import các module cần thiết cho xác thực với database
+      const authModule = await import("./auth");
+      const dbModule = await import("./db");
+      log("Using database authentication in production mode");
+      authModule.setupAuthRoutes(app, dbModule.db);
+    } catch (error) {
+      console.error("Failed to set up database authentication routes:", error);
+      // Chỉ fallback tới dev auth nếu được yêu cầu rõ ràng
+      if (process.env.USE_DEV_AUTH === "true") {
+        log("Using dev authentication as requested by USE_DEV_AUTH");
+        const devAuthModule = await import("./devAuth");
+        const storageModule = await import("./storage");
+        devAuthModule.setupDevAuthRoutes(app, storageModule.storage);
+      } else {
+        throw new Error("Failed to set up authentication routes: " + error.message);
+      }
     }
-  }
 
-  const server = await registerRoutes(app);
+    const server = await registerRoutes(app);
   
   // Thêm middleware để xử lý các API không xác định
   app.use('/api/*', (req: Request, res: Response) => {
@@ -138,9 +152,21 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    const errorCode = err.code || "SERVER_ERROR";
+    
+    console.error("Uncaught exception:", err);
+    
+    // Trả về lỗi nhưng không ném lại exception để tránh tắt ứng dụng
+    if (!res.headersSent) {
+      res.status(status).json({ 
+        status: "error", 
+        error: {
+          code: errorCode,
+          message: message,
+          details: process.env.NODE_ENV === "production" ? undefined : err.stack
+        }
+      });
+    }
   });
 
   // importantly only setup vite in development and after
@@ -163,4 +189,23 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
+  
+  // Thêm xử lý sự kiện uncaughtException và unhandledRejection
+  process.on('uncaughtException', (error) => {
+    console.error('UNHANDLED EXCEPTION! 💥 Shutting down gracefully...');
+    console.error(error.name, error.message, error.stack);
+    // Không tắt server ngay lập tức, ghi log và tiếp tục chạy
+  });
+
+  process.on('unhandledRejection', (error) => {
+    console.error('UNHANDLED REJECTION! 💥 Shutting down gracefully...');
+    console.error(error);
+    // Không tắt server ngay lập tức, ghi log và tiếp tục chạy
+  });
+  
+  } catch (error) {
+    console.error('FATAL APPLICATION ERROR:', error);
+    // Ghi log lỗi nhưng không tắt ứng dụng
+    log('Application encountered a fatal error but will continue running in degraded mode');
+  }
 })();
