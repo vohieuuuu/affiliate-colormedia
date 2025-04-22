@@ -270,6 +270,11 @@ export class MemStorage implements IStorage {
     return undefined;
   }
   
+  async getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
+    // Gọi đến phương thức mới để tái sử dụng code
+    return this.getKolVipByAffiliateId(affiliateId);
+  }
+  
   async getKolVipAffiliateByUserId(userId: number): Promise<KolVipAffiliate | undefined> {
     console.log(`Looking for KOL/VIP affiliate with user_id: ${userId}`);
     
