@@ -832,6 +832,121 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // POST /api/admin/kol/:kolId/sync-commission - Đồng bộ hóa giao dịch hoa hồng cho các hợp đồng đã có (chỉ admin)
+  app.post("/api/admin/kol/:kolId/sync-commission", authenticateUser, (req: Request, res: Response, next: NextFunction) => {
+    // Kiểm tra quyền admin
+    if (!req.user || req.user.role !== "ADMIN") {
+      return res.status(403).json({
+        status: "error",
+        error: {
+          code: "FORBIDDEN",
+          message: "Chỉ admin mới có thể đồng bộ hóa hoa hồng"
+        }
+      });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
+    try {
+      const { kolId } = req.params;
+      
+      // 1. Lấy thông tin KOL/VIP
+      const kolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+      if (!kolVip) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "KOL_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP"
+          }
+        });
+      }
+      
+      // 2. Lấy danh sách contacts đã chốt hợp đồng
+      const contacts = await storage.getKolVipContacts(kolId);
+      const contractContacts = contacts.filter(
+        contact => contact.status === 'Đã chốt hợp đồng' && contact.contract_value && contact.commission
+      );
+      
+      // 3. Lấy danh sách giao dịch hoa hồng đã có
+      const existingTransactions = await storage.getKolVipTransactionHistory(kolId);
+      const existingCommissionRefs = existingTransactions
+        .filter(tx => tx.transaction_type === 'COMMISSION')
+        .map(tx => tx.reference_id);
+      
+      // 4. Tìm các hợp đồng chưa có giao dịch hoa hồng tương ứng
+      const unsyncedContacts = contractContacts.filter(
+        contact => !existingCommissionRefs?.includes(`CONTRACT-${contact.id}`)
+      );
+      
+      if (unsyncedContacts.length === 0) {
+        return res.status(200).json({
+          status: "success",
+          data: {
+            message: "Không có hợp đồng nào cần đồng bộ hóa",
+            synced_count: 0
+          }
+        });
+      }
+      
+      // 5. Tạo giao dịch hoa hồng cho các hợp đồng chưa có
+      const newTransactions = [];
+      let newBalance = kolVip.remaining_balance;
+      
+      for (const contact of unsyncedContacts) {
+        // Thêm hoa hồng vào số dư
+        newBalance += contact.commission!;
+        
+        // Tạo mô tả cho giao dịch
+        const companyInfo = contact.company ? ` - ${contact.company}` : '';
+        const description = `Hoa hồng từ hợp đồng${companyInfo} (${formatCurrency(contact.contract_value!)})`;
+        
+        // Thêm giao dịch hoa hồng
+        const transaction = await storage.addKolVipTransaction({
+          kol_id: kolId,
+          transaction_type: 'COMMISSION',
+          amount: contact.commission!,
+          description,
+          reference_id: `CONTRACT-${contact.id}`,
+          created_at: contact.contract_date || new Date().toISOString(),
+          balance_after: newBalance
+        });
+        
+        newTransactions.push(transaction);
+      }
+      
+      // 6. Cập nhật số dư KOL/VIP
+      await db.update(kolVipAffiliates)
+        .set({ remaining_balance: newBalance })
+        .where(eq(kolVipAffiliates.affiliate_id, kolId));
+      
+      res.status(200).json({
+        status: "success",
+        data: {
+          message: `Đã đồng bộ hóa ${newTransactions.length} giao dịch hoa hồng`,
+          synced_count: newTransactions.length,
+          transactions: newTransactions,
+          new_balance: newBalance
+        }
+      });
+    } catch (error) {
+      console.error("Error syncing commission transactions:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi đồng bộ hóa giao dịch hoa hồng"
+        }
+      });
+    }
+  });
+  
+  // Helper format tiền tệ
+  function formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
+      .format(amount)
+      .replace('₫', 'VNĐ').trim();
+  }
+
   // POST /api/admin/kol/:kolId/update-level - Cập nhật level của KOL/VIP (Admin only)
   app.post("/api/admin/kol/:kolId/update-level", authenticateUser, (req: Request, res: Response, next: NextFunction) => {
     // Kiểm tra quyền admin
