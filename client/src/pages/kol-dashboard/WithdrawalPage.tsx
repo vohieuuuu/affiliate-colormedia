@@ -87,7 +87,7 @@ export default function WithdrawalPage() {
               <TabsTrigger value="history">Lịch sử rút tiền</TabsTrigger>
             </TabsList>
             <TabsContent value="request" className="mt-6">
-              <WithdrawalForm kolData={kolData} />
+              <WithdrawalForm kolData={{...kolData, remaining_balance: financialSummary?.currentBalance || 0}} />
             </TabsContent>
             <TabsContent value="history" className="mt-6">
               <Card>
@@ -208,7 +208,7 @@ export default function WithdrawalPage() {
                     Số dư tích lũy:
                   </span>
                   <span className="text-sm font-bold text-primary">
-                    {formatCurrency(financialSummary?.currentBalance || kolData.remaining_balance || 0)}
+                    {formatCurrency(financialSummary?.currentBalance || 0)}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 items-center gap-2">
