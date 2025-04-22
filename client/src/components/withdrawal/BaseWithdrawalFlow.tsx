@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,7 @@ export default function BaseWithdrawalFlow({
   
   // Flow control state
   const [currentStep, setCurrentStep] = useState<'initial' | 'verification'>('initial');
+  const currentStepRef = useRef<'initial' | 'verification'>('initial');
   
   // Calculate daily withdrawal limits
   const withdrawnToday = getTodayWithdrawals ? 
@@ -102,6 +103,7 @@ export default function BaseWithdrawalFlow({
     setMaskedEmail("");
     setAttemptsLeft(5);
     setCurrentStep('initial');
+    currentStepRef.current = 'initial';
     
     // Ghi log để debug
     console.log("Form đã được reset, đặt lại currentStep =", 'initial');
@@ -191,21 +193,14 @@ export default function BaseWithdrawalFlow({
         // Switch to verification step - add force log để debug
         const prevStep = currentStep;
         setCurrentStep('verification');
-        console.log(`[DEBUG] Changing step from '${prevStep}' to 'verification'`);
+        currentStepRef.current = 'verification';
+        console.log(`[DEBUG] Changing step from '${prevStep}' to 'verification', ref is now ${currentStepRef.current}`);
         
-        // Use setTimeout to ensure state updates before rendering
-        setTimeout(() => {
-          console.log("[DEBUG] Current step after timeout:", currentStep);
-          if (currentStep !== 'verification') {
-            console.log("[DEBUG] Forcing step to verification again");
-            setCurrentStep('verification');
-          }
-          
-          toast({
-            title: "Mã OTP đã được gửi",
-            description: `Mã OTP đã được gửi đến ${maskedEmail}. Mã có hiệu lực trong 5 phút.`,
-          });
-        }, 100);
+        // Use toast notification
+        toast({
+          title: "Mã OTP đã được gửi",
+          description: `Mã OTP đã được gửi đến ${maskedEmail}. Mã có hiệu lực trong 5 phút.`,
+        });
       } else if (data.error) {
         setError(data.error.message || "Lỗi gửi mã OTP");
         toast({
