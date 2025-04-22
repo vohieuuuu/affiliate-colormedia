@@ -206,12 +206,18 @@
         .where(eq(kolContacts.id, contactId))
         .returning();
       
-      // 4. Cập nhật số lượng liên hệ tiềm năng nếu status = 'Đang tư vấn'
-      if (status === 'Đang tư vấn' && contact.status !== 'Đang tư vấn') {
+      // 4. Cập nhật số lượng liên hệ tiềm năng nếu status = 'Đang tư vấn' hoặc 'Chờ phản hồi'
+      if ((status === 'Đang tư vấn' && contact.status !== 'Đang tư vấn') || 
+          (status === 'Chờ phản hồi' && contact.status !== 'Chờ phản hồi')) {
         const newPotentialContacts = (kolVip.potential_contacts || 0) + 1;
+        
+        console.log(`Tăng số lượng liên hệ tiềm năng cho KOL/VIP ${kolId}: ${kolVip.potential_contacts} -> ${newPotentialContacts}`);
+        
         await db.update(kolVipAffiliates)
           .set({ potential_contacts: newPotentialContacts })
           .where(eq(kolVipAffiliates.affiliate_id, kolId));
+          
+        console.log(`Đã cập nhật KPI lead tiềm năng cho KOL/VIP ${kolId} thành ${newPotentialContacts}`);
       }
       
       return updatedContact;
