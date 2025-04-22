@@ -187,14 +187,24 @@ export default function BaseWithdrawalFlow({
         
         setMaskedEmail(maskedEmail);
         
-        // Switch to verification step
+        // Switch to verification step - add force log để debug
+        const prevStep = currentStep;
         setCurrentStep('verification');
-        console.log("Chuyển sang bước xác thực OTP, currentStep =", 'verification');
+        console.log(`[DEBUG] Changing step from '${prevStep}' to 'verification'`);
         
-        toast({
-          title: "Mã OTP đã được gửi",
-          description: `Mã OTP đã được gửi đến ${maskedEmail}. Mã có hiệu lực trong 5 phút.`,
-        });
+        // Use setTimeout to ensure state updates before rendering
+        setTimeout(() => {
+          console.log("[DEBUG] Current step after timeout:", currentStep);
+          if (currentStep !== 'verification') {
+            console.log("[DEBUG] Forcing step to verification again");
+            setCurrentStep('verification');
+          }
+          
+          toast({
+            title: "Mã OTP đã được gửi",
+            description: `Mã OTP đã được gửi đến ${maskedEmail}. Mã có hiệu lực trong 5 phút.`,
+          });
+        }, 100);
       } else if (data.error) {
         setError(data.error.message || "Lỗi gửi mã OTP");
         toast({
