@@ -319,8 +319,22 @@ export default function KolWithdrawalModalV2({
     }
   }, [isOpen, currentStep]);
   
+  // Kiểm tra xem có đang ở bước xác thực không để tránh đóng modal
+  const handleOpenChange = (open: boolean) => {
+    // Nếu yêu cầu đóng modal và đang ở bước xác thực, hiển thị xác nhận
+    if (!open && currentStep === "verification") {
+      if (confirm("Bạn có chắc muốn hủy quá trình xác thực? Yêu cầu rút tiền sẽ không được hoàn tất.")) {
+        handleClose();
+      }
+      // Nếu không xác nhận, giữ modal mở
+      return;
+    }
+    // Trong các trường hợp khác, xử lý bình thường
+    handleClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
