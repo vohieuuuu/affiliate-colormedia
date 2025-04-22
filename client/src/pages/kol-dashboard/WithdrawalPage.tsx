@@ -216,7 +216,7 @@ export default function WithdrawalPage() {
                     Đã rút:
                   </span>
                   <span className="text-sm font-medium">
-                    {formatCurrency(financialSummary?.expenseSources?.withdrawal || kolData.paid_balance || 0)}
+                    {formatCurrency(financialSummary?.expenseSources?.withdrawal || 0)}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 items-center gap-2">
@@ -224,9 +224,7 @@ export default function WithdrawalPage() {
                     Tổng thu nhập:
                   </span>
                   <span className="text-sm font-medium">
-                    {formatCurrency(financialSummary?.totalIncome || 
-                      ((kolData.remaining_balance || 0) + (kolData.paid_balance || 0))
-                    )}
+                    {formatCurrency(financialSummary?.totalIncome || 0)}
                   </span>
                 </div>
               </div>
