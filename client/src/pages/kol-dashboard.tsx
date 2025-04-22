@@ -872,56 +872,56 @@ const KolDashboard = () => {
                   {/* Tổng quan tài chính */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card className="md:col-span-1 shadow-md border-0 bg-gradient-to-br from-[#07ADB8]/10 to-white">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xl flex items-center gap-2">
-                          <Wallet className="h-5 w-5 text-[#07ADB8]" />
+                      <CardHeader className="pb-2 px-3 sm:px-6">
+                        <CardTitle className="text-lg sm:text-xl flex items-center gap-1 sm:gap-2">
+                          <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-[#07ADB8]" />
                           Số dư hiện tại
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold bg-gradient-to-r from-[#07ADB8] to-[#FFC919] bg-clip-text text-transparent">
+                      <CardContent className="px-3 sm:px-6">
+                        <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#07ADB8] to-[#FFC919] bg-clip-text text-transparent">
                           {formatCurrency(financialSummary?.currentBalance || kolInfo?.balance || 0)}
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">Số dư khả dụng để rút</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-2">Số dư khả dụng để rút</p>
                       </CardContent>
                     </Card>
 
                     <Card className="md:col-span-3 shadow-md border-0">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Thống kê tài chính</CardTitle>
+                      <CardHeader className="pb-2 px-3 sm:px-6">
+                        <CardTitle className="text-base sm:text-lg">Thống kê tài chính</CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Tổng thu nhập tháng này</p>
-                            <p className="text-2xl font-semibold text-green-600">
+                      <CardContent className="px-3 sm:px-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                          <div className="space-y-1 sm:space-y-2">
+                            <p className="text-xs sm:text-sm text-muted-foreground">Tổng thu nhập tháng này</p>
+                            <p className="text-xl sm:text-2xl font-semibold text-green-600">
                               {formatCurrency(financialSummary?.totalIncome || 0)}
                             </p>
-                            <div className="flex items-center text-sm">
-                              <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
-                              <span>Bao gồm lương cơ bản và hoa hồng</span>
+                            <div className="flex items-center text-xs sm:text-sm">
+                              <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mr-1" />
+                              <span className="line-clamp-2">Bao gồm lương cơ bản và hoa hồng</span>
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Đã rút trong tháng</p>
-                            <p className="text-2xl font-semibold text-amber-600">
+                          <div className="space-y-1 sm:space-y-2">
+                            <p className="text-xs sm:text-sm text-muted-foreground">Đã rút trong tháng</p>
+                            <p className="text-xl sm:text-2xl font-semibold text-amber-600">
                               {formatCurrency(financialSummary?.totalExpense || 0)}
                             </p>
-                            <div className="flex items-center text-sm">
-                              <ArrowDown className="h-4 w-4 text-amber-500 mr-1" />
-                              <span>Bao gồm thuế thu nhập</span>
+                            <div className="flex items-center text-xs sm:text-sm">
+                              <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 mr-1" />
+                              <span className="line-clamp-2">Bao gồm thuế thu nhập</span>
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Lợi nhuận ròng</p>
-                            <p className="text-2xl font-semibold text-blue-600">
+                          <div className="space-y-1 sm:space-y-2">
+                            <p className="text-xs sm:text-sm text-muted-foreground">Lợi nhuận ròng</p>
+                            <p className="text-xl sm:text-2xl font-semibold text-blue-600">
                               {formatCurrency(financialSummary?.netProfit || 0)}
                             </p>
-                            <div className="flex items-center text-sm">
-                              <LineChart className="h-4 w-4 text-blue-500 mr-1" />
-                              <span>Thu nhập sau chi phí</span>
+                            <div className="flex items-center text-xs sm:text-sm">
+                              <LineChart className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 mr-1" />
+                              <span className="line-clamp-2">Thu nhập sau chi phí</span>
                             </div>
                           </div>
                         </div>
