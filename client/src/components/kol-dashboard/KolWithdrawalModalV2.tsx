@@ -33,6 +33,7 @@ export default function KolWithdrawalModalV2({
   const [amount, setAmount] = useState<string>("");
   const [formattedAmount, setFormattedAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
+  const [taxId, setTaxId] = useState<string>("");
   const [confirmBankInfo, setConfirmBankInfo] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<WithdrawalStep>("initial");
@@ -101,6 +102,7 @@ export default function KolWithdrawalModalV2({
         {
           amount: amountValue,
           note,
+          tax_id: taxId,
         }
       );
       return await response.json();
@@ -144,6 +146,7 @@ export default function KolWithdrawalModalV2({
           otp: otpInput,
           amount: parseFloat(amount),
           note,
+          tax_id: taxId,
         }
       );
       
@@ -221,6 +224,7 @@ export default function KolWithdrawalModalV2({
     setAmount("");
     setFormattedAmount("");
     setNote("");
+    setTaxId("");
     setConfirmBankInfo(false);
     setError(null);
     setCurrentStep("initial");
@@ -388,6 +392,23 @@ export default function KolWithdrawalModalV2({
                 />
               </div>
               
+              {parseFloat(amount) > 2000000 && (
+                <div className="grid gap-2">
+                  <Label htmlFor="taxId">Mã số thuế cá nhân (nếu có)</Label>
+                  <Input
+                    id="taxId"
+                    type="text"
+                    placeholder="Nhập MST cá nhân nếu có"
+                    value={taxId}
+                    onChange={(e) => setTaxId(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Nhập mã số thuế cá nhân (nếu có) để thuận tiện cho việc kê khai thuế TNCN.
+                    <br />Không bắt buộc nhưng được khuyến khích khi số tiền rút trên 2 triệu VND.
+                  </p>
+                </div>
+              )}
+              
               <div className="flex items-start space-x-2 pt-2">
                 <Checkbox
                   id="confirmBankInfo"
@@ -503,6 +524,12 @@ export default function KolWithdrawalModalV2({
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Ghi chú:</span>
                       <span className="font-medium">{note}</span>
+                    </div>
+                  )}
+                  {taxId && parseFloat(amount) > 2000000 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">MST cá nhân:</span>
+                      <span className="font-medium">{taxId}</span>
                     </div>
                   )}
                 </div>
