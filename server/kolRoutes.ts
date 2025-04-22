@@ -1814,25 +1814,46 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         const extractedText = data.text;
         console.log("Văn bản trích xuất: ", extractedText.substring(0, 100) + "...");
         
-        // Trích xuất thông tin liên hệ
-        const nameExtracted = extractNameFromText(extractedText);
-        const phoneExtracted = extractPhoneFromText(extractedText);
-        const emailExtracted = extractEmailFromText(extractedText);
-        const companyExtracted = extractCompanyFromText(extractedText);
-        const positionExtracted = extractPositionFromText(extractedText);
+        // Sử dụng YeScale API để phân tích thông tin từ văn bản OCR
+        let contactData;
+        try {
+          // Import hàm phân tích từ module yescale
+          const { extractBusinessCardInfo } = await import('./yescale');
+          // Gọi API YeScale để phân tích thông tin
+          const cardInfo = await extractBusinessCardInfo(extractedText);
+          console.log("Kết quả phân tích từ YeScale API:", cardInfo);
+          
+          contactData = {
+            contact_name: cardInfo.name,
+            phone: cardInfo.phone,
+            email: cardInfo.email,
+            company: cardInfo.company,
+            position: cardInfo.position
+          };
+        } catch (apiError) {
+          console.error("Lỗi khi gọi YeScale API:", apiError);
+          // Nếu YeScale API lỗi, sử dụng phương pháp trích xuất thủ công
+          console.log("Sử dụng phương pháp trích xuất thủ công thay thế...");
+          const nameExtracted = extractNameFromText(extractedText);
+          const phoneExtracted = extractPhoneFromText(extractedText);
+          const emailExtracted = extractEmailFromText(extractedText);
+          const companyExtracted = extractCompanyFromText(extractedText);
+          const positionExtracted = extractPositionFromText(extractedText);
+          
+          contactData = {
+            contact_name: nameExtracted || "",
+            phone: phoneExtracted || "",
+            email: emailExtracted || "",
+            company: companyExtracted || "",
+            position: positionExtracted || ""
+          };
+        }
         
-        // Trả về kết quả
+        // Trả về kết quả với dữ liệu từ YeScale API (nếu có)
         res.status(200).json({
           status: "success",
           data: {
-            contact_data: {
-              contact_name: nameExtracted || "",
-              phone: phoneExtracted || "",
-              email: emailExtracted || "",
-              company: companyExtracted || "",
-              position: positionExtracted || "",
-              note: ""
-            },
+            contact_data: contactData,
             raw_text: extractedText,
             image_preview: `data:image/jpeg;base64,${image_base64}`,
             message: "Đã trích xuất thông tin từ card visit. Vui lòng xác nhận và chỉnh sửa nếu cần."
