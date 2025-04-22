@@ -1087,7 +1087,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
+  async getKolVipByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
     try {
       const [kolVip] = await db.select()
         .from(kolVipAffiliates)
@@ -1098,6 +1098,11 @@ export class DatabaseStorage implements IStorage {
       console.error("Error fetching KOL/VIP by affiliate_id:", error);
       return undefined;
     }
+  }
+  
+  // For backward compatibility
+  async getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
+    return this.getKolVipByAffiliateId(affiliateId);
   }
   
   async getKolVipAffiliateByUserId(userId: number): Promise<KolVipAffiliate | undefined> {
