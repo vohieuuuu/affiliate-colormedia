@@ -190,18 +190,7 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
   });
   
-  // Thêm xử lý sự kiện uncaughtException và unhandledRejection
-  process.on('uncaughtException', (error) => {
-    console.error('UNHANDLED EXCEPTION! 💥 Shutting down gracefully...');
-    console.error(error.name, error.message, error.stack);
-    // Không tắt server ngay lập tức, ghi log và tiếp tục chạy
-  });
-
-  process.on('unhandledRejection', (error) => {
-    console.error('UNHANDLED REJECTION! 💥 Shutting down gracefully...');
-    console.error(error);
-    // Không tắt server ngay lập tức, ghi log và tiếp tục chạy
-  });
+  // Các xử lý sự kiện uncaughtException và unhandledRejection đã được thiết lập ở đầu file
   
   } catch (error) {
     console.error('FATAL APPLICATION ERROR:', error);
