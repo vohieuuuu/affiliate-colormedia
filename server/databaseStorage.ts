@@ -1274,25 +1274,42 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateKolVipAffiliateBalance(affiliateId: string, amount: number): Promise<boolean> {
+  async updateKolVipAffiliateBalance(affiliateId: string, amount: number, isIncreasing: boolean = true): Promise<boolean> {
     try {
+      console.log(`Updating KOL balance - affiliateId=${affiliateId}, amount=${amount}, isIncreasing=${isIncreasing}`);
+      
       // 1. Tìm KOL/VIP affiliate
       const [kolVip] = await db.select()
         .from(kolVipAffiliates)
         .where(eq(kolVipAffiliates.affiliate_id, affiliateId));
       
       if (!kolVip) {
+        console.error(`KOL not found with ID ${affiliateId}`);
         return false;
       }
       
-      // 2. Kiểm tra số dư
-      if (amount > 0 && kolVip.remaining_balance < amount) {
+      console.log(`Current KOL balance: ${kolVip.remaining_balance}`);
+      
+      // 2. Kiểm tra số dư nếu là trừ tiền
+      if (!isIncreasing && kolVip.remaining_balance < amount) {
+        console.error(`Insufficient balance: ${kolVip.remaining_balance} < ${amount}`);
         return false;
       }
       
       // 3. Tính toán số dư mới
-      const remaining_balance = kolVip.remaining_balance - amount;
-      const paid_balance = (kolVip.paid_balance || 0) + amount;
+      let remaining_balance;
+      let paid_balance = kolVip.paid_balance || 0;
+      
+      if (isIncreasing) {
+        // Tăng số dư (thêm tiền)
+        remaining_balance = kolVip.remaining_balance + amount;
+        console.log(`Increasing balance: ${kolVip.remaining_balance} + ${amount} = ${remaining_balance}`);
+      } else {
+        // Giảm số dư (rút tiền)
+        remaining_balance = kolVip.remaining_balance - amount;
+        paid_balance += amount;
+        console.log(`Decreasing balance: ${kolVip.remaining_balance} - ${amount} = ${remaining_balance}`);
+      }
       
       // 4. Cập nhật số dư
       await db.update(kolVipAffiliates)
@@ -1302,6 +1319,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(kolVipAffiliates.id, kolVip.id));
       
+      console.log(`Balance updated successfully: new balance = ${remaining_balance}`);
       return true;
     } catch (error) {
       console.error("Error updating KOL/VIP affiliate balance:", error);
