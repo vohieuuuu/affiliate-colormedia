@@ -325,7 +325,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       }
       
       // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
-      const updatedKolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+      const updatedKolVip = await storage.getKolVipByAffiliateId(kolId);
       
       res.status(200).json({
         status: "success",
@@ -391,7 +391,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       }
       
       // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
-      const updatedKolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+      const updatedKolVip = await storage.getKolVipByAffiliateId(kolId);
       
       res.status(200).json({
         status: "success",
@@ -559,7 +559,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       const { month, year } = req.query;
 
       // Lấy thông tin KOL/VIP
-      const kolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await storage.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         return res.status(404).json({
           status: "error",
