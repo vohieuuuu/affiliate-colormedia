@@ -22,20 +22,22 @@ import {
   KolContact,
   kolVipAffiliates,
   kolContacts,
+  kolVipTransactions,
   KpiPerformanceTypeValue,
   KolVipLevelType,
   MonthlyKpi,
   TransactionHistory,
   TransactionType,
-  TransactionTypeValue
+  TransactionTypeValue,
+  InsertKolVipTransaction,
+  KolVipTransaction
 } from '../shared/schema.js';
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { IStorage } from "./storage";
 import { sql } from "drizzle-orm/sql";
 
-// Tạo bảng giao dịch tài chính tạm thời cho KOL VIP
-const kol_vip_transactions = "temp_kol_vip_transactions";
+// Đã chuyển sang dùng bảng kolVipTransactions trong schema
 
 export class DatabaseStorage implements IStorage {
   // Phương thức quản lý giao dịch tài chính của KOL/VIP
@@ -45,42 +47,33 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date
   ): Promise<TransactionHistory[]> {
     try {
-      // Tạo các điều kiện lọc
-      let conditions = eq(sql`kol_id`, kolId);
+      // Xây dựng các điều kiện truy vấn
+      let conditions = [eq(kolVipTransactions.kol_id, kolId)];
       
       if (startDate) {
-        conditions = and(
-          conditions,
-          gte(sql`created_at`, startDate)
-        );
+        conditions.push(gte(kolVipTransactions.created_at, startDate));
       }
       
       if (endDate) {
-        conditions = and(
-          conditions,
-          lte(sql`created_at`, endDate)
-        );
+        conditions.push(lte(kolVipTransactions.created_at, endDate));
       }
       
-      // Thực hiện truy vấn tới bảng tạm
-      const result = await db.execute(sql`
-        SELECT id, kol_id, transaction_type, amount, description, 
-               reference_id, created_at, balance_after
-        FROM ${sql.identifier(kol_vip_transactions)}
-        WHERE ${conditions}
-        ORDER BY created_at DESC
-      `);
+      // Thực hiện truy vấn với các điều kiện đã xây dựng
+      const transactions = await db.select()
+        .from(kolVipTransactions)
+        .where(and(...conditions))
+        .orderBy(desc(kolVipTransactions.created_at));
       
-      // Chuyển đổi dữ liệu kết quả sang định dạng phù hợp
-      return (result.rows as any[]).map(row => ({
-        id: row.id,
-        kol_id: row.kol_id,
-        transaction_type: row.transaction_type as TransactionTypeValue,
-        amount: row.amount,
-        description: row.description,
-        reference_id: row.reference_id,
-        created_at: row.created_at,
-        balance_after: row.balance_after
+      // Chuyển đổi và trả về kết quả
+      return transactions.map(tx => ({
+        id: tx.id,
+        kol_id: tx.kol_id,
+        transaction_type: tx.transaction_type as TransactionTypeValue,
+        amount: tx.amount,
+        description: tx.description,
+        reference_id: tx.reference_id || undefined,
+        created_at: tx.created_at.toISOString(),
+        balance_after: tx.balance_after
       }));
     } catch (error) {
       console.error("Error fetching KOL/VIP transaction history:", error);
@@ -92,43 +85,47 @@ export class DatabaseStorage implements IStorage {
     transaction: Omit<TransactionHistory, 'id'>
   ): Promise<TransactionHistory> {
     try {
-      // Thực hiện thêm giao dịch vào bảng tạm
-      const result = await db.execute(sql`
-        INSERT INTO ${sql.identifier(kol_vip_transactions)}
-        (kol_id, transaction_type, amount, description, reference_id, created_at, balance_after)
-        VALUES (
-          ${transaction.kol_id},
-          ${transaction.transaction_type},
-          ${transaction.amount},
-          ${transaction.description},
-          ${transaction.reference_id || null},
-          ${transaction.created_at || new Date().toISOString()},
-          ${transaction.balance_after || 0}
-        )
-        RETURNING id, kol_id, transaction_type, amount, description, reference_id, created_at, balance_after
-      `);
+      // Cập nhật số dư của KOL/VIP (nếu cần)
+      let balanceAfter = 0;
+      if (transaction.transaction_type !== "WITHDRAWAL" && transaction.transaction_type !== "TAX") {
+        const kolVip = await this.getKolVipAffiliateByAffiliateId(transaction.kol_id);
+        if (kolVip) {
+          await this.updateKolVipAffiliateBalance(transaction.kol_id, transaction.amount);
+          // Lấy dữ liệu mới nhất sau khi cập nhật số dư
+          const updatedKolVip = await this.getKolVipAffiliateByAffiliateId(transaction.kol_id);
+          balanceAfter = updatedKolVip?.remaining_balance || 0;
+        }
+      }
       
-      // Kiểm tra kết quả trả về
-      if (result.rows.length === 0) {
+      // Chuẩn bị dữ liệu giao dịch
+      const transactionData = {
+        kol_id: transaction.kol_id,
+        transaction_type: transaction.transaction_type,
+        amount: transaction.amount,
+        description: transaction.description,
+        reference_id: transaction.reference_id,
+        created_at: transaction.created_at ? new Date(transaction.created_at) : new Date(),
+        balance_after: transaction.balance_after !== undefined ? transaction.balance_after : balanceAfter
+      };
+      
+      // Thêm giao dịch vào bảng
+      const [newTransaction] = await db.insert(kolVipTransactions)
+        .values(transactionData)
+        .returning();
+      
+      if (!newTransaction) {
         throw new Error("Failed to insert transaction");
       }
       
-      // Chuyển đổi dữ liệu kết quả sang định dạng phù hợp
-      const newTransaction = result.rows[0] as any;
-      
-      // Cập nhật số dư của KOL/VIP
-      if (transaction.transaction_type !== "WITHDRAWAL" && transaction.transaction_type !== "TAX") {
-        await this.updateKolVipAffiliateBalance(transaction.kol_id, transaction.amount);
-      }
-      
+      // Chuyển đổi đối tượng trả về theo đúng định dạng
       return {
         id: newTransaction.id,
         kol_id: newTransaction.kol_id,
-        transaction_type: newTransaction.transaction_type as TransactionTypeValue,
+        transaction_type: newTransaction.transaction_type,
         amount: newTransaction.amount,
         description: newTransaction.description,
-        reference_id: newTransaction.reference_id,
-        created_at: newTransaction.created_at,
+        reference_id: newTransaction.reference_id || undefined,
+        created_at: newTransaction.created_at.toISOString(),
         balance_after: newTransaction.balance_after
       };
     } catch (error) {

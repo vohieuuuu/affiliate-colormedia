@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, timestamp, json, varchar, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { createInsertSchema } from "drizzle-zod";
+import { sql } from "drizzle-orm";
 
 // Define the status type for referred customer stages
 export const CustomerStatus = z.enum([
@@ -445,8 +446,23 @@ export const kolContacts = pgTable("kol_contacts", {
 export const insertKolVipAffiliateSchema = createInsertSchema(kolVipAffiliates);
 export const insertKolContactSchema = createInsertSchema(kolContacts);
 
+// Bảng giao dịch tài chính cho KOL/VIP
+export const kolVipTransactions = pgTable("kol_vip_transactions", {
+  id: serial("id").primaryKey(),
+  kol_id: text("kol_id").notNull().references(() => kolVipAffiliates.affiliate_id),
+  transaction_type: varchar("transaction_type", { length: 20 }).$type<TransactionTypeValue>().notNull(),
+  amount: integer("amount").notNull(),
+  description: text("description").notNull(),
+  reference_id: text("reference_id"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  balance_after: integer("balance_after").notNull().default(0)
+});
+
 // Types for KOL/VIP
 export type InsertKolVipAffiliate = z.infer<typeof insertKolVipAffiliateSchema>;
 export type KolVipAffiliate = typeof kolVipAffiliates.$inferSelect;
+export const insertKolVipTransactionSchema = createInsertSchema(kolVipTransactions);
+export type InsertKolVipTransaction = z.infer<typeof insertKolVipTransactionSchema>;
+export type KolVipTransaction = typeof kolVipTransactions.$inferSelect;
 export type InsertKolContact = z.infer<typeof insertKolContactSchema>;
 export type KolContactDB = typeof kolContacts.$inferSelect;
