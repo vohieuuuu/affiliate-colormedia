@@ -60,29 +60,45 @@ export default function KolWithdrawalModalV2({
   // Check withdrawal limit
   const { mutate: checkLimit, isPending: isCheckingLimit } = useMutation({
     mutationFn: async (amount: number) => {
+      console.log("Checking withdrawal limit:", amount);
       const response = await apiRequest(
         "POST",
         "/api/kol/withdrawal-request/check-limit",
         { amount }
       );
-      return await response.json();
+      const result = await response.json();
+      console.log("Check limit response:", result);
+      return result;
     },
     onSuccess: (data) => {
+      console.log("Check limit success:", data);
       if (data.status === "success") {
         if (!data.data.exceeds) {
-          // If check is successful, send OTP
+          // If check is successful, send OTP directly
+          console.log("Limit not exceeded, sending OTP");
           sendOtp();
         } else {
-          setError(`Vượt quá giới hạn rút tiền trong ngày. Bạn đã rút ${formatCurrency(data.data.totalWithdrawn)} VND và chỉ có thể rút thêm ${formatCurrency(data.data.remainingLimit)} VND cho đến 9:00 sáng ngày mai.`);
+          const errorMsg = `Vượt quá giới hạn rút tiền trong ngày. Bạn đã rút ${formatCurrency(data.data.totalWithdrawn)} VND và chỉ có thể rút thêm ${formatCurrency(data.data.remainingLimit)} VND cho đến 9:00 sáng ngày mai.`;
+          console.log("Limit exceeded:", errorMsg);
+          setError(errorMsg);
           toast({
             variant: "destructive",
             title: "Vượt quá giới hạn rút tiền",
             description: `Bạn đã rút ${formatCurrency(data.data.totalWithdrawn)} VND trong ngày hôm nay. Hạn mức còn lại: ${formatCurrency(data.data.remainingLimit)} VND`,
           });
         }
+      } else if (data.error) {
+        // Handle error from API
+        setError(data.error.message || "Lỗi kiểm tra hạn mức rút tiền");
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: data.error.message || "Lỗi kiểm tra hạn mức rút tiền",
+        });
       }
     },
     onError: (error: Error) => {
+      console.error("Check limit error:", error);
       setError(error.message);
       toast({
         title: "Lỗi",
@@ -96,6 +112,7 @@ export default function KolWithdrawalModalV2({
   const { mutate: sendOtp, isPending: isSendingOtp } = useMutation({
     mutationFn: async () => {
       const amountValue = parseFloat(amount);
+      console.log("Sending OTP for amount:", amountValue, "note:", note, "tax_id:", taxId);
       const response = await apiRequest(
         "POST",
         "/api/kol/withdrawal-request/send-otp",
@@ -105,7 +122,9 @@ export default function KolWithdrawalModalV2({
           tax_id: taxId,
         }
       );
-      return await response.json();
+      const result = await response.json();
+      console.log("Send OTP response:", result);
+      return result;
     },
     onSuccess: (data) => {
       if (data.status === "success") {
@@ -274,8 +293,10 @@ export default function KolWithdrawalModalV2({
       return;
     }
     
-    // Gửi OTP trực tiếp thay vì qua checkLimit
-    sendOtp();
+    console.log("Form submitted, checking limit for amount:", amountValue);
+    
+    // Đầu tiên kiểm tra giới hạn rút tiền với server
+    checkLimit(amountValue);
   };
   
   const handleOtpVerifySubmit = (e: React.FormEvent) => {

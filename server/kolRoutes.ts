@@ -1041,7 +1041,10 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     try {
       const { amount } = req.body;
       
+      console.log("Checking KOL withdrawal limit - Amount:", amount);
+      
       if (!amount || isNaN(amount) || amount <= 0) {
+        console.log("Invalid amount provided:", amount);
         return res.status(400).json({
           status: "error",
           error: {
@@ -1052,8 +1055,9 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       }
       
       // Lấy thông tin KOL/VIP
-      const kolVip = await storage.getKolVipAffiliateByUserId(req.user.id);
+      const kolVip = await storage.getKolVipAffiliateByUserId(req.user ? req.user.id : 0);
       if (!kolVip) {
+        console.log("KOL/VIP not found for user ID:", req.user?.id);
         return res.status(404).json({
           status: "error",
           error: {
@@ -1063,8 +1067,11 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
+      console.log(`Found KOL/VIP ${kolVip.affiliate_id} with balance: ${kolVip.remaining_balance}`);
+      
       // Kiểm tra số dư
       if (kolVip.remaining_balance < amount) {
+        console.log(`Insufficient balance: ${kolVip.remaining_balance} < ${amount}`);
         return res.status(400).json({
           status: "error",
           error: {
@@ -1075,7 +1082,9 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       }
       
       // Kiểm tra giới hạn rút tiền theo ngày
+      console.log(`Checking daily withdrawal limit for ${kolVip.affiliate_id}, amount: ${amount}`);
       const limitCheck = await storage.checkKolVipDailyWithdrawalLimit(kolVip.affiliate_id, amount);
+      console.log("Limit check result:", limitCheck);
       
       // Thêm trạng thái success vào response cho frontend
       return res.status(200).json({
