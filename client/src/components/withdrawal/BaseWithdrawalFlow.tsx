@@ -90,6 +90,7 @@ export default function BaseWithdrawalFlow({
   
   // Reset form to initial state
   const resetForm = useCallback(() => {
+    // Đặt lại tất cả state liên quan đến form
     setAmount("");
     setFormattedAmount("");
     setNote("");
@@ -100,6 +101,9 @@ export default function BaseWithdrawalFlow({
     setMaskedEmail("");
     setAttemptsLeft(5);
     setCurrentStep('initial');
+    
+    // Ghi log để debug
+    console.log("Form đã được reset, đặt lại currentStep =", 'initial');
   }, []);
   
   // Handle modal close
@@ -185,6 +189,7 @@ export default function BaseWithdrawalFlow({
         
         // Switch to verification step
         setCurrentStep('verification');
+        console.log("Chuyển sang bước xác thực OTP, currentStep =", 'verification');
         
         toast({
           title: "Mã OTP đã được gửi",

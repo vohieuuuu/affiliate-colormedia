@@ -1206,7 +1206,39 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       
       // Gửi email OTP
       try {
-        await sendOtpVerificationEmail(kolVip.email, kolVip.full_name, otpCode, req.user.id);
+        // Kiểm tra email hợp lệ trước khi gửi
+        if (!kolVip.email || !kolVip.full_name) {
+          console.error("Missing email or name for KOL/VIP:", {
+            email: kolVip.email,
+            name: kolVip.full_name,
+            affiliate_id: kolVip.affiliate_id
+          });
+          return res.status(400).json({
+            status: "error",
+            error: {
+              code: "INVALID_USER_DATA",
+              message: "Thông tin email hoặc tên không hợp lệ. Vui lòng cập nhật hồ sơ KOL/VIP trước khi rút tiền."
+            }
+          });
+        }
+        
+        console.log("Sending OTP email to:", {
+          email: kolVip.email,
+          name: kolVip.full_name,
+          otpCode
+        });
+        
+        // Số phút OTP có hiệu lực
+        const expiryMinutes = 5;
+        
+        await sendOtpVerificationEmail(
+          kolVip.full_name,
+          kolVip.email,
+          otpCode,
+          expiryMinutes,
+          "rút tiền"
+        );
+        
         console.log(`OTP sent to ${kolVip.email} for withdrawal verification`);
       } catch (emailError) {
         console.error("Failed to send OTP email:", emailError);
