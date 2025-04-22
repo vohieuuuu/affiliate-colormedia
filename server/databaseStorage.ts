@@ -94,27 +94,59 @@ export class DatabaseStorage implements IStorage {
       // Xác định xem giao dịch này là thêm hay trừ tiền
       const isIncomeTransaction = incomeTypes.includes(transaction.transaction_type);
       
+      // Lấy thông tin KOL hiện tại để kiểm tra số dư trước giao dịch
+      const kolVipBefore = await this.getKolVipAffiliateByAffiliateId(transaction.kol_id);
+      if (!kolVipBefore) {
+        console.error(`KOL with ID ${transaction.kol_id} not found, cannot process transaction`);
+        throw new Error(`KOL with ID ${transaction.kol_id} not found`);
+      }
+      
+      console.log(`Initial KOL balance before transaction: ${kolVipBefore.remaining_balance}`);
+      
       if (transaction.transaction_type !== "WITHDRAWAL" && transaction.transaction_type !== "TAX") {
-        const kolVip = await this.getKolVipAffiliateByAffiliateId(transaction.kol_id);
-        if (kolVip) {
-          console.log(`Current KOL balance before transaction: ${kolVip.remaining_balance}`);
+        // Tính toán số dư mới dựa vào loại giao dịch
+        if (isIncomeTransaction) {
+          // Thu nhập: Tăng số dư
+          console.log(`Income transaction: increasing balance by ${transaction.amount}`);
           
-          // Sử dụng isIncreasing=true cho các giao dịch thu nhập
-          await this.updateKolVipAffiliateBalance(
+          // Cập nhật số dư trong cơ sở dữ liệu
+          const updateSuccess = await this.updateKolVipAffiliateBalance(
             transaction.kol_id, 
             transaction.amount, 
-            isIncomeTransaction // true cho thu nhập, false cho chi tiêu
+            true // true cho thêm tiền
           );
           
-          // Lấy dữ liệu mới nhất sau khi cập nhật số dư
-          const updatedKolVip = await this.getKolVipAffiliateByAffiliateId(transaction.kol_id);
-          balanceAfter = updatedKolVip?.remaining_balance || 0;
-          console.log(`Updated KOL balance after transaction: ${balanceAfter}`);
+          if (!updateSuccess) {
+            throw new Error(`Failed to update KOL balance`);
+          }
         } else {
-          console.log(`KOL with ID ${transaction.kol_id} not found, cannot update balance`);
+          // Chi tiêu: Giảm số dư
+          console.log(`Expense transaction: decreasing balance by ${transaction.amount}`);
+          
+          // Cập nhật số dư trong cơ sở dữ liệu
+          const updateSuccess = await this.updateKolVipAffiliateBalance(
+            transaction.kol_id, 
+            transaction.amount, 
+            false // false cho trừ tiền
+          );
+          
+          if (!updateSuccess) {
+            throw new Error(`Failed to update KOL balance`);
+          }
         }
+        
+        // Lấy số dư mới nhất sau khi cập nhật
+        const updatedKolVip = await this.getKolVipAffiliateByAffiliateId(transaction.kol_id);
+        if (!updatedKolVip) {
+          throw new Error(`Could not retrieve updated KOL data`);
+        }
+        
+        balanceAfter = updatedKolVip.remaining_balance;
+        console.log(`Final KOL balance after transaction: ${balanceAfter}`);
       } else {
-        console.log(`Transaction type ${transaction.transaction_type} doesn't update balance`);
+        // Đối với giao dịch rút tiền hoặc thuế, số dư đã được cập nhật ở nơi khác
+        console.log(`Transaction type ${transaction.transaction_type} skips balance update here`);
+        balanceAfter = kolVipBefore.remaining_balance;
       }
       
       // Chuẩn bị dữ liệu giao dịch
