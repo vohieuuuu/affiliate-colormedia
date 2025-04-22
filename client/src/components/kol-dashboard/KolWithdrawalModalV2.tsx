@@ -114,11 +114,18 @@ export default function KolWithdrawalModalV2({
         queryClient.invalidateQueries({ queryKey: ['/api/kol', kolData.affiliate_id, 'financial-summary'] });
         
         setWithdrawalData(data);
-        setMaskedEmail(data.data.email_masked);
+        
+        // Mask email for UI display (example: j***@example.com)
+        const email = kolData.email;
+        const maskedEmail = email ? email.replace(/^(.)(.*)(@.*)$/, "$1***$3") : "your email";
+        setMaskedEmail(maskedEmail);
+        
+        // Chuyển sang bước tiếp theo để nhập OTP
         setCurrentStep("verification");
+        
         toast({
           title: "Mã OTP đã được gửi",
-          description: `${data.data.message}. Mã OTP có hiệu lực đến ${new Date(data.data.otpExpires).toLocaleTimeString()}`,
+          description: `Mã OTP đã được gửi đến ${maskedEmail}. Mã có hiệu lực trong 5 phút.`,
         });
       }
     },
