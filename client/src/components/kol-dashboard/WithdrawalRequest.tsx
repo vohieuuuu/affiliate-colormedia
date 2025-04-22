@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/utils";
-import { useLocation, useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
   // Sử dụng dữ liệu từ trang cha thay vì gọi API lại
   const queryClient = useQueryClient();
   
-  const { data: financialData, isLoading } = useQuery({
+  const { data: financialData, isLoading: isLoadingFinancial } = useQuery({
     queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary", "month"],
     queryFn: async () => {
       try {
@@ -135,8 +135,10 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
           description: "Vui lòng xác thực OTP để hoàn tất quy trình rút tiền.",
         });
         
-        // Chuyển hướng đến trang xác thực OTP với các tham số cần thiết
-        navigate(`/kol/otp-verification?amount=${amount}&affiliateId=${kolData.affiliate_id}&requestId=${data.data.requestId}`);
+        // Chuyển hướng đến trang xác thực OTP với các tham số cần thiết sử dụng startTransition để tránh lỗi suspense
+        startTransition(() => {
+          navigate(`/kol/otp-verification?amount=${amount}&affiliateId=${kolData.affiliate_id}&requestId=${data.data.requestId}`);
+        });
       } else if (data.error) {
         setError(data.error.message || "Lỗi tạo yêu cầu rút tiền");
         toast({
@@ -210,7 +212,7 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
   
   const remainingDailyLimit = Math.max(0, dailyWithdrawalLimit - withdrawnToday);
   const maxAmount = currentBalance || 0;
-  const isLoading = isCheckingLimit || isCreatingRequest;
+  const isPending = isCheckingLimit || isCreatingRequest;
 
   const handleOpenModal = () => {
     setModalOpen(true);
@@ -239,7 +241,7 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
       <div className="flex items-center justify-between py-2 border-y">
         <span className="font-medium">Số dư khả dụng:</span>
         <span className="font-bold text-primary text-lg">
-          {isLoading ? (
+          {isLoadingFinancial ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             formatCurrency(currentBalance)
@@ -401,9 +403,9 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
               </Button>
               <Button 
                 type="submit" 
-                disabled={isLoading || maxAmount <= 0 || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > maxAmount}
+                disabled={isPending || maxAmount <= 0 || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > maxAmount}
               >
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
                 Tiếp tục
               </Button>
             </DialogFooter>
