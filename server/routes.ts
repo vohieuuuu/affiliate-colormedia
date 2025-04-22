@@ -17,6 +17,7 @@ import {
   KolVipAffiliate,
   users
 } from "@shared/schema";
+import { calculateCommission } from "@shared/schemas/commission";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { setupDevAuthRoutes } from "./devAuth";
@@ -2022,8 +2023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Xác định loại affiliate và tính hoa hồng theo quy tắc mới
       const affiliateType = affiliate.affiliate_type || "partner";
-      // Nhập cảng hàm tính toán từ module commission
-      const { calculateCommission } = require("@shared/schemas/commission");
+      // Sử dụng hàm calculateCommission đã import ở đầu file
       // Tính toán hoa hồng dựa trên loại affiliate và giá trị hợp đồng
       const newCommission = calculateCommission(affiliateType as any, contract_value);
       const oldCommission = customer.commission || 0;
