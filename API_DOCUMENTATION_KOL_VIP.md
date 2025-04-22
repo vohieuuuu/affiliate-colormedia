@@ -305,7 +305,7 @@ Authorization: Bearer <token>
 **Request Body**:
 ```json
 {
-  "contractValue": 75000000,
+  "contract_value": 75000000,
   "note": "Hợp đồng kéo dài 6 tháng, dịch vụ toàn diện"
 }
 ```
@@ -315,14 +315,25 @@ Authorization: Bearer <token>
 {
   "status": "success",
   "data": {
-    "id": 3,
-    "contact_name": "Phạm Văn G",
-    "company": "Fashion House",
-    "status": "Đã chốt hợp đồng",
-    "updated_at": "2024-04-25T00:00:00Z",
-    "contract_value": 75000000,
-    "commission": 2250000,
-    "note": "Hợp đồng kéo dài 6 tháng, dịch vụ toàn diện"
+    "contact": {
+      "id": 3,
+      "kol_id": "KOL101",
+      "contact_name": "Phạm Văn G",
+      "company": "Fashion House",
+      "position": "Giám đốc Thương hiệu",
+      "phone": "0934567890",
+      "email": "pham.g@fashionhouse.com",
+      "status": "Đã chốt hợp đồng",
+      "created_at": "2024-04-20T00:00:00Z",
+      "updated_at": "2024-04-25T00:00:00Z",
+      "note": "Hợp đồng kéo dài 6 tháng, dịch vụ toàn diện",
+      "contract_value": 75000000,
+      "commission": 2250000,
+      "contract_date": "2024-04-25T00:00:00Z"
+    },
+    "kol": {
+      // Thông tin KOL được cập nhật với số dư mới
+    }
   }
 }
 ```

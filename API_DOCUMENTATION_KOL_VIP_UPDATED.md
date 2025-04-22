@@ -1,4 +1,4 @@
-# Tài liệu API - Hệ thống ColorMedia Affiliate (Module KOL/VIP)
+# Tài liệu API - Hệ thống ColorMedia Affiliate (Module KOL/VIP) - Phiên bản cập nhật
 
 ## Giới thiệu
 Tài liệu này mô tả chi tiết API của hệ thống ColorMedia Affiliate module KOL/VIP, cho phép quản lý thông tin KOL/VIP, theo dõi KPI và liên hệ, cũng như quản lý các hợp đồng đã ký.
@@ -367,7 +367,7 @@ hoặc cookie `auth_token`
 **Request Body**:
 ```json
 {
-  "contractValue": 75000000,
+  "contract_value": 75000000,
   "note": "Hợp đồng kéo dài 6 tháng, dịch vụ toàn diện"
 }
 ```
