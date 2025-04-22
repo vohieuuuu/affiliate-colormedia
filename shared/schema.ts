@@ -328,6 +328,19 @@ export const MonthlyKpiSchema = z.object({
 
 export type MonthlyKpi = z.infer<typeof MonthlyKpiSchema>;
 
+// Schema tạo KOL/VIP mới
+export const CreateKolVipSchema = z.object({
+  affiliate_id: z.string(),
+  full_name: z.string(),
+  email: z.string().email(),
+  phone: z.string(),
+  level: KolVipLevel,
+  bank_account: z.string(),
+  bank_name: z.string()
+});
+
+export type CreateKolVip = z.infer<typeof CreateKolVipSchema>;
+
 // KOL/VIP Affiliate Schema
 export const kolVipAffiliates = pgTable("kol_vip_affiliates", {
   id: serial("id").primaryKey(),
