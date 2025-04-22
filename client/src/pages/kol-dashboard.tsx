@@ -61,6 +61,38 @@ const KolDashboard = () => {
     normalizedRole: user?.role ? String(user.role).toUpperCase() : 'unknown'
   });
   
+  // Nếu đang ở môi trường production và đang ở tab "finance", hiển thị thông báo "Đang phát triển"
+  if (isProduction() && activeTab === "finance") {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <Construction className="h-6 w-6 text-yellow-500" />
+              Tính năng đang phát triển
+            </CardTitle>
+            <CardDescription>
+              Chức năng quản lý tài chính và rút tiền cho KOL/VIP hiện đang trong quá trình phát triển
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert className="mb-4">
+              <AlertTriangle className="h-5 w-5" />
+              <AlertTitle>Thông báo quan trọng</AlertTitle>
+              <AlertDescription>
+                Tính năng tài chính và rút tiền cho KOL/VIP đang được phát triển và sẽ sớm được triển khai. 
+                Vui lòng quay lại sau để sử dụng tính năng này.
+              </AlertDescription>
+            </Alert>
+            <p className="mt-2 text-muted-foreground">
+              Cảm ơn bạn đã kiên nhẫn chờ đợi. Chúng tôi đang nỗ lực để mang đến trải nghiệm tốt nhất cho bạn.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   // Kiểm tra quyền truy cập - chỉ cho phép KOL_VIP hoặc ADMIN
   useEffect(() => {
     const isKolVip = user?.isKolVip || false;
