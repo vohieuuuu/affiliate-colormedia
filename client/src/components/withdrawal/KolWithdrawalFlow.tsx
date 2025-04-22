@@ -23,10 +23,10 @@ export default function KolWithdrawalFlow({
   
   // API endpoints specific to KOL/VIP affiliates
   const apiEndpoints = {
-    checkLimit: '/api/kol/withdrawal/check-limit',
-    sendOtp: '/api/kol/withdrawal/send-otp',
-    verifyOtp: '/api/kol/withdrawal/verify',
-    resendOtp: '/api/kol/withdrawal/resend-otp'
+    checkLimit: '/api/kol/withdrawal-request/check-limit',
+    sendOtp: '/api/kol/withdrawal-request/send-otp',
+    verifyOtp: '/api/kol/withdrawal-request/verify',
+    resendOtp: '/api/kol/withdrawal-request/send-otp' // Sử dụng endpoint gửi OTP lại vì không có resend riêng
   };
   
   // Query keys to invalidate on success
