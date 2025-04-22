@@ -271,7 +271,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
 
       // Đối tượng updateData phù hợp với định nghĩa hàm updateKolVipContactStatus
       const updateData = {
-        status: status as CustomerStatusType,
+        status: status,
         description: note
       };
 
