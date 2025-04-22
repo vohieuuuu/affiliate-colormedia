@@ -95,9 +95,7 @@ export function setupAdminKolRoutes(router: Router, storage: IStorage): Router {
         username: kolVipData.email,
         password: hashedPassword,
         role: "KOL_VIP" as const,
-        is_active: 1,
-        is_first_login: 1, // Yêu cầu đổi mật khẩu khi đăng nhập lần đầu
-        created_at: new Date()
+        is_first_login: true // Yêu cầu đổi mật khẩu khi đăng nhập lần đầu
       });
       
       // Xác định mức lương cơ bản dựa trên cấp độ
@@ -129,9 +127,9 @@ export function setupAdminKolRoutes(router: Router, storage: IStorage): Router {
         bank_account: kolVipData.bank_account,
         bank_name: kolVipData.bank_name,
         total_contacts: 0,
-        total_potential_contacts: 0,
+        potential_contacts: 0,
         total_contracts: 0,
-        total_commission: 0
+        accumulated_commission: 0
       });
       
       // Ghi log

@@ -33,7 +33,7 @@
     }
   }
   
-  async getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
+  async getKolVipByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
     try {
       const [kolVip] = await db.select()
         .from(kolVipAffiliates)

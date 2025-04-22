@@ -54,10 +54,12 @@ export interface IStorage {
   
   // Phương thức quản lý KOL/VIP Affiliate
   createKolVipAffiliate(kolVipData: InsertKolVipAffiliate): Promise<KolVipAffiliate>;
-  getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined>;
+  getKolVipByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined>;
+  getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined>; // For backward compatibility
   getKolVipAffiliateByUserId(userId: number): Promise<KolVipAffiliate | undefined>;
   getKolVipAffiliateByEmail(email: string): Promise<KolVipAffiliate | undefined>;
   updateKolVipAffiliateLevel(affiliateId: string, newLevel: KolVipLevelType): Promise<KolVipAffiliate | undefined>;
+  getAllKolVips(): Promise<KolVipAffiliate[]>;
   updateKolVipAffiliateBalance(affiliateId: string, amount: number): Promise<boolean>;
   addKolVipWithdrawalRequest(request: WithdrawalRequestPayload): Promise<void>;
   updateKolVipWithdrawalStatus(affiliateId: string, requestTime: string, newStatus: WithdrawalStatusType): Promise<WithdrawalHistory | undefined>;
@@ -255,7 +257,7 @@ export class MemStorage implements IStorage {
     return newKolVipAffiliate;
   }
   
-  async getKolVipAffiliateByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
+  async getKolVipByAffiliateId(affiliateId: string): Promise<KolVipAffiliate | undefined> {
     console.log(`Looking for KOL/VIP affiliate with affiliate_id: ${affiliateId}`);
     
     const foundKolVip = this.kolVipAffiliates.find(kol => kol.affiliate_id === affiliateId);
