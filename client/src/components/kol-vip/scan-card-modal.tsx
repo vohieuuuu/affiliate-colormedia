@@ -7,7 +7,29 @@ import {
   DialogFooter,
   DialogDescription
 } from "@/components/ui/dialog";
-import { useMediaQuery } from "@/hooks/use-media-query";
+// Import hook theo cách thủ công để tránh lỗi path
+import { useState as useMediaQueryState, useEffect as useMediaQueryEffect } from "react";
+
+// Sử dụng hook media query trong file để tránh lỗi import
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useMediaQueryState<boolean>(false);
+  
+  useMediaQueryEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    setMatches(mediaQuery.matches);
+    
+    const handler = (event: MediaQueryListEvent) => {
+      setMatches(event.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handler);
+    return () => {
+      mediaQuery.removeEventListener('change', handler);
+    };
+  }, [query]);
+  
+  return matches;
+}
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
