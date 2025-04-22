@@ -585,23 +585,35 @@ export class MemStorage implements IStorage {
     const contact = contacts[contactIndex];
     const oldStatus = contact.status;
     
-    // Cập nhật trạng thái
-    contact.status = status;
-    contact.note = note || contact.note;
-    contact.updated_at = new Date().toISOString();
+    // Cập nhật trạng thái và ghi chú nếu có
+    const newStatus = updateData.status;
+    const newNote = updateData.description;
     
-    // Cập nhật các chỉ số thống kê của KOL/VIP
-    
-    // Nếu trước đó không phải có nhu cầu, nhưng giờ có nhu cầu
-    if ((oldStatus === "Mới nhập" || oldStatus === "Không tiềm năng") && 
-        (status !== "Mới nhập" && status !== "Không tiềm năng")) {
-      kolVip.potential_contacts++;
+    // Cập nhật trạng thái nếu được cung cấp
+    if (newStatus) {
+      contact.status = newStatus;
     }
     
-    // Nếu trước đó có nhu cầu, nhưng giờ không còn nhu cầu
-    if ((oldStatus !== "Mới nhập" && oldStatus !== "Không tiềm năng") && 
-        (status === "Mới nhập" || status === "Không tiềm năng")) {
-      kolVip.potential_contacts = Math.max(0, kolVip.potential_contacts - 1);
+    // Cập nhật ghi chú nếu được cung cấp
+    if (newNote) {
+      contact.note = newNote;
+    }
+    
+    contact.updated_at = new Date().toISOString();
+    
+    // Cập nhật các chỉ số thống kê của KOL/VIP nếu có thay đổi trạng thái
+    if (newStatus) {
+      // Nếu trước đó không phải có nhu cầu, nhưng giờ có nhu cầu
+      if ((oldStatus === "Mới nhập" || oldStatus === "Không tiềm năng") && 
+          (newStatus !== "Mới nhập" && newStatus !== "Không tiềm năng")) {
+        kolVip.potential_contacts++;
+      }
+      
+      // Nếu trước đó có nhu cầu, nhưng giờ không còn nhu cầu
+      if ((oldStatus !== "Mới nhập" && oldStatus !== "Không tiềm năng") && 
+          (newStatus === "Mới nhập" || newStatus === "Không tiềm năng")) {
+        kolVip.potential_contacts = Math.max(0, kolVip.potential_contacts - 1);
+      }
     }
     
     return contact;
