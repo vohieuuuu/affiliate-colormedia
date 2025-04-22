@@ -1029,7 +1029,7 @@ export class DatabaseStorage implements IStorage {
       console.log("Creating new KOL/VIP affiliate with ID:", kolVipData.affiliate_id);
       
       // Kiểm tra xem affiliate_id đã tồn tại chưa
-      const existingKolVip = await this.getKolVipAffiliateByAffiliateId(kolVipData.affiliate_id);
+      const existingKolVip = await this.getKolVipByAffiliateId(kolVipData.affiliate_id);
       if (existingKolVip) {
         console.log(`KOL/VIP Affiliate with ID ${kolVipData.affiliate_id} already exists`);
         return existingKolVip;
@@ -1129,7 +1129,7 @@ export class DatabaseStorage implements IStorage {
   async updateKolVipAffiliateLevel(affiliateId: string, newLevel: KolVipLevelType): Promise<KolVipAffiliate | undefined> {
     try {
       // 1. Tìm KOL/VIP affiliate
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(affiliateId);
+      const kolVip = await this.getKolVipByAffiliateId(affiliateId);
       if (!kolVip) {
         return undefined;
       }
@@ -1386,7 +1386,7 @@ export class DatabaseStorage implements IStorage {
       console.log(`Attempting to add contact for KOL/VIP with ID: ${kolId}`);
       
       // 1. Kiểm tra xem KOL/VIP có tồn tại không
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await this.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         console.error(`KOL/VIP affiliate with ID ${kolId} not found in database`);
         throw new Error(`KOL/VIP affiliate with ID ${kolId} not found`);
@@ -1463,7 +1463,7 @@ export class DatabaseStorage implements IStorage {
   ): Promise<KolContact | undefined> {
     try {
       // 1. Kiểm tra xem KOL/VIP có tồn tại không
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await this.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         return undefined;
       }
