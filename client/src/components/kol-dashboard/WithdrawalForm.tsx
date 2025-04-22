@@ -65,6 +65,49 @@ interface OtpResponse {
   otpExpires: string;
 }
 
+// Component hiển thị số dư hiện tại từ API
+function CurrentBalanceDisplay({ kolData }: { kolData: any }) {
+  const [currentBalance, setCurrentBalance] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCurrentBalance() {
+      try {
+        if (!kolData?.affiliate_id) {
+          setCurrentBalance(kolData.remaining_balance || 0);
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await apiRequest(
+          "GET",
+          `/api/kol/${kolData.affiliate_id}/financial-summary?period=month`
+        );
+        const data = await response.json();
+        
+        if (data.status === "success") {
+          setCurrentBalance(data.data.currentBalance);
+        } else {
+          setCurrentBalance(kolData.remaining_balance || 0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch current balance:", error);
+        setCurrentBalance(kolData.remaining_balance || 0);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchCurrentBalance();
+  }, [kolData]);
+
+  if (isLoading) {
+    return <Loader2 className="h-4 w-4 animate-spin" />;
+  }
+
+  return <>{formatCurrency(currentBalance || 0)}</>;
+}
+
 export function WithdrawalForm({ kolData }: { kolData: any }) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -308,8 +351,7 @@ export function WithdrawalForm({ kolData }: { kolData: any }) {
                 disabled={
                   form.formState.isSubmitting ||
                   checkLimitMutation.isPending ||
-                  !form.formState.isValid ||
-                  kolData.remaining_balance <= 0
+                  !form.formState.isValid
                 }
               >
                 {(form.formState.isSubmitting || checkLimitMutation.isPending) && (
