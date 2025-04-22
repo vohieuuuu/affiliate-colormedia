@@ -622,9 +622,20 @@ const KolDashboard = () => {
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Tháng hiện tại</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Chuyển đổi dữ liệu từ API mới sang định dạng phù hợp với KpiProgressCard */}
                       <KpiProgressCard
                         level={kolInfo.level as KolVipLevelType}
-                        monthlyKpi={kpiStats?.current_month}
+                        monthlyKpi={kpiStats?.kpi ? {
+                          // Tạo đối tượng tương thích với MonthlyKpi từ dữ liệu API
+                          year: kpiStats.period?.year || new Date().getFullYear(),
+                          month: kpiStats.period?.month || new Date().getMonth() + 1,
+                          total_contacts: kpiStats.stats?.totalContacts || 0,
+                          potential_contacts: kpiStats.stats?.potentialContacts || 0,
+                          signed_contracts: kpiStats.stats?.contractsCount || 0,
+                          total_revenue: kpiStats.stats?.contractValue || 0,
+                          total_commission: kpiStats.stats?.commission || 0,
+                          performance: kpiStats.kpi?.overall?.performance || "PENDING"
+                        } : kpiStats?.current_month}
                         isCurrentMonth={true}
                       />
                       <Card className="md:col-span-2 shadow-md border-0">
@@ -638,7 +649,9 @@ const KolDashboard = () => {
                                 <p className="text-sm text-muted-foreground">Tháng đánh giá</p>
                                 <p className="font-medium flex items-center gap-1">
                                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                                  {kpiStats?.current_month ? (
+                                  {kpiStats?.period ? (
+                                    `Tháng ${kpiStats.period.month}/${kpiStats.period.year}`
+                                  ) : kpiStats?.current_month ? (
                                     `Tháng ${kpiStats.current_month.month}/${kpiStats.current_month.year}`
                                   ) : (
                                     "Chưa có dữ liệu"
@@ -660,11 +673,11 @@ const KolDashboard = () => {
                               <div className="space-y-2">
                                 <p className="text-sm text-muted-foreground">Trạng thái</p>
                                 <div>
-                                  {kpiStats?.current_month?.performance === "ACHIEVED" ? (
+                                  {(kpiStats?.kpi?.overall?.performance === "ACHIEVED" || kpiStats?.current_month?.performance === "ACHIEVED") ? (
                                     <Badge className="bg-gradient-to-r from-[#07ADB8] to-[#07ADB8]/80 text-white border-0">
                                       Đã đạt KPI
                                     </Badge>
-                                  ) : kpiStats?.current_month?.performance === "NOT_ACHIEVED" ? (
+                                  ) : (kpiStats?.kpi?.overall?.performance === "NOT_ACHIEVED" || kpiStats?.current_month?.performance === "NOT_ACHIEVED") ? (
                                     <Badge className="bg-gradient-to-r from-[#FFC919] to-[#FFC919]/80 text-white border-0">
                                       Chưa đạt KPI
                                     </Badge>
@@ -684,19 +697,19 @@ const KolDashboard = () => {
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                   <p className="text-2xl font-bold">
-                                    {kpiStats?.current_month?.total_contacts || 0}
+                                    {kpiStats?.stats?.totalContacts || kpiStats?.current_month?.total_contacts || 0}
                                   </p>
                                   <p className="text-sm text-muted-foreground">Tổng số liên hệ</p>
                                 </div>
                                 <div>
                                   <p className="text-2xl font-bold">
-                                    {kpiStats?.current_month?.potential_contacts || 0}
+                                    {kpiStats?.stats?.potentialContacts || kpiStats?.current_month?.potential_contacts || 0}
                                   </p>
                                   <p className="text-sm text-muted-foreground">Liên hệ tiềm năng</p>
                                 </div>
                                 <div>
                                   <p className="text-2xl font-bold">
-                                    {kpiStats?.current_month?.contracts || 0}
+                                    {kpiStats?.stats?.contractsCount || kpiStats?.current_month?.contracts || 0}
                                   </p>
                                   <p className="text-sm text-muted-foreground">Hợp đồng đã ký</p>
                                 </div>
