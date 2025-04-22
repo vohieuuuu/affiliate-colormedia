@@ -32,6 +32,8 @@ import {
   decryptSensitiveData
 } from "./security";
 import commissionRouter from "./api/commission";
+import { setupAdminKolRoutes } from "./api/admin-kol";
+import { Router } from "express";
 
 // Hàm trợ giúp để kiểm tra vai trò thống nhất
 function isUserRole(role: any, expectedRole: string): boolean {
@@ -3136,6 +3138,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Sử dụng cùng một loại storage cho tất cả các module để đảm bảo tính nhất quán
     console.log("Setting up KOL/VIP routes with DatabaseStorage");
     setupKolVipRoutes(app, storage);
+    
+    // Thiết lập routes quản lý KOL/VIP cho admin
+    const adminRouter = Router();
+    app.use('/api/admin', setupAdminKolRoutes(adminRouter, storage));
+    console.log("Setting up Admin KOL/VIP routes with DatabaseStorage");
   } catch (error) {
     console.error("Error setting up KOL/VIP routes:", error);
   }
