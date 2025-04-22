@@ -417,7 +417,16 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
   app.post("/api/kol/:kolId/scan-card", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
     try {
       const { kolId } = req.params;
-      const { image_base64 } = req.body;
+      const { 
+        image_base64, 
+        confirm_scan, // Flag xác nhận lưu trực tiếp
+        contact_name, 
+        company, 
+        position, 
+        phone, 
+        email, 
+        note 
+      } = req.body;
       
       if (!image_base64) {
         return res.status(400).json({
@@ -432,6 +441,33 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       // Xử lý ảnh base64 để lấy dữ liệu bỏ phần header
       const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, 'base64');
+      
+      // Nếu có flag confirm_scan và đã có thông tin liên hệ đủ (tên và số điện thoại), tạo liên hệ mới trực tiếp
+      if (confirm_scan && contact_name && phone) {
+        console.log("Tạo liên hệ mới trực tiếp từ thông tin card visit đã xác nhận:", { contact_name, company, position, phone, email });
+        
+        // Tạo liên hệ mới trực tiếp
+        const newContact = await storage.addKolVipContact(kolId, {
+          contact_name,
+          company,
+          position,
+          phone,
+          email,
+          status: "Mới nhập",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          note: note || "Thêm từ quét card visit"
+        });
+        
+        // Trả về kết quả với liên hệ đã tạo
+        return res.status(200).json({
+          status: "success",
+          data: {
+            contact: newContact,
+            message: "Đã tạo liên hệ mới từ card visit"
+          }
+        });
+      }
       
       console.log("Đang xử lý OCR cho ảnh card visit...");
       
