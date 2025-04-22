@@ -74,20 +74,25 @@ function CurrentBalanceDisplay({ kolData }: { kolData: any }) {
     async function fetchCurrentBalance() {
       try {
         if (!kolData?.affiliate_id) {
+          console.log("No affiliate_id found, using remaining_balance:", kolData.remaining_balance);
           setCurrentBalance(kolData.remaining_balance || 0);
           setIsLoading(false);
           return;
         }
 
+        console.log("Fetching financial summary for affiliate:", kolData.affiliate_id);
         const response = await apiRequest(
           "GET",
           `/api/kol/${kolData.affiliate_id}/financial-summary?period=month`
         );
         const data = await response.json();
+        console.log("Financial summary response:", data);
         
         if (data.status === "success") {
+          console.log("Setting currentBalance to:", data.data.currentBalance);
           setCurrentBalance(data.data.currentBalance);
         } else {
+          console.log("API returned error, using remaining_balance:", kolData.remaining_balance);
           setCurrentBalance(kolData.remaining_balance || 0);
         }
       } catch (error) {
@@ -105,6 +110,7 @@ function CurrentBalanceDisplay({ kolData }: { kolData: any }) {
     return <Loader2 className="h-4 w-4 animate-spin" />;
   }
 
+  console.log("Rendering balance:", currentBalance);
   return <>{formatCurrency(currentBalance || 0)}</>;
 }
 
