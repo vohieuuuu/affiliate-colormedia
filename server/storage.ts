@@ -18,7 +18,9 @@ import type {
   KolContact,
   KpiPerformanceTypeValue,
   KolVipLevelType,
-  MonthlyKpi
+  MonthlyKpi,
+  TransactionHistory,
+  TransactionTypeValue
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { DatabaseStorage } from "./databaseStorage";
@@ -90,7 +92,17 @@ export interface IStorage {
     month: number,
     performance: KpiPerformanceTypeValue,
     note?: string
-  ): Promise<{ success: boolean, newLevel?: KolVipLevelType, previousLevel?: KolVipLevelType }>;  
+  ): Promise<{ success: boolean, newLevel?: KolVipLevelType, previousLevel?: KolVipLevelType }>;
+  
+  // Phương thức quản lý giao dịch tài chính của KOL/VIP
+  getKolVipTransactionHistory(
+    kolId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<TransactionHistory[]>;
+  addKolVipTransaction(
+    transaction: Omit<TransactionHistory, 'id'>
+  ): Promise<TransactionHistory>;
   
   // Phương thức quản lý user
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -120,6 +132,58 @@ export interface IStorage {
  * được sử dụng cho mục đích phát triển khi không muốn sử dụng database
  */
 export class MemStorage implements IStorage {
+  // Map để lưu trữ các giao dịch tài chính cho KOL/VIP
+  private kolVipTransactions: Map<string, TransactionHistory[]> = new Map();
+  
+  // Phương thức quản lý giao dịch tài chính của KOL/VIP
+  async getKolVipTransactionHistory(
+    kolId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<TransactionHistory[]> {
+    // Lấy danh sách giao dịch
+    const transactions = this.kolVipTransactions.get(kolId) || [];
+    
+    // Nếu không có khoảng thời gian, trả về tất cả giao dịch
+    if (!startDate && !endDate) {
+      return transactions;
+    }
+    
+    // Lọc giao dịch theo khoảng thời gian
+    return transactions.filter(t => {
+      const transactionDate = new Date(t.created_at);
+      const isAfterStart = !startDate || transactionDate >= startDate;
+      const isBeforeEnd = !endDate || transactionDate <= endDate;
+      return isAfterStart && isBeforeEnd;
+    });
+  }
+  
+  async addKolVipTransaction(
+    transaction: Omit<TransactionHistory, 'id'>
+  ): Promise<TransactionHistory> {
+    // Khởi tạo mảng giao dịch cho KOL nếu chưa có
+    if (!this.kolVipTransactions.has(transaction.kol_id)) {
+      this.kolVipTransactions.set(transaction.kol_id, []);
+    }
+    
+    const transactions = this.kolVipTransactions.get(transaction.kol_id)!;
+    
+    // Tạo ID cho giao dịch mới
+    const newTransaction: TransactionHistory = {
+      ...transaction,
+      id: transactions.length + 1
+    };
+    
+    // Thêm giao dịch mới vào danh sách
+    transactions.push(newTransaction);
+    
+    // Cập nhật số dư của KOL/VIP
+    if (transaction.transaction_type !== "WITHDRAWAL" && transaction.transaction_type !== "TAX") {
+      await this.updateKolVipAffiliateBalance(transaction.kol_id, transaction.amount);
+    }
+    
+    return newTransaction;
+  }
   /**
    * Cập nhật trạng thái yêu cầu rút tiền
    * @param affiliateId ID của affiliate

@@ -664,6 +664,117 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     };
   }
   
+  // GET /api/kol/:kolId/financial-stats - Lấy thống kê tài chính của KOL/VIP
+  app.get("/api/kol/:kolId/financial-stats", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
+    try {
+      const { kolId } = req.params;
+      const { period, startDate, endDate } = req.query;
+      
+      // Lấy thông tin KOL/VIP
+      const kolVip = await storage.getKolVipByAffiliateId(kolId);
+      if (!kolVip) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "KOL_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP"
+          }
+        });
+      }
+      
+      // Lấy danh sách contacts có hợp đồng
+      const contacts = await storage.getKolVipContacts(kolId);
+      
+      // Xác định khoảng thời gian
+      let start: Date;
+      let end: Date = new Date();
+      
+      // Nếu startDate và endDate được chỉ định, sử dụng chúng
+      if (startDate && endDate) {
+        start = new Date(startDate as string);
+        end = new Date(endDate as string);
+      } else {
+        // Xác định khoảng thời gian dựa trên period
+        switch(period) {
+          case 'week':
+            // 7 ngày gần nhất
+            start = new Date();
+            start.setDate(start.getDate() - 7);
+            break;
+          case 'month':
+            // Tháng hiện tại
+            start = new Date();
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
+            break;
+          case 'year':
+            // Năm hiện tại
+            start = new Date();
+            start.setMonth(0, 1);
+            start.setHours(0, 0, 0, 0);
+            break;
+          default:
+            // Mặc định 30 ngày gần nhất
+            start = new Date();
+            start.setDate(start.getDate() - 30);
+        }
+      }
+      
+      // Lọc contracts trong khoảng thời gian
+      const contractsInPeriod = contacts.filter(c => {
+        if (!c.contract_date || !c.contract_value) return false;
+        const contractDate = new Date(c.contract_date);
+        return contractDate >= start && contractDate <= end;
+      });
+      
+      // Tính tổng giá trị hợp đồng và hoa hồng trong khoảng thời gian
+      const totalContractValue = contractsInPeriod.reduce((sum, c) => sum + (c.contract_value || 0), 0);
+      const totalCommission = contractsInPeriod.reduce((sum, c) => sum + (c.commission || 0), 0);
+      
+      // Tính lương cơ bản dựa trên cấp độ
+      const baseSalary = (() => {
+        switch(kolVip.level) {
+          case "LEVEL_1": return 5000000; // Fresher - 5M
+          case "LEVEL_2": return 10000000; // Advanced - 10M
+          case "LEVEL_3": return 15000000; // Elite - 15M
+          default: return 0;
+        }
+      })();
+      
+      // Lấy lịch sử giao dịch (cần bổ sung)
+      // Giả định: storage.getKolVipTransactionHistory() là một phương thức hiện có hoặc cần thêm vào
+      const transactionHistory = await storage.getKolVipTransactionHistory?.(kolId, start, end) || [];
+      
+      res.status(200).json({
+        status: "success",
+        data: {
+          kolVip,
+          period: {
+            start: start.toISOString(),
+            end: end.toISOString()
+          },
+          financial: {
+            currentBalance: kolVip.balance || 0,
+            baseSalary,
+            totalContractValue,
+            totalCommission,
+            transactions: transactionHistory
+          },
+          contracts: contractsInPeriod
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching financial stats:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi lấy thông tin tài chính"
+        }
+      });
+    }
+  });
+  
   // GET /api/kol/:kolId/kpi-stats - Lấy thống kê KPI của KOL/VIP
   app.get("/api/kol/:kolId/kpi-stats", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
     try {

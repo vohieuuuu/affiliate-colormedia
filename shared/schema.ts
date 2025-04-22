@@ -24,6 +24,31 @@ export const WithdrawalStatus = z.enum([
 
 export type WithdrawalStatusType = z.infer<typeof WithdrawalStatus>;
 
+// Loại giao dịch tài chính
+export const TransactionType = z.enum([
+  "SALARY",           // Lương cơ bản
+  "COMMISSION",       // Hoa hồng từ hợp đồng
+  "WITHDRAWAL",       // Rút tiền
+  "BONUS",            // Thưởng
+  "TAX",              // Thuế
+  "ADJUSTMENT"        // Điều chỉnh
+]);
+
+export type TransactionTypeValue = z.infer<typeof TransactionType>;
+
+// Schema cho lịch sử giao dịch tài chính
+export const TransactionHistorySchema = z.object({
+  id: z.number().optional(),
+  kol_id: z.string(),
+  transaction_type: TransactionType,
+  amount: z.number(),
+  description: z.string(),
+  reference_id: z.string().optional(),  // ID tham chiếu (ID hợp đồng, ID rút tiền, etc.)
+  created_at: z.string().default(() => new Date().toISOString()),
+  balance_after: z.number().optional(), // Số dư sau giao dịch
+});
+
+export type TransactionHistory = z.infer<typeof TransactionHistorySchema>;
 
 
 // User role type
