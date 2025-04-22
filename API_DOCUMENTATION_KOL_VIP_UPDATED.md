@@ -284,7 +284,7 @@ hoặc cookie `auth_token`
 ### Cập nhật thông tin liên hệ
 **Endpoint**: `PUT /api/kol/:kolId/contacts/:contactId`
 
-**Mô tả**: Cập nhật thông tin của liên hệ.
+**Mô tả**: Cập nhật thông tin của liên hệ. API này đã được đơn giản hóa để chỉ cần gửi các trường cần cập nhật.
 
 **Headers**:
 ```
@@ -296,7 +296,17 @@ hoặc cookie `auth_token`
 - `kolId`: ID của KOL/VIP
 - `contactId`: ID của liên hệ
 
-**Request Body**:
+**Request Body** (Cấu trúc đơn giản hóa):
+```json
+{
+  "status": "Đang tư vấn",
+  "note": "Đã gặp và tư vấn sơ bộ"
+}
+```
+
+Chỉ cần gửi các trường cần cập nhật. Trong ví dụ trên, chỉ cập nhật trạng thái và ghi chú.
+
+**Request Body** (Cấu trúc đầy đủ, tương thích ngược):
 ```json
 {
   "contact_name": "Phạm Văn E",

@@ -1463,8 +1463,7 @@ export class DatabaseStorage implements IStorage {
   async updateKolVipContactStatus(
     kolId: string,
     contactId: number,
-    status: CustomerStatusType,
-    note: string
+    updateData: { status?: CustomerStatusType, description?: string }
   ): Promise<KolContact | undefined> {
     try {
       // 1. Kiểm tra xem KOL/VIP có tồn tại không
@@ -1485,22 +1484,38 @@ export class DatabaseStorage implements IStorage {
         return undefined;
       }
       
+      // Tạo object chỉ với các trường cần cập nhật
+      const updateFields: any = {
+        updated_at: new Date()
+      };
+      
+      if (updateData.status) {
+        updateFields.status = updateData.status;
+      }
+      
+      if (updateData.description) {
+        updateFields.note = updateData.description;
+      }
+      
       // 3. Cập nhật trạng thái contact
       const [updatedContact] = await db.update(kolContacts)
-        .set({
-          status,
-          note: note || contact.note,
-          updated_at: new Date()
-        })
+        .set(updateFields)
         .where(eq(kolContacts.id, contactId))
         .returning();
       
-      // 4. Cập nhật số lượng liên hệ tiềm năng nếu status = 'Đang tư vấn'
-      if (status === 'Đang tư vấn' && contact.status !== 'Đang tư vấn') {
+      // 4. Cập nhật số lượng liên hệ tiềm năng nếu status = 'Đang tư vấn' hoặc 'Chờ phản hồi'
+      if (updateData.status && 
+         ((updateData.status === 'Đang tư vấn' && contact.status !== 'Đang tư vấn') || 
+          (updateData.status === 'Chờ phản hồi' && contact.status !== 'Chờ phản hồi'))) {
         const newPotentialContacts = (kolVip.potential_contacts || 0) + 1;
+        
+        console.log(`Tăng số lượng liên hệ tiềm năng cho KOL/VIP ${kolId}: ${kolVip.potential_contacts} -> ${newPotentialContacts}`);
+        
         await db.update(kolVipAffiliates)
           .set({ potential_contacts: newPotentialContacts })
           .where(eq(kolVipAffiliates.affiliate_id, kolId));
+          
+        console.log(`Đã cập nhật KPI lead tiềm năng cho KOL/VIP ${kolId} thành ${newPotentialContacts}`);
       }
       
       return updatedContact;
