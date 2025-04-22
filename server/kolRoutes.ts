@@ -1938,9 +1938,9 @@ function extractPositionFromText(text: string): string | null {
   }, async (req: Request, res: Response) => {
     try {
       const { kolId } = req.params;
-      const { type, amount, description, is_addition } = req.body;
+      const { transaction_type, amount, description } = req.body;
       
-      if (!type || !amount || amount <= 0) {
+      if (!transaction_type || !amount || amount <= 0) {
         return res.status(400).json({
           status: "error",
           error: {
@@ -1953,11 +1953,10 @@ function extractPositionFromText(text: string): string | null {
       // Thêm giao dịch mới
       const transaction = await storage.addKolVipTransaction({
         kol_id: kolId,
-        type,
+        transaction_type,
         amount,
         description: description || "",
-        is_addition: is_addition === undefined ? true : Boolean(is_addition),
-        transaction_time: new Date().toISOString()
+        created_at: new Date().toISOString()
       });
       
       // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
