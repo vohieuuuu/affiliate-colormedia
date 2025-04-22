@@ -83,9 +83,12 @@ export default function KolWithdrawalModalV2({
             tax_id: taxId || ""
           });
           
-          // Close current modal and open OTP modal
-          onClose();
+          // Set modal states but don't close the withdrawal modal until OTP modal is actually displayed
           setShowOtpModal(true);
+          // Let React render cycle complete before we close the current modal
+          setTimeout(() => {
+            onClose();
+          }, 100);
         } else {
           const errorMsg = `Vượt quá giới hạn rút tiền trong ngày. Bạn đã rút ${formatCurrency(data.data.totalWithdrawn)} VND và chỉ có thể rút thêm ${formatCurrency(data.data.remainingLimit)} VND cho đến 9:00 sáng ngày mai.`;
           console.log("Limit exceeded:", errorMsg);
