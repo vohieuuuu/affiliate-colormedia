@@ -306,6 +306,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       const { kolId, contactId } = req.params;
       const { contract_value, note } = req.body;
 
+      console.log(`API: POST contract update for kolId=${kolId}, contactId=${contactId}, value=${contract_value}`);
+
       // Validate contract value
       if (!contract_value || contract_value <= 0) {
         return res.status(400).json({
@@ -322,6 +324,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       const contact = contacts.find(c => c.id === parseInt(contactId));
 
       if (!contact) {
+        console.error(`API: Contact not found with ID ${contactId} for KOL ${kolId}`);
         return res.status(404).json({
           status: "error",
           error: {
@@ -331,8 +334,12 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
 
+      console.log(`API: Found contact: ${contact.contact_name} (ID: ${contact.id}) for KOL ${kolId}`);
+
       // Tính hoa hồng (3% giá trị hợp đồng)
       const commission = Math.round(contract_value * 0.03);
+
+      console.log(`API: Calculated commission: ${commission} (3% of ${contract_value})`);
 
       // Cập nhật contact
       const updatedContact = await storage.updateKolVipContactWithContract(
@@ -353,6 +360,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       );
 
       if (!updatedContact) {
+        console.error(`API: Failed to update contact with contract info`);
         return res.status(404).json({
           status: "error",
           error: {
@@ -362,8 +370,12 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
 
+      console.log(`API: Contact successfully updated with contract info`);
+
       // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
       const updatedKolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+
+      console.log(`API: Retrieved updated KOL data with new balance: ${updatedKolVip?.remaining_balance}`);
 
       res.status(200).json({
         status: "success",
@@ -378,7 +390,103 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         status: "error",
         error: {
           code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi khi cập nhật thông tin hợp đồng"
+          message: "Lỗi khi cập nhật thông tin hợp đồng: " + (error instanceof Error ? error.message : String(error))
+        }
+      });
+    }
+  });
+  
+  // PUT /api/kol/:kolId/contacts/:contactId/contract - Alternate endpoint for contract update (for compatibility)
+  app.put("/api/kol/:kolId/contacts/:contactId/contract", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
+    try {
+      const { kolId, contactId } = req.params;
+      const { contract_value, note } = req.body;
+
+      console.log(`API: PUT contract update for kolId=${kolId}, contactId=${contactId}, value=${contract_value}`);
+
+      // Validate contract value
+      if (!contract_value || contract_value <= 0) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_CONTRACT_VALUE",
+            message: "Giá trị hợp đồng không hợp lệ"
+          }
+        });
+      }
+
+      // Lấy thông tin contact hiện tại
+      const contacts = await storage.getKolVipContacts(kolId);
+      const contact = contacts.find(c => c.id === parseInt(contactId));
+
+      if (!contact) {
+        console.error(`API: Contact not found with ID ${contactId} for KOL ${kolId}`);
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "CONTACT_NOT_FOUND",
+            message: "Không tìm thấy contact với ID đã cung cấp"
+          }
+        });
+      }
+
+      console.log(`API: Found contact: ${contact.contact_name} (ID: ${contact.id}) for KOL ${kolId}`);
+
+      // Tính hoa hồng (3% giá trị hợp đồng)
+      const commission = Math.round(contract_value * 0.03);
+
+      console.log(`API: Calculated commission: ${commission} (3% of ${contract_value})`);
+
+      // Cập nhật contact
+      const updatedContact = await storage.updateKolVipContactWithContract(
+        parseInt(contactId),
+        {
+          ...contact,
+          status: "Đã chốt hợp đồng",
+          contract_value,
+          commission,
+          contract_date: new Date().toISOString(),
+          note: note || contact.note
+        },
+        {
+          contract_value,
+          commission,
+          remaining_balance: commission // Số dư khả dụng tăng thêm bằng hoa hồng
+        }
+      );
+
+      if (!updatedContact) {
+        console.error(`API: Failed to update contact with contract info`);
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "UPDATE_FAILED",
+            message: "Không thể cập nhật thông tin hợp đồng"
+          }
+        });
+      }
+
+      console.log(`API: Contact successfully updated with contract info`);
+
+      // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
+      const updatedKolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+
+      console.log(`API: Retrieved updated KOL data with new balance: ${updatedKolVip?.remaining_balance}`);
+
+      res.status(200).json({
+        status: "success",
+        data: {
+          contact: updatedContact,
+          kol: updatedKolVip
+        }
+      });
+    } catch (error) {
+      console.error("Error updating contract information:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi cập nhật thông tin hợp đồng: " + (error instanceof Error ? error.message : String(error))
         }
       });
     }
