@@ -40,7 +40,24 @@ export async function extractBusinessCardInfo(ocrText: string): Promise<Business
           },
           {
             role: 'user',
-            content: `Phân tích văn bản OCR từ danh thiếp sau và trả về thông tin có cấu trúc bao gồm: tên người, số điện thoại, email, chức vụ, và tên công ty. Chỉ trả về JSON theo định dạng {"name": "", "phone": "", "email": "", "position": "", "company": ""} không kèm giải thích:\n\n${ocrText}`
+            content: `Từ đoạn văn bản sau, hãy trích xuất các thông tin sau đây và trình bày theo cấu trúc JSON:
+
+Tên (đầy đủ, viết hoa, không lẫn ký tự khác).
+Chức vụ (nếu có).
+Số điện thoại (ưu tiên số di động, định dạng liền hoặc có dấu cách).
+Email (đảm bảo đúng cú pháp, có domain rõ ràng).
+Tên công ty (loại bỏ ký tự thừa, viết đúng chính tả).
+
+Lưu ý:
+- Bỏ qua các ký tự nhiễu, số lộn xộn không liên quan.
+- Nếu thông tin không rõ ràng (ví dụ: tên công ty viết tắt), hãy ghi chú thêm hoặc đề xuất phương án hợp lý.
+- Ưu tiên sắp xếp thông tin theo thứ tự Tên → Chức vụ → Số điện thoại → Email → Tên công ty.
+- Nếu một trường thông tin không xác định được, hãy để trống.
+
+Trả về kết quả theo định dạng JSON: {"name": "", "position": "", "phone": "", "email": "", "company": ""}
+
+Văn bản cần phân tích:
+${ocrText}`
           }
         ],
         response_format: { type: 'json_object' }
