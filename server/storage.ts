@@ -544,32 +544,51 @@ export class MemStorage implements IStorage {
       return { exceeds: true, totalWithdrawn: 0, remainingLimit: 0 };
     }
     
-    // Tính ngày hiện tại
-    const today = new Date();
-    const startOfToday = new Date(today);
-    startOfToday.setHours(9, 0, 0, 0); // Giới hạn reset vào 9h sáng mỗi ngày
+    // Lấy ngày hiện tại (ở múi giờ VN)
+    const now = new Date();
+    const resetHour = 9; // Giới hạn reset vào 9h sáng mỗi ngày
     
-    // Nếu hiện tại < 9h sáng, lấy từ 9h hôm trước
-    if (today.getHours() < 9) {
-      startOfToday.setDate(startOfToday.getDate() - 1);
+    // Tính thời gian reset gần nhất (9:00 sáng hôm nay hoặc 9:00 sáng hôm qua nếu hiện tại < 9h)
+    const resetTime = new Date(now);
+    resetTime.setHours(resetHour, 0, 0, 0);
+    
+    // Nếu bây giờ < 9h sáng thì lấy thời điểm 9h sáng hôm trước
+    if (now.getHours() < resetHour) {
+      resetTime.setDate(resetTime.getDate() - 1);
     }
     
-    // Lọc các giao dịch rút tiền trong ngày hiện tại (sau 9h sáng)
+    console.log(`Last reset time: ${resetTime.toISOString()}, Current time: ${now.toISOString()}`);
+    
+    // Lọc các giao dịch rút tiền từ thời điểm reset gần nhất
     const todaysWithdrawals = (kolVip.withdrawal_history || [])
       .filter(w => {
-        const wDate = new Date(w.request_date);
-        return wDate >= startOfToday && 
-               (w.status === "Pending" || w.status === "Processing" || w.status === "Completed");
+        try {
+          const requestDate = new Date(w.request_date);
+          // Chỉ tính các giao dịch từ thời điểm reset đến hiện tại
+          return requestDate >= resetTime && 
+                 (w.status === "Pending" || w.status === "Processing" || w.status === "Completed");
+        } catch (e) {
+          console.error(`Error parsing date: ${w.request_date}`, e);
+          return false;
+        }
       });
+    
+    console.log(`Today's withdrawals (since ${resetTime.toLocaleTimeString()}):`, 
+      todaysWithdrawals.map(w => ({ 
+        date: w.request_date, 
+        amount: w.amount,
+        status: w.status
+      }))
+    );
     
     // Tính tổng đã rút trong ngày
     const totalWithdrawnToday = todaysWithdrawals.reduce((sum, w) => sum + w.amount, 0);
     
     // Giới hạn rút tiền mỗi ngày: 20 triệu
     const DAILY_LIMIT = 20000000;
-    const remainingLimit = DAILY_LIMIT - totalWithdrawnToday;
+    const remainingLimit = Math.max(0, DAILY_LIMIT - totalWithdrawnToday);
     
-    // Kiểm tra có vượt quá giới hạn không
+    // Kiểm tra có vượt quá giới hạn không (chỉ vượt quá khi số tiền yêu cầu > số tiền còn lại)
     const exceeds = amount > remainingLimit;
     
     console.log(`KOL/VIP ${affiliateId} daily withdrawal stats: withdrawn=${totalWithdrawnToday}, remaining=${remainingLimit}, exceeds=${exceeds}`);
