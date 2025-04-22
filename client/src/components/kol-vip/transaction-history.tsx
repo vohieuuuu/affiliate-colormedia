@@ -173,8 +173,8 @@ const TransactionHistoryComponent: React.FC<TransactionHistoryProps> = ({ kolId 
         </CardDescription>
         <div className="flex flex-wrap gap-2 mt-4">
           <Select value={period} onValueChange={(value) => setPeriod(value as PeriodOption)}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Khoảng thời gian" />
+            <SelectTrigger className="w-28 sm:w-32 h-8 text-xs sm:text-sm">
+              <SelectValue placeholder="Thời gian" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả</SelectItem>
@@ -185,7 +185,7 @@ const TransactionHistoryComponent: React.FC<TransactionHistoryProps> = ({ kolId 
           </Select>
           
           <Select value={typeFilter || "ALL"} onValueChange={(value) => setTypeFilter(value === "ALL" ? null : value)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-32 sm:w-40 h-8 text-xs sm:text-sm">
               <SelectValue placeholder="Loại giao dịch" />
             </SelectTrigger>
             <SelectContent>
@@ -198,29 +198,29 @@ const TransactionHistoryComponent: React.FC<TransactionHistoryProps> = ({ kolId 
         </div>
       </CardHeader>
       
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="p-4 bg-blue-50 rounded-lg flex flex-col">
-            <span className="text-sm text-blue-700">Tổng thu</span>
-            <span className="text-2xl font-bold text-blue-700">{formatCurrency(summary.income)}</span>
-            <div className="flex items-center mt-1 text-blue-600">
-              <ArrowUp className="h-4 w-4 mr-1" />
+      <CardContent className="px-3 sm:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="p-3 sm:p-4 bg-blue-50 rounded-lg flex flex-col">
+            <span className="text-xs sm:text-sm text-blue-700">Tổng thu</span>
+            <span className="text-xl sm:text-2xl font-bold text-blue-700">{formatCurrency(summary.income)}</span>
+            <div className="flex items-center mt-1 text-blue-600 text-xs sm:text-sm">
+              <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             </div>
           </div>
           
-          <div className="p-4 bg-red-50 rounded-lg flex flex-col">
-            <span className="text-sm text-red-700">Tổng chi</span>
-            <span className="text-2xl font-bold text-red-700">{formatCurrency(summary.expense)}</span>
-            <div className="flex items-center mt-1 text-red-600">
-              <ArrowDown className="h-4 w-4 mr-1" />
+          <div className="p-3 sm:p-4 bg-red-50 rounded-lg flex flex-col">
+            <span className="text-xs sm:text-sm text-red-700">Tổng chi</span>
+            <span className="text-xl sm:text-2xl font-bold text-red-700">{formatCurrency(summary.expense)}</span>
+            <div className="flex items-center mt-1 text-red-600 text-xs sm:text-sm">
+              <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             </div>
           </div>
           
-          <div className="p-4 bg-green-50 rounded-lg flex flex-col">
-            <span className="text-sm text-green-700">Số dư ròng</span>
-            <span className="text-2xl font-bold text-green-700">{formatCurrency(summary.net)}</span>
-            <div className="flex items-center mt-1 text-green-600">
-              <Filter className="h-4 w-4 mr-1" />
+          <div className="p-3 sm:p-4 bg-green-50 rounded-lg flex flex-col">
+            <span className="text-xs sm:text-sm text-green-700">Số dư ròng</span>
+            <span className="text-xl sm:text-2xl font-bold text-green-700">{formatCurrency(summary.net)}</span>
+            <div className="flex items-center mt-1 text-green-600 text-xs sm:text-sm">
+              <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             </div>
           </div>
         </div>
@@ -239,39 +239,48 @@ const TransactionHistoryComponent: React.FC<TransactionHistoryProps> = ({ kolId 
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead>Loại giao dịch</TableHead>
-                  <TableHead>Mô tả</TableHead>
-                  <TableHead className="text-right">Số tiền</TableHead>
-                  <TableHead className="text-right">Số dư sau</TableHead>
+                  <TableHead className="px-2 sm:px-3 text-xs sm:text-sm">Thời gian</TableHead>
+                  <TableHead className="px-2 sm:px-3 text-xs sm:text-sm">Loại</TableHead>
+                  <TableHead className="px-2 sm:px-3 text-xs sm:text-sm">Mô tả</TableHead>
+                  <TableHead className="px-2 sm:px-3 text-xs sm:text-sm text-right">Số tiền</TableHead>
+                  <TableHead className="px-2 sm:px-3 text-xs sm:text-sm text-right">Số dư</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data && data.length > 0 ? (
                   data.map((transaction) => (
                     <TableRow key={transaction.id}>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">
                         {formatDate(transaction.created_at)}
                       </TableCell>
-                      <TableCell>
-                        <Badge className={getBadgeClass(transaction.transaction_type)}>
-                          {TRANSACTION_TYPES[transaction.transaction_type as keyof typeof TRANSACTION_TYPES] || transaction.transaction_type}
+                      <TableCell className="px-2 sm:px-3">
+                        <Badge className={`${getBadgeClass(transaction.transaction_type)} text-xs`}>
+                          {window.innerWidth < 360 ? 
+                            (transaction.transaction_type === "WITHDRAWAL" ? "Rút" : 
+                             transaction.transaction_type === "COMMISSION" ? "HH" : 
+                             transaction.transaction_type === "SALARY" ? "Lương" : 
+                             transaction.transaction_type === "BONUS" ? "Thưởng" : 
+                             transaction.transaction_type === "TAX" ? "Thuế" : 
+                             "Khác") 
+                            : TRANSACTION_TYPES[transaction.transaction_type as keyof typeof TRANSACTION_TYPES] || transaction.transaction_type}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-xs truncate">{transaction.description}</TableCell>
-                      <TableCell className={`text-right font-medium ${transaction.transaction_type === "WITHDRAWAL" || transaction.transaction_type === "TAX" ? "text-red-600" : "text-green-600"}`}>
+                      <TableCell className="max-w-[80px] sm:max-w-xs truncate text-xs sm:text-sm px-2 sm:px-3">
+                        {transaction.description}
+                      </TableCell>
+                      <TableCell className={`text-right text-xs sm:text-sm font-medium px-2 sm:px-3 ${transaction.transaction_type === "WITHDRAWAL" || transaction.transaction_type === "TAX" ? "text-red-600" : "text-green-600"}`}>
                         {transaction.transaction_type === "WITHDRAWAL" || transaction.transaction_type === "TAX" 
                           ? `- ${formatCurrency(transaction.amount)}`
                           : `+ ${formatCurrency(transaction.amount)}`}
                       </TableCell>
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="text-right text-xs sm:text-sm font-medium px-2 sm:px-3">
                         {formatCurrency(transaction.balance_after)}
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">
+                    <TableCell colSpan={5} className="text-center py-4 text-xs sm:text-sm">
                       Không có giao dịch nào trong khoảng thời gian này
                     </TableCell>
                   </TableRow>
@@ -282,8 +291,8 @@ const TransactionHistoryComponent: React.FC<TransactionHistoryProps> = ({ kolId 
         )}
       </CardContent>
       
-      <CardFooter className="flex justify-end">
-        <Button variant="outline" onClick={() => window.print()} className="mr-2">
+      <CardFooter className="flex justify-end px-3 sm:px-6">
+        <Button variant="outline" size="sm" onClick={() => window.print()} className="h-8 text-xs sm:text-sm">
           Xuất báo cáo
         </Button>
       </CardFooter>
