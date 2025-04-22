@@ -2,7 +2,7 @@
 import { Express, Request, Response, NextFunction } from "express";
 import { IStorage } from "./storage";
 import { authenticateUser } from "./routes";
-import { MonthlyKpi, KolVipLevelType, KolContact } from "@shared/schema";
+import { MonthlyKpi, KolVipLevelType, KolContact, CustomerStatusType } from "@shared/schema";
 import * as tesseract from "tesseract.js";
 import path from "path";
 import fs from "fs";
@@ -298,21 +298,21 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      // Cập nhật thông tin liên hệ
+      // Cập nhật thông tin liên hệ với cấu trúc mới đơn giản hơn
+      const updateData: { status?: CustomerStatusType, description?: string } = {};
+      
+      if (status) {
+        updateData.status = status as CustomerStatusType;
+      }
+      
+      if (note) {
+        updateData.description = note;
+      }
+      
       const updatedContact = await storage.updateKolVipContactStatus(
         kolId,
         parseInt(contactId),
-        {
-          contact_name,
-          company,
-          position,
-          phone,
-          email,
-          status,
-          note,
-          meeting_time,
-          updated_at: new Date().toISOString()
-        }
+        updateData
       );
       
       if (!updatedContact) {

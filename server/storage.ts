@@ -556,10 +556,9 @@ export class MemStorage implements IStorage {
   async updateKolVipContactStatus(
     kolId: string, 
     contactId: number, 
-    status: CustomerStatusType, 
-    note: string
+    updateData: { status?: CustomerStatusType, description?: string }
   ): Promise<KolContact | undefined> {
-    console.log(`Updating contact ${contactId} status for KOL/VIP ${kolId} to ${status}`);
+    console.log(`Updating contact ${contactId} status for KOL/VIP ${kolId}`, updateData);
     
     // Kiểm tra KOL/VIP tồn tại
     const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
