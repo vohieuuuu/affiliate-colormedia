@@ -1770,4 +1770,215 @@ function extractPositionFromText(text: string): string | null {
   
   return null;
 }
+
+  // GET /api/kol/:kolId/transactions - Lấy lịch sử giao dịch của KOL/VIP
+  app.get("/api/kol/:kolId/transactions", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
+    try {
+      const { kolId } = req.params;
+      const { startDate, endDate, type } = req.query;
+      
+      console.log(`Getting transaction history for KOL/VIP ${kolId} with filters:`, { startDate, endDate, type });
+      
+      // Chuyển đổi startDate và endDate thành đối tượng Date nếu có
+      let startDateObj, endDateObj;
+      if (startDate) {
+        startDateObj = new Date(startDate as string);
+      }
+      if (endDate) {
+        endDateObj = new Date(endDate as string);
+      }
+      
+      // Lấy lịch sử giao dịch từ storage
+      const transactions = await storage.getKolVipTransactionHistory(
+        kolId, 
+        startDateObj,
+        endDateObj,
+        type as TransactionTypeValue | undefined
+      );
+      
+      res.status(200).json({
+        status: "success",
+        data: transactions
+      });
+    } catch (error) {
+      console.error("Error getting KOL/VIP transaction history:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi lấy lịch sử giao dịch"
+        }
+      });
+    }
+  });
+  
+  // GET /api/kol/:kolId/financial-summary - Lấy tổng quan tài chính của KOL/VIP
+  app.get("/api/kol/:kolId/financial-summary", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
+    try {
+      const { kolId } = req.params;
+      const { period } = req.query; // 'week', 'month', 'year', 'all'
+      
+      console.log(`Getting financial summary for KOL/VIP ${kolId} with period: ${period || 'all'}`);
+      
+      // Thiết lập thời gian dựa trên period
+      let startDate: Date | undefined;
+      const currentDate = new Date();
+      
+      if (period === 'week') {
+        // 7 ngày gần nhất
+        startDate = new Date();
+        startDate.setDate(currentDate.getDate() - 7);
+      } else if (period === 'month') {
+        // 30 ngày gần nhất
+        startDate = new Date();
+        startDate.setDate(currentDate.getDate() - 30);
+      } else if (period === 'year') {
+        // 365 ngày gần nhất
+        startDate = new Date();
+        startDate.setDate(currentDate.getDate() - 365);
+      }
+      
+      // Lấy lịch sử giao dịch từ storage
+      const transactions = await storage.getKolVipTransactionHistory(kolId, startDate);
+      
+      // Tính toán tổng quan tài chính
+      let totalIncome = 0;
+      let totalExpense = 0;
+      let totalTax = 0;
+      
+      const incomeSources = {
+        salary: 0,
+        commission: 0,
+        bonus: 0,
+        other: 0
+      };
+      
+      const expenseSources = {
+        withdrawal: 0,
+        tax: 0,
+        other: 0
+      };
+      
+      transactions.forEach(transaction => {
+        const amount = transaction.amount;
+        
+        if (transaction.is_addition) {
+          totalIncome += amount;
+          
+          // Phân loại nguồn thu nhập
+          if (transaction.type === 'SALARY') {
+            incomeSources.salary += amount;
+          } else if (transaction.type === 'COMMISSION') {
+            incomeSources.commission += amount;
+          } else if (transaction.type === 'BONUS') {
+            incomeSources.bonus += amount;
+          } else {
+            incomeSources.other += amount;
+          }
+        } else {
+          totalExpense += amount;
+          
+          // Phân loại chi tiêu
+          if (transaction.type === 'WITHDRAWAL') {
+            expenseSources.withdrawal += amount;
+          } else if (transaction.type === 'TAX') {
+            expenseSources.tax += amount;
+            totalTax += amount;
+          } else {
+            expenseSources.other += amount;
+          }
+        }
+      });
+      
+      // Lấy số dư hiện tại
+      const kolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+      const currentBalance = kolVip?.current_balance || 0;
+      
+      res.status(200).json({
+        status: "success",
+        data: {
+          currentBalance,
+          totalIncome,
+          totalExpense,
+          totalTax,
+          netProfit: totalIncome - totalExpense,
+          incomeSources,
+          expenseSources,
+          transactionCount: transactions.length,
+          periodStart: startDate ? startDate.toISOString() : null,
+          periodEnd: currentDate.toISOString()
+        }
+      });
+    } catch (error) {
+      console.error("Error getting KOL/VIP financial summary:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi lấy tổng quan tài chính"
+        }
+      });
+    }
+  });
+  
+  // POST /api/kol/:kolId/transactions - Thêm giao dịch mới cho KOL/VIP (chủ yếu dành cho Admin)
+  app.post("/api/kol/:kolId/transactions", authenticateUser, async (req: Request, res: Response, next: NextFunction) => {
+    // Kiểm tra quyền Admin
+    const normalizedRole = String(req.user?.role || '').toUpperCase();
+    if (!normalizedRole.includes("ADMIN")) {
+      return res.status(403).json({
+        status: "error",
+        error: {
+          code: "FORBIDDEN",
+          message: "Chỉ Admin mới có thể thêm giao dịch thủ công"
+        }
+      });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
+    try {
+      const { kolId } = req.params;
+      const { type, amount, description, is_addition } = req.body;
+      
+      if (!type || !amount || amount <= 0) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_TRANSACTION_DATA",
+            message: "Dữ liệu giao dịch không hợp lệ"
+          }
+        });
+      }
+      
+      // Thêm giao dịch mới
+      const transaction = await storage.addKolVipTransaction({
+        kol_id: kolId,
+        type,
+        amount,
+        description: description || "",
+        is_addition: is_addition === undefined ? true : Boolean(is_addition),
+        transaction_time: new Date().toISOString()
+      });
+      
+      // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
+      const updatedKolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+      
+      res.status(201).json({
+        status: "success",
+        data: {
+          transaction,
+          updatedBalance: updatedKolVip?.current_balance || 0
+        }
+      });
+    } catch (error) {
+      console.error("Error adding KOL/VIP transaction:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi thêm giao dịch mới"
+        }
+      });
+    }
+  });
 }
