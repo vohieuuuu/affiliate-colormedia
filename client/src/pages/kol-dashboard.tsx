@@ -248,16 +248,16 @@ const KolDashboard = () => {
       if (data?.data?.contact) {
         setShowScanCardModal(false);
         queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.affiliate_id, "contacts"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/kol", kolInfo?.affiliate_id, "kpi-stats"] });
         toast({
           title: "Thành công",
           description: "Đã thêm liên hệ mới từ card visit",
         });
       } 
-      // Nếu chỉ có ảnh, hiển thị form nhập liệu
+      // Nếu chỉ có ảnh, hiển thị dữ liệu trong modal scan card để xác nhận
       else if (data?.data?.contact_data) {
-        setShowScanCardModal(false);
+        // Lưu dữ liệu đã trích xuất vào state để hiển thị trong modal hiện tại
         setExtractedContactData(data.data.contact_data);
-        setShowAddContactModal(true);
         toast({
           title: "Đã tải lên ảnh",
           description: "Vui lòng điền thông tin từ card visit",

@@ -448,6 +448,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         
         // Tạo liên hệ mới trực tiếp
         const newContact = await storage.addKolVipContact(kolId, {
+          kol_id: kolId,
           contact_name,
           company,
           position,
