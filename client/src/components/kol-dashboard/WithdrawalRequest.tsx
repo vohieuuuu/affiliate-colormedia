@@ -104,8 +104,8 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
           isOpen={modalOpen}
           onClose={handleCloseModal}
           onSuccess={handleSuccess}
-          kolData={kolData}
-          balance={currentBalance}
+          kolData={kolData || {}}
+          balance={currentBalance || 0}
         />
       )}
     </div>

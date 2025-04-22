@@ -213,13 +213,15 @@ export default function DirectWithdrawalPage() {
                       </div>
                     )}
                     
-                    <KolWithdrawalModalV2
-                      isOpen={modalOpen}
-                      onClose={handleCloseModal}
-                      onSuccess={handleSuccess}
-                      kolData={kolData}
-                      balance={currentBalance}
-                    />
+                    {modalOpen && (
+                      <KolWithdrawalModalV2
+                        isOpen={modalOpen}
+                        onClose={handleCloseModal}
+                        onSubmit={handleSuccess}
+                        kolData={kolData || {}}
+                        balance={currentBalance || 0}
+                      />
+                    )}
                   </div>
                 </CardContent>
               </Card>
