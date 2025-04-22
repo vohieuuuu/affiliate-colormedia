@@ -1976,16 +1976,21 @@ function extractPositionFromText(text: string): string | null {
       
       transactions.forEach(transaction => {
         const amount = transaction.amount;
+        const transactionType = transaction.transaction_type;
         
-        if (transaction.is_addition) {
+        // Xác định loại giao dịch là thu nhập hay chi tiêu
+        const incomeTypes = ['SALARY', 'COMMISSION', 'BONUS'];
+        const isIncome = incomeTypes.includes(transactionType);
+        
+        if (isIncome) {
           totalIncome += amount;
           
           // Phân loại nguồn thu nhập
-          if (transaction.type === 'SALARY') {
+          if (transactionType === 'SALARY') {
             incomeSources.salary += amount;
-          } else if (transaction.type === 'COMMISSION') {
+          } else if (transactionType === 'COMMISSION') {
             incomeSources.commission += amount;
-          } else if (transaction.type === 'BONUS') {
+          } else if (transactionType === 'BONUS') {
             incomeSources.bonus += amount;
           } else {
             incomeSources.other += amount;
@@ -1994,9 +1999,9 @@ function extractPositionFromText(text: string): string | null {
           totalExpense += amount;
           
           // Phân loại chi tiêu
-          if (transaction.type === 'WITHDRAWAL') {
+          if (transactionType === 'WITHDRAWAL') {
             expenseSources.withdrawal += amount;
-          } else if (transaction.type === 'TAX') {
+          } else if (transactionType === 'TAX') {
             expenseSources.tax += amount;
             totalTax += amount;
           } else {
