@@ -4,7 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
-import KolDashboard from "@/pages/kol-dashboard/index";
+import KolDashboard from "@/pages/kol-dashboard";
+import DirectWithdrawalPage from "@/components/kol-dashboard/DirectWithdrawalPage";
 import SelectModePage from "@/pages/select-mode";
 import UnauthorizedPage from "@/pages/unauthorized";
 import AuthPage from "@/pages/auth-page";
@@ -17,7 +18,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
 import { useEffect, Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
-import { ToastNotificationProvider } from "@/components/notification/ToastNotificationProvider";
 
 // Thêm một component mới để xử lý điều hướng một cách thông minh
 // Component này sẽ giúp điều hướng người dùng đúng cách dựa trên trạng thái hiện tại
@@ -106,7 +106,7 @@ function AuthenticatedRoutes() {
       {/* Các routes cần xác thực và có thể cần chọn chế độ */}
       <ProtectedRoute path="/" component={RoleRouter} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
-      <ProtectedRoute path="/kol-dashboard/withdrawal" component={KolDashboard} />
+      <ProtectedRoute path="/kol-dashboard/withdrawal" component={DirectWithdrawalPage} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       {/* Admin routes */}
@@ -146,10 +146,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ToastNotificationProvider>
-          <Router />
-          <Toaster />
-        </ToastNotificationProvider>
+        <Router />
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { WithdrawalRequest } from "@/components/kol-dashboard/WithdrawalRequest";
-import KolWithdrawalFlow from "@/components/withdrawal/KolWithdrawalFlow";
+import DirectWithdrawalFlow from "@/components/kol-dashboard/DirectWithdrawalFlow";
 
 export default function WithdrawalPage() {
   const { user } = useAuth();
@@ -190,8 +190,8 @@ export default function WithdrawalPage() {
               </CardHeader>
               <CardContent>
                 <WithdrawalRequest
-                  kolData={kolData || {}}
-                  balance={financialSummary?.currentBalance || 0}
+                  kolData={kolData}
+                  financialSummary={financialSummary}
                 />
               </CardContent>
             </Card>
@@ -298,16 +298,14 @@ export default function WithdrawalPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Sử dụng component KolWithdrawalFlow để quản lý luồng rút tiền */}
-      {showWithdrawalModal && (
-        <KolWithdrawalFlow
-          isOpen={showWithdrawalModal}
-          onClose={() => setShowWithdrawalModal(false)}
-          onSuccess={handleWithdrawalSuccess}
-          kolData={kolData || {}}
-          balance={financialSummary?.currentBalance || 0}
-        />
-      )}
+      {/* Sử dụng component DirectWithdrawalFlow để quản lý luồng rút tiền */}
+      <DirectWithdrawalFlow
+        isOpen={showWithdrawalModal}
+        onClose={() => setShowWithdrawalModal(false)}
+        onSuccess={handleWithdrawalSuccess}
+        kolData={kolData}
+        balance={financialSummary.currentBalance || 0}
+      />
     </div>
   );
 }

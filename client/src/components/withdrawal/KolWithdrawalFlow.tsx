@@ -12,21 +12,21 @@ interface KolWithdrawalFlowProps {
 /**
  * Specialized withdrawal flow for KOL/VIP affiliates
  */
-export default function KolWithdrawalFlow({ 
-  isOpen, 
-  onClose, 
+export default function KolWithdrawalFlow({
+  isOpen,
+  onClose,
   onSuccess = () => {},
   kolData,
   balance
 }: KolWithdrawalFlowProps) {
   const queryClient = useQueryClient();
   
-  // API endpoints specific to KOL/VIP affiliates
+  // API endpoints specific to KOL/VIP
   const apiEndpoints = {
     checkLimit: '/api/kol/withdrawal-request/check-limit',
     sendOtp: '/api/kol/withdrawal-request/send-otp',
     verifyOtp: '/api/kol/withdrawal-request/verify',
-    resendOtp: '/api/kol/withdrawal-request/send-otp' // Sử dụng endpoint gửi OTP lại vì không có resend riêng
+    // No separate resendOtp endpoint, will reuse sendOtp
   };
   
   // Query keys to invalidate on success
@@ -38,11 +38,7 @@ export default function KolWithdrawalFlow({
   const handleSuccess = () => {
     // Refresh data in addition to parent onSuccess
     queryClient.invalidateQueries({ queryKey: ['/api/kol/me'] });
-    if (kolData?.affiliate_id) {
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/kol', kolData.affiliate_id, 'financial-summary'] 
-      });
-    }
+    queryClient.invalidateQueries({ queryKey: ['/api/kol', kolData?.affiliate_id, 'financial-summary'] });
     
     // Call parent's onSuccess if provided
     onSuccess();
@@ -57,6 +53,8 @@ export default function KolWithdrawalFlow({
       balance={balance}
       apiEndpoints={apiEndpoints}
       queryInvalidationKeys={queryInvalidationKeys}
+      // Custom withdrawals today calculation if needed:
+      // getTodayWithdrawals={(userData) => {}}
     />
   );
 }
