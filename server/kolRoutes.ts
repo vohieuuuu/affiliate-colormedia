@@ -1077,7 +1077,11 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       // Kiểm tra giới hạn rút tiền theo ngày
       const limitCheck = await storage.checkKolVipDailyWithdrawalLimit(kolVip.affiliate_id, amount);
       
-      return res.status(200).json(limitCheck);
+      // Thêm trạng thái success vào response cho frontend
+      return res.status(200).json({
+        status: "success",
+        data: limitCheck
+      });
       
     } catch (error) {
       console.error("Error checking KOL/VIP withdrawal limit:", error);
