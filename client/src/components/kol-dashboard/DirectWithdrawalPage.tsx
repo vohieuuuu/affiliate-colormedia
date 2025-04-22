@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import KolWithdrawalModal from "./KolWithdrawalModal";
+import KolWithdrawalModalV2 from "./KolWithdrawalModalV2";
 
 interface FinancialSummary {
   currentBalance: number;
@@ -213,7 +213,7 @@ export default function DirectWithdrawalPage() {
                       </div>
                     )}
                     
-                    <KolWithdrawalModal
+                    <KolWithdrawalModalV2
                       isOpen={modalOpen}
                       onClose={handleCloseModal}
                       onSuccess={handleSuccess}
