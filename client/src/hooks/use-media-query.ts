@@ -1,65 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
- * Hook để kiểm tra media query và theo dõi thay đổi kích thước màn hình
- * 
- * @param query Media query cần kiểm tra, ví dụ: '(max-width: 768px)'
- * @returns boolean - true nếu media query khớp, false nếu không
+ * Hook để kiểm tra media queries
+ * @param query Media query cần kiểm tra (ví dụ: '(max-width: 768px)')
+ * @returns boolean - true nếu media query khớp, false nếu không khớp
  */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState<boolean>(false);
-
+  
   useEffect(() => {
-    // Chỉ chạy trên client-side
-    if (typeof window !== 'undefined') {
-      const media = window.matchMedia(query);
-      
-      // Cập nhật trạng thái ban đầu
-      setMatches(media.matches);
-      
-      // Hàm callback khi media matching thay đổi
-      const listener = (event: MediaQueryListEvent) => {
-        setMatches(event.matches);
-      };
-      
-      // Đăng ký listener
-      media.addEventListener('change', listener);
-      
-      // Cleanup: hủy đăng ký listener khi component unmount
-      return () => {
-        media.removeEventListener('change', listener);
-      };
-    }
+    // Tạo một media query list từ query string
+    const mediaQuery = window.matchMedia(query);
     
-    // Mặc định là false cho SSR
-    return () => {};
-  }, [query]);
+    // Set giá trị ban đầu
+    setMatches(mediaQuery.matches);
+    
+    // Handler để cập nhật state khi media query thay đổi
+    const handler = (event: MediaQueryListEvent) => {
+      setMatches(event.matches);
+    };
+    
+    // Đăng ký sự kiện thay đổi
+    mediaQuery.addEventListener('change', handler);
+    
+    // Cleanup sự kiện khi component unmount
+    return () => {
+      mediaQuery.removeEventListener('change', handler);
+    };
+  }, [query]); // Chỉ chạy lại effect nếu query thay đổi
   
   return matches;
 }
 
 /**
- * Pre-defined hooks for common device sizes
+ * Hook để kiểm tra thiết bị di động
+ * @returns boolean - true nếu thiết bị là mobile, false nếu không phải
  */
-
-// Trả về true nếu thiết bị là điện thoại di động
-export function useIsMobile(): boolean {
-  return useMediaQuery('(max-width: 640px)');
+export function useMobileDevice(): boolean {
+  return useMediaQuery('(max-width: 767px)');
 }
 
-// Trả về true nếu thiết bị là tablet
-export function useIsTablet(): boolean {
-  return useMediaQuery('(min-width: 641px) and (max-width: 1024px)');
+/**
+ * Hook để kiểm tra thiết bị tablet
+ * @returns boolean - true nếu thiết bị là tablet, false nếu không phải
+ */
+export function useTabletDevice(): boolean {
+  return useMediaQuery('(min-width: 768px) and (max-width: 1023px)');
 }
 
-// Trả về true nếu thiết bị là desktop
-export function useIsDesktop(): boolean {
-  return useMediaQuery('(min-width: 1025px)');
-}
-
-// Trả về true cho các thiết bị có kích thước nhỏ (bao gồm cả điện thoại nhỏ như iPhone SE)
-export function useIsSmallDevice(): boolean {
-  return useMediaQuery('(max-width: 375px)');
+/**
+ * Hook để kiểm tra thiết bị desktop
+ * @returns boolean - true nếu thiết bị là desktop, false nếu không phải
+ */
+export function useDesktopDevice(): boolean {
+  return useMediaQuery('(min-width: 1024px)');
 }
 
 export default useMediaQuery;

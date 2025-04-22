@@ -1366,13 +1366,21 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      // Lưu thông tin withdrawal_data vào cache hoặc session
-      // (ở đây ta giả định dữ liệu được lưu giữ ở server qua OTP)
+      // Tạo một ID cho request rút tiền này (sẽ được sử dụng trong quá trình xác thực OTP)
+      const requestId = `withdrawal-${kolVip.affiliate_id}-${Date.now()}`;
+      
+      // Lưu thông tin request vào cache
+      // (trong triển khai thực tế, có thể lưu vào Redis hoặc cơ sở dữ liệu tạm thời)
+      
+      // Chuẩn bị email address đã che một phần để hiển thị cho người dùng
+      const maskedEmail = kolVip.email ? kolVip.email.replace(/^(.)(.*)(@.*)$/, "$1***$3") : "";
       
       res.status(200).json({
         status: "success",
         data: {
           message: "Mã OTP đã được gửi đến email của bạn",
+          requestId: requestId, // Quan trọng: trả về requestId để client sử dụng khi chuyển hướng
+          email_masked: maskedEmail, // Trả về email đã che cho client hiển thị
           withdrawal_info: {
             amount: originalAmount,
             tax_amount: taxAmount,
