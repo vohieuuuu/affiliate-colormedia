@@ -76,7 +76,62 @@ export default function KolWithdrawalModalV2({
         if (!data.data.exceeds) {
           // If check is successful, send OTP directly
           console.log("Limit not exceeded, sending OTP");
-          sendOtp();
+          // Không gọi sendOtp() ở đây mà trực tiếp gửi request OTP để tránh vấn đề bất đồng bộ
+          const amountValue = parseFloat(amount);
+          console.log("Directly sending OTP for amount:", amountValue);
+          
+          // Gửi request OTP trực tiếp
+          apiRequest(
+            "POST", 
+            "/api/kol/withdrawal-request/send-otp", 
+            {
+              amount: amountValue,
+              note,
+              tax_id: taxId,
+            }
+          )
+          .then(async (response) => {
+            const result = await response.json();
+            console.log("Direct send OTP response:", result);
+            
+            if (result.status === "success") {
+              // Refresh data to show updated balance
+              queryClient.invalidateQueries({ queryKey: ['/api/kol/me'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/kol', kolData.affiliate_id, 'financial-summary'] });
+              
+              setWithdrawalData(result);
+              
+              // Mask email for UI display (example: j***@example.com)
+              const email = kolData.email;
+              const maskedEmail = email ? email.replace(/^(.)(.*)(@.*)$/, "$1***$3") : "your email";
+              setMaskedEmail(maskedEmail);
+              
+              // Chuyển sang bước tiếp theo để nhập OTP
+              console.log("Setting current step to verification");
+              setCurrentStep("verification");
+              
+              toast({
+                title: "Mã OTP đã được gửi",
+                description: `Mã OTP đã được gửi đến ${maskedEmail}. Mã có hiệu lực trong 5 phút.`,
+              });
+            } else if (result.error) {
+              setError(result.error.message || "Lỗi gửi mã OTP");
+              toast({
+                variant: "destructive",
+                title: "Lỗi",
+                description: result.error.message || "Lỗi gửi mã OTP",
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Error sending OTP:", error);
+            setError(error.message || "Lỗi gửi mã OTP");
+            toast({
+              variant: "destructive",
+              title: "Lỗi",
+              description: error.message || "Lỗi gửi mã OTP",
+            });
+          });
         } else {
           const errorMsg = `Vượt quá giới hạn rút tiền trong ngày. Bạn đã rút ${formatCurrency(data.data.totalWithdrawn)} VND và chỉ có thể rút thêm ${formatCurrency(data.data.remainingLimit)} VND cho đến 9:00 sáng ngày mai.`;
           console.log("Limit exceeded:", errorMsg);
@@ -293,10 +348,69 @@ export default function KolWithdrawalModalV2({
       return;
     }
     
-    console.log("Form submitted, checking limit for amount:", amountValue);
+    console.log("Form submitted, sending OTP directly for amount:", amountValue);
     
-    // Đầu tiên kiểm tra giới hạn rút tiền với server
-    checkLimit(amountValue);
+    // Gửi OTP trực tiếp thay vì dùng checkLimit để tránh vấn đề về trạng thái
+    apiRequest(
+      "POST", 
+      "/api/kol/withdrawal-request/send-otp", 
+      {
+        amount: amountValue,
+        note,
+        tax_id: taxId,
+      }
+    )
+    .then(async (response) => {
+      const result = await response.json();
+      console.log("Direct send OTP response from handleInitialSubmit:", result);
+      
+      if (result.status === "success") {
+        // Refresh data to show updated balance
+        queryClient.invalidateQueries({ queryKey: ['/api/kol/me'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/kol', kolData.affiliate_id, 'financial-summary'] });
+        
+        setWithdrawalData(result);
+        
+        // Mask email for UI display (example: j***@example.com)
+        const email = kolData.email;
+        const maskedEmail = email ? email.replace(/^(.)(.*)(@.*)$/, "$1***$3") : "your email";
+        setMaskedEmail(maskedEmail);
+        
+        // Chuyển sang bước tiếp theo để nhập OTP
+        console.log("Setting current step to verification from direct OTP send");
+        setCurrentStep("verification");
+        
+        toast({
+          title: "Mã OTP đã được gửi",
+          description: `Mã OTP đã được gửi đến ${maskedEmail}. Mã có hiệu lực trong 5 phút.`,
+        });
+      } else if (result.error) {
+        // Kiểm tra nếu lỗi liên quan đến giới hạn rút tiền
+        if (result.error.code === "DAILY_LIMIT_EXCEEDED") {
+          toast({
+            variant: "destructive",
+            title: "Vượt quá giới hạn rút tiền",
+            description: result.error.message || "Vượt quá giới hạn rút tiền trong ngày",
+          });
+        } else {
+          setError(result.error.message || "Lỗi gửi mã OTP");
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: result.error.message || "Lỗi gửi mã OTP",
+          });
+        }
+      }
+    })
+    .catch((error) => {
+      console.error("Error sending OTP:", error);
+      setError(error.message || "Lỗi gửi mã OTP");
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: error.message || "Lỗi gửi mã OTP",
+      });
+    });
   };
   
   const handleOtpVerifySubmit = (e: React.FormEvent) => {
