@@ -840,7 +840,7 @@ const KolDashboard = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="text-3xl font-bold bg-gradient-to-r from-[#07ADB8] to-[#FFC919] bg-clip-text text-transparent">
-                          {formatCurrency(kolInfo?.balance || 0)}
+                          {formatCurrency(financialSummary?.currentBalance || kolInfo?.balance || 0)}
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">Số dư khả dụng để rút</p>
                       </CardContent>
