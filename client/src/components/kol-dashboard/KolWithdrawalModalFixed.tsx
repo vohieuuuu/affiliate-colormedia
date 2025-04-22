@@ -11,6 +11,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatNumberWithCommas } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useToastNotification } from "@/components/notification/ToastNotificationProvider";
 
 interface KolWithdrawalModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export default function KolWithdrawalModalFixed({
   balance 
 }: KolWithdrawalModalProps) {
   const { toast } = useToast();
+  const { showOtpVerification } = useToastNotification();
   const [amount, setAmount] = useState<string>("");
   const [formattedAmount, setFormattedAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
@@ -139,21 +141,43 @@ export default function KolWithdrawalModalFixed({
         // Force refetch ngay lập tức
         queryClient.refetchQueries({ queryKey: ['/api/kol/me'] });
         queryClient.refetchQueries({ queryKey: ['/api/kol/financial-summary'] });
-        
-        // Chuyển sang bước xác thực OTP
+
+        // Lưu dữ liệu rút tiền
         setWithdrawalData(data.data.withdrawal_data);
-        setMaskedEmail(data.data.email_masked);
-        setCurrentStep("verification");
         
-        // Khởi động bộ đếm thời gian
-        setOtpTimer(300); // 5 phút
-        setTimerActive(true);
-        
-        toast({
-          title: "Mã OTP đã được gửi",
-          description: `Vui lòng kiểm tra email của bạn để lấy mã xác thực`,
-          variant: "default"
+        // Hiển thị màn hình xác thực OTP độc lập
+        showOtpVerification({
+          email: data.data.email,
+          otpData: {
+            otpExpires: data.data.otpExpires
+          },
+          verifyEndpoint: "/api/kol/withdrawal-request/verify",
+          resendEndpoint: "/api/kol/withdrawal-request/resend-otp",
+          requestData: {
+            withdrawal_data: data.data.withdrawal_data
+          },
+          refreshQueries: ['/api/kol/me', '/api/kol/financial-summary'],
+          onSuccess: () => {
+            toast({
+              title: "Thành công",
+              description: "Yêu cầu rút tiền đã được xử lý thành công",
+              variant: "default"
+            });
+            resetForm();
+            if (onSuccess) onSuccess();
+            onClose();
+          },
+          onCancel: () => {
+            toast({
+              title: "Hủy xác thực",
+              description: "Bạn đã hủy quá trình xác thực rút tiền",
+              variant: "default"
+            });
+          }
         });
+        
+        // Đóng modal rút tiền
+        onClose();
       }
     },
     onError: (error: Error) => {

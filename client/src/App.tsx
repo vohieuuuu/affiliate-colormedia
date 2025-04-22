@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
 import { useEffect, Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
+import { ToastNotificationProvider } from "@/components/notification/ToastNotificationProvider";
 
 // Thêm một component mới để xử lý điều hướng một cách thông minh
 // Component này sẽ giúp điều hướng người dùng đúng cách dựa trên trạng thái hiện tại
@@ -146,8 +147,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
-        <Toaster />
+        <ToastNotificationProvider>
+          <Router />
+          <Toaster />
+        </ToastNotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
