@@ -106,6 +106,7 @@ function AuthenticatedRoutes() {
       {/* Các routes cần xác thực và có thể cần chọn chế độ */}
       <ProtectedRoute path="/" component={RoleRouter} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
+      <ProtectedRoute path="/kol-dashboard/withdrawal" component={KolDashboard} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       {/* Admin routes */}
