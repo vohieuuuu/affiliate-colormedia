@@ -99,13 +99,15 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
         </div>
       )}
       
-      <KolWithdrawalModal
-        isOpen={modalOpen}
-        onClose={handleCloseModal}
-        onSuccess={handleSuccess}
-        kolData={kolData}
-        balance={currentBalance}
-      />
+      {modalOpen && (
+        <KolWithdrawalModal
+          isOpen={modalOpen}
+          onClose={handleCloseModal}
+          onSuccess={handleSuccess}
+          kolData={kolData}
+          balance={currentBalance}
+        />
+      )}
     </div>
   );
 }

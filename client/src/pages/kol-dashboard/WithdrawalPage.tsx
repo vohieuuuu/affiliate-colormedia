@@ -190,8 +190,8 @@ export default function WithdrawalPage() {
               </CardHeader>
               <CardContent>
                 <WithdrawalRequest
-                  kolData={kolData}
-                  financialSummary={financialSummary}
+                  kolData={kolData || {}}
+                  balance={financialSummary?.currentBalance || 0}
                 />
               </CardContent>
             </Card>
@@ -299,13 +299,15 @@ export default function WithdrawalPage() {
       </Tabs>
 
       {/* Sử dụng component KolWithdrawalFlow để quản lý luồng rút tiền */}
-      <KolWithdrawalFlow
-        isOpen={showWithdrawalModal}
-        onClose={() => setShowWithdrawalModal(false)}
-        onSuccess={handleWithdrawalSuccess}
-        kolData={kolData}
-        balance={financialSummary.currentBalance || 0}
-      />
+      {showWithdrawalModal && (
+        <KolWithdrawalFlow
+          isOpen={showWithdrawalModal}
+          onClose={() => setShowWithdrawalModal(false)}
+          onSuccess={handleWithdrawalSuccess}
+          kolData={kolData || {}}
+          balance={financialSummary?.currentBalance || 0}
+        />
+      )}
     </div>
   );
 }
