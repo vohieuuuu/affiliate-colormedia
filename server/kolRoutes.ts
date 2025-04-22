@@ -356,7 +356,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
           status: "Đã chốt hợp đồng",
           contract_value,
           commission,
-          contract_date: new Date().toISOString(),
+          contract_date: new Date(),
           note: note || contact.note
         },
         {
@@ -452,7 +452,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
           status: "Đã chốt hợp đồng",
           contract_value,
           commission,
-          contract_date: new Date().toISOString(),
+          contract_date: new Date(),
           note: note || contact.note
         },
         {
