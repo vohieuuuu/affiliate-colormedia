@@ -285,6 +285,22 @@
             remaining_balance: newRemainingBalance
           })
           .where(eq(kolVipAffiliates.affiliate_id, contact.kol_id));
+        
+        // 5. Thêm giao dịch hoa hồng (COMMISSION) vào bảng giao dịch
+        const companyInfo = contactData.company ? ` - ${contactData.company}` : '';
+        const description = `Hoa hồng từ hợp đồng${companyInfo} (${formatCurrency(balanceUpdates.contract_value)})`;
+        
+        // Thêm giao dịch hoa hồng
+        await db.insert(kolVipTransactions)
+          .values({
+            kol_id: contact.kol_id,
+            transaction_type: 'COMMISSION',
+            amount: balanceUpdates.commission,
+            description,
+            reference_id: `CONTRACT-${contactId}`,
+            created_at: new Date(),
+            balance_after: newRemainingBalance
+          });
       }
       
       return updatedContact;
@@ -292,6 +308,12 @@
       console.error("Error updating KOL/VIP contact with contract:", error);
       return undefined;
     }
+  }
+  
+  // Helper để định dạng tiền tệ
+  private formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+      .replace('₫', 'VNĐ').trim();
   }
   
   async getKolVipContacts(kolId: string): Promise<KolContact[]> {
