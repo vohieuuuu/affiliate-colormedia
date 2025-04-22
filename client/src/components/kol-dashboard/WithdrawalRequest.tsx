@@ -15,30 +15,40 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
   const [modalOpen, setModalOpen] = useState(false);
   const [currentBalance, setCurrentBalance] = useState<number>(initialBalance);
 
-  // Fetch real-time balance directly in this component to ensure accuracy
+  // Sử dụng dữ liệu từ trang cha thay vì gọi API lại
   const { data: financialData, isLoading } = useQuery({
-    queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary-direct"],
+    queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary", "month"],
     queryFn: async () => {
       try {
-        console.log("Fetching financial summary directly in WithdrawalRequest with affiliate_id:", kolData?.affiliate_id);
+        // Sử dụng dữ liệu có sẵn từ cache nếu có
+        const queryClient = window.queryClient;
+        if (queryClient) {
+          const cachedData = queryClient.getQueryData(["/api/kol", kolData?.affiliate_id, "financial-summary", "month"]);
+          if (cachedData) {
+            console.log("Using cached financial data");
+            return cachedData;
+          }
+        }
         
+        // Nếu không có trong cache, gọi API
+        console.log("Fetching financial summary as no cached data found");
         const response = await apiRequest(
           "GET", 
           `/api/kol/${kolData.affiliate_id}/financial-summary?period=month`
         );
         const data = await response.json();
-        console.log("Financial summary API response (direct):", data);
         
         if (data.status === "success") {
           return data.data;
         }
         return null;
       } catch (error) {
-        console.error("Error fetching financial summary directly:", error);
+        console.error("Error fetching financial summary:", error);
         return null;
       }
     },
     enabled: !!kolData?.affiliate_id,
+    staleTime: 5 * 60 * 1000, // 5 phút cache
   });
 
   // Update current balance when data changes
