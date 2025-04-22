@@ -16,18 +16,17 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
   const [currentBalance, setCurrentBalance] = useState<number>(initialBalance);
 
   // Sử dụng dữ liệu từ trang cha thay vì gọi API lại
+  const queryClient = useQueryClient();
+  
   const { data: financialData, isLoading } = useQuery({
     queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary", "month"],
     queryFn: async () => {
       try {
         // Sử dụng dữ liệu có sẵn từ cache nếu có
-        const queryClient = window.queryClient;
-        if (queryClient) {
-          const cachedData = queryClient.getQueryData(["/api/kol", kolData?.affiliate_id, "financial-summary", "month"]);
-          if (cachedData) {
-            console.log("Using cached financial data");
-            return cachedData;
-          }
+        const cachedData = queryClient.getQueryData(["/api/kol", kolData?.affiliate_id, "financial-summary", "month"]);
+        if (cachedData) {
+          console.log("Using cached financial data");
+          return cachedData;
         }
         
         // Nếu không có trong cache, gọi API

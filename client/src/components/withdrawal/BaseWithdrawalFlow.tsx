@@ -369,7 +369,7 @@ export default function BaseWithdrawalFlow({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
-        {currentStepRef.current === 'initial' ? (
+        {currentStep === 'initial' ? (
           // Initial withdrawal request form
           <>
             <DialogHeader>

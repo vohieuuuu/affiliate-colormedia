@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,6 +60,8 @@ export default function WithdrawalPage() {
   });
   
   // Lấy thông tin tài chính - sử dụng staleTime để tránh gọi API nhiều lần
+  const queryClient = useQueryClient();
+  
   const { data: financialSummary, isLoading: isLoadingFinancialSummary } = useQuery({
     queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary", "month"],
     queryFn: async () => {
