@@ -412,6 +412,146 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // POST /api/kol/:kolId/scan-card - Quét và xử lý card visit 
+  app.post("/api/kol/:kolId/scan-card", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
+    try {
+      const { kolId } = req.params;
+      const { image_base64 } = req.body;
+      
+      if (!image_base64) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_DATA",
+            message: "Dữ liệu ảnh không hợp lệ"
+          }
+        });
+      }
+      
+      // Xử lý ảnh base64 để lấy dữ liệu bỏ phần header
+      const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      console.log("Đang xử lý OCR cho ảnh card visit...");
+      
+      // Sử dụng Tesseract để nhận dạng văn bản
+      const tesseractWorker = await tesseract.createWorker("vie+eng");
+      
+      // Cấu hình parameters
+      await tesseractWorker.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.@-:,/\\[]()& ',
+      });
+      
+      // Nhận dạng văn bản từ ảnh
+      const { data } = await tesseractWorker.recognize(buffer);
+      const rawText = data.text;
+      
+      console.log("Kết quả OCR:", rawText);
+      
+      // Xử lý trích xuất thông tin liên hệ từ văn bản
+      const contactData = extractContactInfo(rawText);
+      
+      // Giải phóng worker
+      await tesseractWorker.terminate();
+      
+      // Trả về kết quả
+      res.status(200).json({
+        status: "success",
+        data: {
+          raw_text: rawText,
+          contact_data: contactData
+        }
+      });
+    } catch (error) {
+      console.error("Error processing business card OCR:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "OCR_PROCESSING_ERROR",
+          message: "Lỗi khi xử lý OCR cho card visit"
+        }
+      });
+    }
+  });
+  
+  // Hàm trích xuất thông tin liên hệ từ văn bản OCR
+  function extractContactInfo(text: string) {
+    // Chuẩn hóa văn bản
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\n+/g, '\n');
+    const lines = normalizedText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    // Các pattern regex để tìm kiếm
+    const emailPattern = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+    const phonePattern = /[(]?(?:(?:\+|00)84|0)(?:3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7,8}[)]?/g;
+    const phonePatternAlt = /(?:\+|00)84[0-9]{9,10}|0[0-9]{9,10}/g;
+    
+    // Trích xuất email
+    const emails: string[] = [];
+    let email: string | null = null;
+    const emailMatches = normalizedText.match(emailPattern);
+    if (emailMatches && emailMatches.length > 0) {
+      emailMatches.forEach(match => {
+        emails.push(match.toLowerCase());
+      });
+      email = emails[0]; // Lấy email đầu tiên
+    }
+    
+    // Trích xuất số điện thoại
+    const phones: string[] = [];
+    let phone: string | null = null;
+    const phoneMatches = normalizedText.match(phonePattern) || normalizedText.match(phonePatternAlt);
+    if (phoneMatches && phoneMatches.length > 0) {
+      phoneMatches.forEach(match => {
+        // Làm sạch số điện thoại
+        const cleanedPhone = match.replace(/[()\s-]/g, '');
+        phones.push(cleanedPhone);
+      });
+      phone = phones[0]; // Lấy số điện thoại đầu tiên
+    }
+    
+    // Xác định tên và công ty
+    let contactName = '';
+    let company = '';
+    let position = '';
+    
+    // Nếu có ít nhất 2 dòng, giả định dòng đầu tiên là tên, dòng thứ hai là vị trí
+    if (lines.length >= 2) {
+      // Dòng đầu tiên thường là tên
+      contactName = lines[0];
+      
+      // Dòng 2 có thể là vị trí
+      if (lines[1] && !lines[1].includes('@') && !phonePatternAlt.test(lines[1]) && !phonePattern.test(lines[1])) {
+        position = lines[1];
+      }
+      
+      // Tìm tên công ty - thường là chữ in hoa hoặc có Ltd, Co., Corp, etc.
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (
+          (line.toUpperCase() === line && line.length > 4) || 
+          line.includes("LTD") || 
+          line.includes("CO") || 
+          line.includes("CORP") ||
+          line.includes("COMPANY") ||
+          line.includes("CÔNG TY") ||
+          line.includes("ENTERPRISE") ||
+          line.includes("GROUP")
+        ) {
+          company = line;
+          break;
+        }
+      }
+    }
+    
+    return {
+      contact_name: contactName,
+      company: company,
+      position: position,
+      phone: phone,
+      email: email
+    };
+  }
+  
   // GET /api/kol/:kolId/kpi-stats - Lấy thống kê KPI của KOL/VIP
   app.get("/api/kol/:kolId/kpi-stats", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
     try {

@@ -343,13 +343,14 @@ const KolDashboard = () => {
   // Tính số lượng liên hệ theo trạng thái
   const getContactsCountByStatus = (status: string) => {
     if (!contacts) return 0;
-    return contacts.filter(contact => contact.status === status).length;
+    return contacts.filter((contact: {status: string}) => contact.status === status).length;
   };
 
   // Tính tổng giá trị hợp đồng
   const getTotalContractValue = () => {
     if (!contacts) return 0;
-    return contacts.reduce((total, contact) => total + (contact.contract_value || 0), 0);
+    return contacts.reduce((total: number, contact: {contract_value?: number}) => 
+      total + (contact.contract_value || 0), 0);
   };
 
   // Kiểm tra nếu có lỗi
