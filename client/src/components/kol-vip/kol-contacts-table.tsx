@@ -419,25 +419,24 @@ const KolContactsTable = ({
                           </Tooltip>
                         </TooltipProvider>
 
-                        {contact.status !== "Đã chốt hợp đồng" && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleAddContract(contact)}
-                                >
-                                  <FileSignature className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Chốt hợp đồng</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
+                        {/* Chức năng chốt hợp đồng đã bị vô hiệu hóa - sẽ được quản lý qua API */}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 opacity-50 cursor-not-allowed"
+                                disabled={true}
+                              >
+                                <FileSignature className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Chốt hợp đồng (Quản lý qua API)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>

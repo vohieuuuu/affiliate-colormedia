@@ -112,11 +112,11 @@ const ContractModal = ({ isOpen, onClose, contact, onSubmit }: ContractModalProp
             />
           </div>
           
-          <Alert>
+          <Alert className="bg-amber-50 text-amber-800 border-amber-200">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Lưu ý quan trọng</AlertTitle>
             <AlertDescription>
-              Khi chốt hợp đồng, trạng thái của liên hệ sẽ được chuyển thành "Đã chốt hợp đồng" và không thể thay đổi sau này.
+              Tính năng chốt hợp đồng đã bị vô hiệu hóa trên giao diện và sẽ được quản lý thông qua API. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.
             </AlertDescription>
           </Alert>
           
@@ -129,8 +129,8 @@ const ContractModal = ({ isOpen, onClose, contact, onSubmit }: ContractModalProp
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Đang cập nhật..." : "Chốt hợp đồng"}
+            <Button type="submit" disabled={true} className="opacity-50 cursor-not-allowed">
+              Chốt hợp đồng (Đã vô hiệu hóa)
             </Button>
           </DialogFooter>
         </form>
