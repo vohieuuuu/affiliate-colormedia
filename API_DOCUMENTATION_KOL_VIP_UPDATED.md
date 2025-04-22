@@ -350,9 +350,9 @@ Chỉ cần gửi các trường cần cập nhật. Trong ví dụ trên, chỉ
 ```
 
 ### Thêm thông tin hợp đồng cho liên hệ
-**Endpoint**: `POST /api/kol/:kolId/contacts/:contactId/contract`
+**Endpoint**: `POST /api/kol/:kolId/contacts/:contactId/contract` hoặc `PUT /api/kol/:kolId/contacts/:contactId/contract`
 
-**Mô tả**: Thêm thông tin hợp đồng cho liên hệ và cập nhật trạng thái thành "Đã chốt hợp đồng".
+**Mô tả**: Thêm thông tin hợp đồng cho liên hệ và cập nhật trạng thái thành "Đã chốt hợp đồng". API này hỗ trợ cả phương thức POST và PUT.
 
 **Headers**:
 ```

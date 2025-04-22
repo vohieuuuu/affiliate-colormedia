@@ -366,8 +366,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // POST /api/kol/:kolId/contacts/:contactId/contract - Thêm thông tin hợp đồng cho liên hệ
-  app.post("/api/kol/:kolId/contacts/:contactId/contract", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
+  // Định nghĩa handler xử lý cập nhật hợp đồng cho cả POST và PUT
+  const handleContractUpdate = async (req: Request, res: Response) => {
     try {
       const { kolId, contactId } = req.params;
       const { contractValue, note } = req.body;
@@ -454,7 +454,15 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         }
       });
     }
-  });
+  };
+  
+  // Đăng ký route POST cho cập nhật hợp đồng
+  app.post("/api/kol/:kolId/contacts/:contactId/contract", 
+    authenticateUser, requireKolVip, ensureOwnKolVipData, handleContractUpdate);
+    
+  // Đăng ký route PUT cho cập nhật hợp đồng (cùng handler)
+  app.put("/api/kol/:kolId/contacts/:contactId/contract", 
+    authenticateUser, requireKolVip, ensureOwnKolVipData, handleContractUpdate);
 
   // POST /api/kol/:kolId/scan-card - Quét và xử lý card visit 
   app.post("/api/kol/:kolId/scan-card", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
