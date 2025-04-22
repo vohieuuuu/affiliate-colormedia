@@ -126,7 +126,16 @@ export default function KolWithdrawalModalV2({
     e.preventDefault();
     setError(null);
     
+    // Đảm bảo amount là chuỗi hợp lệ
+    if (!amount || amount.trim() === '') {
+      setError(`Vui lòng nhập số tiền rút`);
+      return;
+    }
+    
+    // Chuyển đổi an toàn sang số
     const amountValue = parseFloat(amount);
+    console.log("Amount parsed:", amountValue, "from string:", amount);
+    
     if (isNaN(amountValue) || amountValue <= 0 || amountValue > maxAmount) {
       setError(`Vui lòng nhập số tiền hợp lệ (từ 1 đến ${formatCurrency(maxAmount)} VND)`);
       return;
@@ -319,7 +328,16 @@ export default function KolWithdrawalModalV2({
             </Button>
             <Button 
               type="submit" 
-              disabled={isCheckingLimit || maxAmount <= 0 || parseFloat(amount) <= 0 || parseFloat(amount) > maxAmount}
+              disabled={
+                isCheckingLimit || 
+                maxAmount <= 0 || 
+                !amount || 
+                amount.trim() === '' || 
+                isNaN(parseFloat(amount)) || 
+                parseFloat(amount) <= 0 || 
+                parseFloat(amount) > maxAmount ||
+                !confirmBankInfo
+              }
             >
               {isCheckingLimit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
               Gửi yêu cầu
