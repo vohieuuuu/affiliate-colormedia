@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,9 @@ export default function KolWithdrawalModalV2({
   const [confirmBankInfo, setConfirmBankInfo] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<WithdrawalStep>("initial");
+  
+  // Sử dụng ref để đảm bảo việc chuyển step được xử lý đúng
+  const currentStepRef = useRef<WithdrawalStep>("initial");
   const [maskedEmail, setMaskedEmail] = useState<string>("");
   const [withdrawalData, setWithdrawalData] = useState<any>(null);
   const [otpInput, setOtpInput] = useState<string>("");
@@ -438,6 +441,14 @@ export default function KolWithdrawalModalV2({
       resetForm();
     }
   }, [isOpen]);
+  
+  // Force rerender của component do state không tự cập nhật đúng
+  useEffect(() => {
+    console.log('useEffect running for currentStep:', currentStep);
+    // Không làm gì cả, chỉ là trigger re-render khi currentStep thay đổi
+  }, [currentStep]);
+  
+  console.log("Rendering KolWithdrawalModalV2 with currentStep:", currentStep);
   
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
