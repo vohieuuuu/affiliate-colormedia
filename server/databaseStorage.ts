@@ -1525,7 +1525,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // 2. Lấy thông tin KOL/VIP
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(contact.kol_id);
+      const kolVip = await this.getKolVipByAffiliateId(contact.kol_id);
       if (!kolVip) {
         return undefined;
       }
@@ -1583,7 +1583,7 @@ export class DatabaseStorage implements IStorage {
   ): Promise<MonthlyKpi> {
     try {
       // 1. Tìm KOL/VIP
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await this.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         throw new Error("KOL/VIP affiliate not found");
       }
@@ -1631,7 +1631,7 @@ export class DatabaseStorage implements IStorage {
   ): Promise<{ success: boolean, newLevel?: KolVipLevelType, previousLevel?: KolVipLevelType }> {
     try {
       // 1. Tìm KOL/VIP
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await this.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         return { success: false };
       }

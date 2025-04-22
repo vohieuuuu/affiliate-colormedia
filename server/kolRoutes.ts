@@ -249,7 +249,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       const newContact = await storage.addKolVipContact(kolId, contactData);
       
       // Lấy thông tin KOL/VIP mới nhất sau khi thêm liên hệ
-      const updatedKolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
+      const updatedKolVip = await storage.getKolVipByAffiliateId(kolId);
       
       res.status(201).json({
         status: "success",
