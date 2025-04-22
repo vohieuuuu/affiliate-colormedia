@@ -265,18 +265,17 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
       return;
     }
     
-    // Nếu chưa scanSuccess, thì chuyển sang tab info với form đã điền
-    if (!scanSuccess && activeTab !== "info") {
-      // Tiếp tục đến tab thông tin nếu đã nhập đầy đủ thông tin bắt buộc
-      if (values.contact_name && values.phone) {
-        setActiveTab("info");
-        return;
-      } else {
-        // Hiển thị lỗi nếu thiếu thông tin bắt buộc
-        if (!values.contact_name) form.setError("contact_name", { message: "Vui lòng nhập tên liên hệ" });
-        if (!values.phone) form.setError("phone", { message: "Vui lòng nhập số điện thoại" });
-        return;
-      }
+    // Kiểm tra dữ liệu bắt buộc
+    if (!values.contact_name || !values.phone) {
+      if (!values.contact_name) form.setError("contact_name", { message: "Vui lòng nhập tên liên hệ" });
+      if (!values.phone) form.setError("phone", { message: "Vui lòng nhập số điện thoại" });
+      return;
+    }
+    
+    // Nếu đang ở tab manual và chưa ở tab info, chuyển sang tab info
+    if (activeTab === "manual") {
+      setActiveTab("info");
+      return;
     }
     
     setIsLoading(true);
@@ -343,7 +342,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                 <FileText className="mr-2 h-4 w-4" />
                 Dữ liệu OCR
               </TabsTrigger>
-              <TabsTrigger value="info" className="w-1/3" disabled={!scanSuccess}>
+              <TabsTrigger value="info" className="w-1/3" disabled={!image}>
                 <UserCircle className="mr-2 h-4 w-4" />
                 Thông tin liên hệ
               </TabsTrigger>
@@ -645,6 +644,164 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                   </DialogFooter>
                 </form>
               </Form>
+            </TabsContent>
+            
+            <TabsContent value="info" className="space-y-4 py-4">
+              <div className="space-y-4">
+                {image && (
+                  <Card className="mb-4">
+                    <CardContent className="p-2">
+                      <img 
+                        src={image} 
+                        alt="Card Visit" 
+                        className="max-h-[200px] w-full object-contain rounded"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+                
+                <Alert className="bg-gradient-to-r from-[#07ADB8]/10 to-[#FFC919]/5 mb-4">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <AlertTitle>Thông tin liên hệ</AlertTitle>
+                  <AlertDescription>
+                    Kiểm tra và chỉnh sửa thông tin liên hệ trước khi lưu. Những thông tin có dấu * là bắt buộc.
+                  </AlertDescription>
+                </Alert>
+                
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="contact_name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <UserCircle className="mr-2 h-4 w-4" />
+                              Họ tên *
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="Nguyễn Văn A" {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="company"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <Building className="mr-2 h-4 w-4" />
+                              Công ty
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="Tên công ty" {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="position"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <Briefcase className="mr-2 h-4 w-4" />
+                              Chức vụ
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="Giám đốc, Trưởng phòng..." {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <Phone className="mr-2 h-4 w-4" />
+                              Số điện thoại *
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="0912345678" {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <Mail className="mr-2 h-4 w-4" />
+                              Email
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="email@example.com" {...field} className={scanSuccess ? "bg-green-50 border-green-200" : ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="note"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <FileText className="mr-2 h-4 w-4" />
+                              Ghi chú
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ghi chú thêm" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <DialogFooter className="pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleClose}
+                        disabled={isLoading}
+                      >
+                        Hủy
+                      </Button>
+                      
+                      <Button 
+                        type="submit"
+                        className="bg-gradient-to-r from-[#07ADB8] to-[#FFC919] hover:from-[#07ADB8]/90 hover:to-[#FFC919]/90"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Đang xử lý...
+                          </>
+                        ) : (
+                          "Lưu thông tin"
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
