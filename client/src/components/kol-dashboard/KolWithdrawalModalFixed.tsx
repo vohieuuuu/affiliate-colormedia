@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { DollarSign, AlertTriangle, Loader2, Mail, RotateCcw } from "lucide-react";
+import { DollarSign, AlertTriangle, Loader2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatNumberWithCommas } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,6 +21,7 @@ interface KolWithdrawalModalProps {
   balance: number;
 }
 
+// Chỉ định giá trị duy nhất cho trạng thái modal
 type WithdrawalStep = "initial";
 
 export default function KolWithdrawalModalFixed({ 
@@ -211,13 +212,11 @@ export default function KolWithdrawalModalFixed({
           <div className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
             <DialogTitle>
-              {currentStep === "initial" ? "Yêu cầu rút tiền" : "Xác thực rút tiền"}
+              Yêu cầu rút tiền
             </DialogTitle>
           </div>
           <DialogDescription>
-            {currentStep === "initial" 
-              ? "Điền thông tin bên dưới để yêu cầu rút tiền" 
-              : "Nhập mã OTP đã được gửi đến email của bạn"}
+            Điền thông tin bên dưới để yêu cầu rút tiền
           </DialogDescription>
         </DialogHeader>
         
