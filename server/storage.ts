@@ -26,6 +26,10 @@ import { eq } from "drizzle-orm";
 import { DatabaseStorage } from "./databaseStorage";
 
 export interface IStorage {
+  // Phương thức quản lý giao dịch tài chính KOL/VIP
+  getKolVipTransactionHistory(kolId: string, startDate?: Date, endDate?: Date): Promise<TransactionHistory[]>;
+  addKolVipTransaction(transaction: Omit<TransactionHistory, 'id'>): Promise<TransactionHistory>;
+  
   // Phương thức quản lý Affiliate thông thường
   getCurrentAffiliate(): Promise<Affiliate | undefined>;
   getTopAffiliates(): Promise<TopAffiliate[]>;

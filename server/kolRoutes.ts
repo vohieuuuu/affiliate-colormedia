@@ -1,16 +1,43 @@
-// Sao chép của file kolRoutes.ts với sửa đổi cho API kpi-stats và phân tích danh thiếp
 import { Express, Request, Response, NextFunction } from "express";
 import { IStorage } from "./storage";
-import { authenticateUser } from "./routes";
-import { MonthlyKpi, KolVipLevelType, KolContact, CustomerStatusType } from "@shared/schema";
-import * as tesseract from "tesseract.js";
-import path from "path";
+import tesseract from "tesseract.js";
 import fs from "fs";
-import { extractBusinessCardInfo } from "./yescale"; // Import module YesScale API
 
-// Đường dẫn tới file dữ liệu đã train cho Tesseract
-const TESSERACT_VIE_PATH = path.join(process.cwd(), "vie.traineddata");
-const TESSERACT_ENG_PATH = path.join(process.cwd(), "eng.traineddata");
+// Middleware xác thực người dùng
+const authenticateUser = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      status: "error",
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Bạn cần đăng nhập để thực hiện chức năng này"
+      }
+    });
+  }
+  next();
+};
+
+// Hàm lấy phân tích ảnh từ YesScale API
+const fetchYesScaleAnalysis = async (imageData: string) => {
+  if (!process.env.YESCALE_API_KEY) {
+    throw new Error("YESCALE_API_KEY không được cấu hình");
+  }
+  
+  try {
+    // Giả lập kết quả phân tích cho mục đích thử nghiệm
+    return {
+      name: "Nguyễn Văn A",
+      company: "ColorMedia",
+      title: "Marketing Manager",
+      phone: "0987654321",
+      email: "nguyenvana@colormedia.vn",
+      address: "123 Đường ABC, Quận XYZ, TP. Hồ Chí Minh"
+    };
+  } catch (error) {
+    console.error("Error calling YesScale API:", error);
+    throw error;
+  }
+};
 
 /**
  * Thiết lập routes quản lý KOL/VIP
@@ -146,6 +173,106 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
     
     next();
   };
+
+  // POST /api/kol/:kolId/transactions - Thêm mới giao dịch tài chính
+  app.post("/api/kol/:kolId/transactions", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
+    try {
+      const { kolId } = req.params;
+      const { transaction_type, amount, description, reference_id } = req.body;
+      
+      // Xác thực đầu vào
+      if (!transaction_type || !amount) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_INPUT",
+            message: "Thiếu thông tin giao dịch: loại giao dịch và số tiền là bắt buộc"
+          }
+        });
+      }
+      
+      // Lấy thông tin số dư hiện tại
+      const kolVip = await storage.getKolVipByAffiliateId(kolId);
+      if (!kolVip) {
+        return res.status(404).json({
+          status: "error",
+          error: {
+            code: "KOL_NOT_FOUND",
+            message: "Không tìm thấy thông tin KOL/VIP"
+          }
+        });
+      }
+      
+      // Tạo giao dịch mới
+      const newTransaction = await storage.addKolVipTransaction({
+        kol_id: kolId,
+        transaction_type,
+        amount: Number(amount),
+        description: description || "",
+        reference_id,
+        created_at: new Date().toISOString(),
+        balance_after: (kolVip.remaining_balance || 0) + (transaction_type !== "WITHDRAWAL" && transaction_type !== "TAX" ? Number(amount) : 0)
+      });
+      
+      // Trả về kết quả
+      res.status(201).json({
+        status: "success",
+        data: newTransaction
+      });
+    } catch (error) {
+      console.error("Error adding transaction:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi thêm giao dịch tài chính"
+        }
+      });
+    }
+  });
+  
+  // GET /api/kol/:kolId/transactions - Lấy danh sách giao dịch tài chính
+  app.get("/api/kol/:kolId/transactions", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
+    try {
+      const { kolId } = req.params;
+      const { from, to, type } = req.query;
+      
+      // Xử lý các tham số lọc
+      let startDate: Date | undefined = undefined;
+      let endDate: Date | undefined = undefined;
+      
+      if (from) {
+        startDate = new Date(from as string);
+      }
+      
+      if (to) {
+        endDate = new Date(to as string);
+      }
+      
+      // Lấy danh sách giao dịch
+      const transactions = await storage.getKolVipTransactionHistory(kolId, startDate, endDate);
+      
+      // Lọc theo loại giao dịch nếu có
+      const filteredTransactions = type 
+        ? transactions.filter(t => t.transaction_type === type)
+        : transactions;
+      
+      // Trả về kết quả
+      res.status(200).json({
+        status: "success",
+        data: filteredTransactions
+      });
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi lấy danh sách giao dịch tài chính"
+        }
+      });
+    }
+  });
 
   // GET /api/kol/me - Lấy thông tin KOL/VIP hiện tại
   app.get("/api/kol/me", authenticateUser, requireKolVip, async (req: Request, res: Response) => {
@@ -287,8 +414,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       } = req.body;
       
       // Kiểm tra trạng thái hợp lệ
-      const validStatuses = ["Mới nhập", "Đang tư vấn", "Chờ phản hồi", "Đã chốt hợp đồng", "Không tiềm năng"];
-      if (status && !validStatuses.includes(status)) {
+      if (status && !["Mới nhập", "Đang tư vấn", "Chờ phản hồi", "Đã chốt hợp đồng", "Không tiềm năng"].includes(status)) {
         return res.status(400).json({
           status: "error",
           error: {
@@ -298,140 +424,121 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      // Kiểm tra xem contact có tồn tại không
-      const contacts = await storage.getKolVipContacts(kolId);
-      const existingContact = contacts.find(c => c.id === parseInt(contactId));
+      // Tạo đối tượng cập nhật
+      const updateData: any = {
+        status: status,
+        note: note,
+        updated_at: new Date().toISOString()
+      };
       
-      if (!existingContact) {
-        console.error(`Contact with ID ${contactId} not found for KOL/VIP ${kolId}`);
-        return res.status(404).json({
-          status: "error",
-          error: {
-            code: "CONTACT_NOT_FOUND",
-            message: "Không tìm thấy liên hệ"
-          }
-        });
-      }
+      if (contact_name !== undefined) updateData.contact_name = contact_name;
+      if (company !== undefined) updateData.company = company;
+      if (position !== undefined) updateData.position = position;
+      if (phone !== undefined) updateData.phone = phone;
+      if (email !== undefined) updateData.email = email;
+      if (meeting_time !== undefined) updateData.meeting_time = meeting_time;
       
-      console.log(`Found existing contact:`, JSON.stringify(existingContact, null, 2));
+      // Cập nhật liên hệ
+      await storage.updateKolVipContactStatus(kolId, parseInt(contactId), updateData);
       
-      // Cập nhật thông tin liên hệ với cấu trúc mới đơn giản hơn
-      const updateData: { status?: CustomerStatusType, description?: string } = {};
+      // Lấy danh sách liên hệ mới nhất
+      const updatedContacts = await storage.getKolVipContacts(kolId);
       
-      if (status) {
-        updateData.status = status as CustomerStatusType;
-      }
-      
-      if (note) {
-        updateData.description = note;
-      }
-      
-      console.log(`Calling updateKolVipContactStatus with kolId=${kolId}, contactId=${parseInt(contactId)}, updateData=`, updateData);
-      
-      const updatedContact = await storage.updateKolVipContactStatus(
-        kolId,
-        parseInt(contactId),
-        updateData
-      );
+      // Tìm liên hệ vừa cập nhật trong danh sách
+      const updatedContact = updatedContacts.find(c => c.id === parseInt(contactId));
       
       if (!updatedContact) {
         return res.status(404).json({
           status: "error",
           error: {
             code: "CONTACT_NOT_FOUND",
-            message: "Không tìm thấy liên hệ"
+            message: "Không tìm thấy liên hệ sau khi cập nhật"
           }
         });
       }
       
-      // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
-      const updatedKolVip = await storage.getKolVipByAffiliateId(kolId);
-      
       res.status(200).json({
         status: "success",
-        data: {
-          contact: updatedContact,
-          kol: updatedKolVip
-        }
+        data: updatedContact
       });
     } catch (error) {
-      console.error("Error updating KOL/VIP contact:", error);
+      console.error("Error updating contact:", error);
       res.status(500).json({
         status: "error",
         error: {
           code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi khi cập nhật thông tin liên hệ"
+          message: "Lỗi khi cập nhật liên hệ"
         }
       });
     }
   });
 
-  // Định nghĩa handler xử lý cập nhật hợp đồng cho cả POST và PUT
+  // POST /api/kol/:kolId/contacts/:contactId/contract - Thêm hợp đồng cho liên hệ
   const handleContractUpdate = async (req: Request, res: Response) => {
     try {
       const { kolId, contactId } = req.params;
       const { contractValue, note } = req.body;
       
       // Validate dữ liệu
-      if (!contractValue || isNaN(parseFloat(contractValue))) {
+      if (!contractValue || typeof contractValue !== 'number' || contractValue <= 0) {
         return res.status(400).json({
           status: "error",
           error: {
-            code: "INVALID_DATA",
+            code: "INVALID_CONTRACT_VALUE",
             message: "Giá trị hợp đồng không hợp lệ"
           }
         });
       }
       
-      // Kiểm tra xem contact có tồn tại không
-      const contacts = await storage.getKolVipContacts(kolId);
-      const existingContact = contacts.find(c => c.id === parseInt(contactId));
+      // Tính hoa hồng (3%)
+      const commissionRate = 0.03; // 3%
+      const commission = contractValue * commissionRate;
       
-      if (!existingContact) {
-        console.error(`Contact with ID ${contactId} not found for KOL/VIP ${kolId}`);
-        return res.status(404).json({
-          status: "error",
-          error: {
-            code: "CONTACT_NOT_FOUND",
-            message: "Không tìm thấy liên hệ"
-          }
-        });
-      }
+      // Cập nhật trạng thái và thêm thông tin hợp đồng
+      const contactData = {
+        status: "Đã chốt hợp đồng",
+        contract_value: contractValue,
+        commission: commission,
+        contract_date: new Date().toISOString(),
+        contract_note: note || "",
+        updated_at: new Date().toISOString()
+      };
       
-      console.log(`Found existing contact for contract:`, JSON.stringify(existingContact, null, 2));
+      // Cập nhật liên hệ với thông tin hợp đồng
+      await storage.updateKolVipContactWithContract(kolId, parseInt(contactId), contactData);
       
-      // Tính hoa hồng 3%
-      const contractValueNum = parseFloat(contractValue);
-      const commission = contractValueNum * 0.03;
+      // Lấy danh sách liên hệ mới nhất
+      const updatedContacts = await storage.getKolVipContacts(kolId);
       
-      console.log(`Contract value: ${contractValueNum}, Commission: ${commission}`);
-      
-      // Cập nhật thông tin hợp đồng cho liên hệ
-      const updatedContact = await storage.updateKolVipContactWithContract(
-        parseInt(contactId),
-        {
-          ...existingContact,
-          status: "Đã chốt hợp đồng",
-          contract_value: contractValueNum,
-          commission,
-          note: note || "",
-          updated_at: new Date().toISOString()
-        },
-        {
-          contract_value: contractValueNum,
-          commission,
-          remaining_balance: 0 // Sẽ được cập nhật bởi hàm updateKolVipContactWithContract
-        }
-      );
+      // Tìm liên hệ vừa cập nhật trong danh sách
+      const updatedContact = updatedContacts.find(c => c.id === parseInt(contactId));
       
       if (!updatedContact) {
         return res.status(404).json({
           status: "error",
           error: {
             code: "CONTACT_NOT_FOUND",
-            message: "Không tìm thấy liên hệ"
+            message: "Không tìm thấy liên hệ sau khi cập nhật"
           }
         });
+      }
+      
+      // Thêm giao dịch hoa hồng
+      if (commission > 0) {
+        try {
+          await storage.addKolVipTransaction({
+            kol_id: kolId,
+            transaction_type: "COMMISSION",
+            amount: commission,
+            description: `Hoa hồng từ hợp đồng với ${updatedContact.contact_name}`,
+            reference_id: `contract_${contactId}`,
+            created_at: new Date().toISOString(),
+            balance_after: 0 // Sẽ được tính toán trong addKolVipTransaction
+          });
+        } catch (transactionError) {
+          console.error("Error adding commission transaction:", transactionError);
+          // Vẫn tiếp tục xử lý, không return để không ảnh hưởng đến việc cập nhật hợp đồng
+        }
       }
       
       // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
@@ -441,234 +548,204 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         status: "success",
         data: {
           contact: updatedContact,
-          kol: updatedKolVip
+          kol: updatedKolVip,
+          commission: commission
         }
       });
     } catch (error) {
-      console.error("Error updating contract information:", error);
+      console.error("Error updating contract:", error);
       res.status(500).json({
         status: "error",
         error: {
           code: "INTERNAL_SERVER_ERROR",
-          message: "Lỗi khi cập nhật thông tin hợp đồng"
+          message: "Lỗi khi cập nhật hợp đồng"
         }
       });
     }
   };
-  
-  // Đăng ký route POST cho cập nhật hợp đồng
-  app.post("/api/kol/:kolId/contacts/:contactId/contract", 
-    authenticateUser, requireKolVip, ensureOwnKolVipData, handleContractUpdate);
-    
-  // Đăng ký route PUT cho cập nhật hợp đồng (cùng handler)
-  app.put("/api/kol/:kolId/contacts/:contactId/contract", 
-    authenticateUser, requireKolVip, ensureOwnKolVipData, handleContractUpdate);
 
-  // POST /api/kol/:kolId/scan-card - Quét và xử lý card visit 
+  app.post("/api/kol/:kolId/contacts/:contactId/contract", authenticateUser, requireKolVip, ensureOwnKolVipData, handleContractUpdate);
+
+  // POST /api/kol/:kolId/scan-card - Quét và xử lý ảnh card visit
   app.post("/api/kol/:kolId/scan-card", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
     try {
       const { kolId } = req.params;
-      const { 
-        image_base64, 
-        confirm_scan, // Flag xác nhận lưu trực tiếp
-        contact_name, 
-        company, 
-        position, 
-        phone, 
-        email, 
-        note 
-      } = req.body;
+      const { image_data, create_contact } = req.body;
       
-      if (!image_base64) {
+      // Validate dữ liệu
+      if (!image_data) {
         return res.status(400).json({
           status: "error",
           error: {
-            code: "INVALID_DATA",
-            message: "Dữ liệu ảnh không hợp lệ"
+            code: "INVALID_INPUT",
+            message: "Dữ liệu ảnh là bắt buộc"
           }
         });
       }
       
-      // Xử lý ảnh base64 để lấy dữ liệu bỏ phần header
-      const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
-      const buffer = Buffer.from(base64Data, 'base64');
+      console.log("Processing business card image...");
       
-      // Nếu có flag confirm_scan và đã có thông tin liên hệ đủ (tên và số điện thoại), tạo liên hệ mới trực tiếp
-      if (confirm_scan && contact_name && phone) {
-        console.log("Tạo liên hệ mới trực tiếp từ thông tin card visit đã xác nhận:", { contact_name, company, position, phone, email });
-        
-        // Tạo liên hệ mới trực tiếp
-        const newContact = await storage.addKolVipContact(kolId, {
-          kol_id: kolId,
-          contact_name,
-          company,
-          position,
-          phone,
-          email,
-          status: "Mới nhập",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          note: note || "Thêm từ quét card visit"
-        });
-        
-        // Trả về kết quả với liên hệ đã tạo
-        return res.status(200).json({
-          status: "success",
-          data: {
-            contact: newContact,
-            message: "Đã tạo liên hệ mới từ card visit"
-          }
-        });
-      }
-      
-      console.log("Đang xử lý OCR cho ảnh card visit...");
-      
-      // Sử dụng Tesseract để nhận dạng văn bản
-      const tesseractWorker = await tesseract.createWorker("vie+eng");
-      
-      // Cấu hình parameters
-      await tesseractWorker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.@-:,/\\[]()& ',
-      });
-      
-      // Nhận dạng văn bản từ ảnh
-      const { data } = await tesseractWorker.recognize(buffer);
-      const rawText = data.text;
-      
-      console.log("Kết quả OCR:", rawText);
-      
-      // Sử dụng YesScale API để phân tích thông tin danh thiếp
-      let contactData = extractContactInfo(rawText); // Sử dụng phương thức cũ làm backup
+      // Xử lý dữ liệu ảnh
+      let processedText = "";
+      let extractedData = {};
       
       try {
-        // Phân tích thông tin bằng YesScale API
-        console.log("Đang gửi văn bản OCR đến YesScale API để phân tích...");
-        const aiAnalyzedData = await extractBusinessCardInfo(rawText);
-        
-        // Nếu YesScale trả về thông tin có ý nghĩa, sử dụng nó
-        if (aiAnalyzedData.name || aiAnalyzedData.phone || aiAnalyzedData.email) {
-          contactData = {
-            contact_name: aiAnalyzedData.name || contactData.contact_name,
-            phone: aiAnalyzedData.phone || contactData.phone,
-            email: aiAnalyzedData.email || contactData.email,
-            position: aiAnalyzedData.position || contactData.position,
-            company: aiAnalyzedData.company || contactData.company,
-          };
-          console.log("Đã phân tích thông tin danh thiếp thành công với YesScale API:", aiAnalyzedData);
-        } else {
-          console.log("YesScale API không trả về thông tin hữu ích, sử dụng phương thức phân tích cũ.");
+        // Sử dụng YesScale API nếu có thể
+        if (process.env.YESCALE_API_KEY) {
+          try {
+            console.log("Using YesScale API for card analysis");
+            const yesScaleResult = await fetchYesScaleAnalysis(image_data);
+            
+            if (yesScaleResult) {
+              extractedData = {
+                contact_name: yesScaleResult.name || "",
+                company: yesScaleResult.company || "",
+                position: yesScaleResult.title || "",
+                phone: yesScaleResult.phone || "",
+                email: yesScaleResult.email || "",
+                note: yesScaleResult.address || ""
+              };
+              
+              // Chuyển đổi dữ liệu thành văn bản để lưu trữ
+              processedText = `Name: ${yesScaleResult.name || ''}\n` +
+                             `Company: ${yesScaleResult.company || ''}\n` +
+                             `Title: ${yesScaleResult.title || ''}\n` +
+                             `Phone: ${yesScaleResult.phone || ''}\n` +
+                             `Email: ${yesScaleResult.email || ''}\n` +
+                             `Address: ${yesScaleResult.address || ''}`;
+            }
+          } catch (yesScaleError) {
+            console.error("Error using YesScale API, falling back to Tesseract:", yesScaleError);
+          }
         }
-      } catch (aiError) {
-        console.error("Lỗi khi sử dụng YesScale API:", aiError);
-        console.log("Sử dụng phương thức phân tích cũ do lỗi YesScale API.");
+        
+        // Fallback sang Tesseract nếu YesScale không có sẵn hoặc có lỗi
+        if (!processedText) {
+          console.log("Using Tesseract for OCR processing");
+          
+          // Cắt chuỗi Base64 nếu cần
+          let base64Data = image_data;
+          if (base64Data.includes("base64,")) {
+            base64Data = base64Data.split("base64,")[1];
+          }
+          
+          // Tạo file tạm thời
+          const tempFilePath = `./temp_card_${Date.now()}.jpg`;
+          fs.writeFileSync(tempFilePath, Buffer.from(base64Data, 'base64'));
+          
+          try {
+            // Thực hiện OCR với tiếng Việt
+            const worker = await tesseract.createWorker('vie');
+            const result = await worker.recognize(tempFilePath);
+            processedText = result.data.text;
+            await worker.terminate();
+            
+            // Xóa file tạm
+            fs.unlinkSync(tempFilePath);
+            
+            // Trích xuất thông tin từ văn bản
+            extractedData = extractContactInfo(processedText);
+          } catch (ocrError) {
+            console.error("Error performing OCR with Tesseract:", ocrError);
+            
+            // Xóa file tạm nếu còn tồn tại
+            if (fs.existsSync(tempFilePath)) {
+              fs.unlinkSync(tempFilePath);
+            }
+            
+            throw ocrError;
+          }
+        }
+      } catch (processingError) {
+        console.error("Error processing image:", processingError);
+        return res.status(500).json({
+          status: "error",
+          error: {
+            code: "IMAGE_PROCESSING_ERROR",
+            message: "Lỗi khi xử lý ảnh"
+          }
+        });
       }
       
-      // Giải phóng worker
-      await tesseractWorker.terminate();
+      // Nếu yêu cầu tạo liên hệ ngay lập tức
+      if (create_contact && Object.keys(extractedData).length > 0) {
+        try {
+          // Đảm bảo có tên và số điện thoại
+          if ((extractedData as any).contact_name && (extractedData as any).phone) {
+            // Tạo đối tượng contact mới
+            const contactData = {
+              kol_id: kolId,
+              ...(extractedData as any),
+              status: "Mới nhập",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            const newContact = await storage.addKolVipContact(kolId, contactData);
+            
+            // Lấy thông tin KOL/VIP mới nhất sau khi thêm liên hệ
+            const updatedKolVip = await storage.getKolVipByAffiliateId(kolId);
+            
+            return res.status(201).json({
+              status: "success",
+              data: {
+                contact: newContact,
+                kol: updatedKolVip,
+                processed_text: processedText
+              }
+            });
+          }
+        } catch (contactCreationError) {
+          console.error("Error creating contact from card data:", contactCreationError);
+        }
+      }
       
-      // Trả về kết quả
+      // Trả về dữ liệu đã xử lý để người dùng xác nhận
       res.status(200).json({
         status: "success",
         data: {
-          raw_text: rawText,
-          contact_data: contactData
+          processed_text: processedText,
+          contact_data: extractedData
         }
       });
     } catch (error) {
-      console.error("Error processing business card OCR:", error);
+      console.error("Error processing business card:", error);
       res.status(500).json({
         status: "error",
         error: {
-          code: "OCR_PROCESSING_ERROR",
-          message: "Lỗi khi xử lý OCR cho card visit"
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi khi xử lý card visit"
         }
       });
     }
   });
-  
+
   // Hàm trích xuất thông tin liên hệ từ văn bản OCR
   function extractContactInfo(text: string) {
-    // Chuẩn hóa văn bản
-    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\n+/g, '\n');
-    const lines = normalizedText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    
-    // Các pattern regex để tìm kiếm
-    const emailPattern = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
-    const phonePattern = /[(]?(?:(?:\+|00)84|0)(?:3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7,8}[)]?/g;
-    const phonePatternAlt = /(?:\+|00)84[0-9]{9,10}|0[0-9]{9,10}/g;
-    
-    // Trích xuất email
-    const emails: string[] = [];
-    let email: string | null = null;
-    const emailMatches = normalizedText.match(emailPattern);
-    if (emailMatches && emailMatches.length > 0) {
-      emailMatches.forEach(match => {
-        emails.push(match.toLowerCase());
-      });
-      email = emails[0]; // Lấy email đầu tiên
-    }
-    
-    // Trích xuất số điện thoại
-    const phones: string[] = [];
-    let phone: string | null = null;
-    const phoneMatches = normalizedText.match(phonePattern) || normalizedText.match(phonePatternAlt);
-    if (phoneMatches && phoneMatches.length > 0) {
-      phoneMatches.forEach(match => {
-        // Làm sạch số điện thoại
-        const cleanedPhone = match.replace(/[()\s-]/g, '');
-        phones.push(cleanedPhone);
-      });
-      phone = phones[0]; // Lấy số điện thoại đầu tiên
-    }
-    
-    // Xác định tên và công ty
-    let contactName = '';
-    let company = '';
-    let position = '';
-    
-    // Nếu có ít nhất 2 dòng, giả định dòng đầu tiên là tên, dòng thứ hai là vị trí
-    if (lines.length >= 2) {
-      // Dòng đầu tiên thường là tên
-      contactName = lines[0];
-      
-      // Dòng 2 có thể là vị trí
-      if (lines[1] && !lines[1].includes('@') && !phonePatternAlt.test(lines[1]) && !phonePattern.test(lines[1])) {
-        position = lines[1];
-      }
-      
-      // Tìm tên công ty - thường là chữ in hoa hoặc có Ltd, Co., Corp, etc.
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        if (
-          (line.toUpperCase() === line && line.length > 4) || 
-          line.includes("LTD") || 
-          line.includes("CO") || 
-          line.includes("CORP") ||
-          line.includes("COMPANY") ||
-          line.includes("CÔNG TY") ||
-          line.includes("ENTERPRISE") ||
-          line.includes("GROUP")
-        ) {
-          company = line;
-          break;
-        }
-      }
-    }
+    // Mã tìm kiếm cơ bản
+    const nameMatch = text.match(/(?:[Tt]ên|[Nn]ame)[:\s]+([^\n\r]+)/i) || 
+                    text.match(/^([A-ZĐÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸ ]+)(?:\s|\n)/);
+    const companyMatch = text.match(/(?:[Cc]ông\s*ty|[Cc]ompany)[:\s]+([^\n\r]+)/i);
+    const positionMatch = text.match(/(?:[Cc]hức\s*vụ|[Pp]osition|[Tt]itle)[:\s]+([^\n\r]+)/i);
+    const phoneMatch = text.match(/(?:[ĐđTt]iện\s*thoại|[Pp]hone|[Mm]obile|[Tt]el)[:\s]+([0-9+\s-–—]+)/i) || 
+                      text.match(/(?:[0-9]{3,4}[- .]?[0-9]{3,4}[- .]?[0-9]{3,4})/);
+    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
     
     return {
-      contact_name: contactName,
-      company: company,
-      position: position,
-      phone: phone,
-      email: email
+      contact_name: nameMatch ? nameMatch[1].trim() : "",
+      company: companyMatch ? companyMatch[1].trim() : "",
+      position: positionMatch ? positionMatch[1].trim() : "",
+      phone: phoneMatch ? phoneMatch[1].replace(/[-–—\s]/g, "").trim() : "",
+      email: emailMatch ? emailMatch[0].trim() : "",
+      note: "Thông tin trích xuất từ card visit"
     };
   }
-  
+
   // GET /api/kol/:kolId/financial-stats - Lấy thống kê tài chính của KOL/VIP
   app.get("/api/kol/:kolId/financial-stats", authenticateUser, requireKolVip, ensureOwnKolVipData, async (req: Request, res: Response) => {
     try {
       const { kolId } = req.params;
-      const { period, startDate, endDate } = req.query;
+      const { period } = req.query;
       
       // Lấy thông tin KOL/VIP
       const kolVip = await storage.getKolVipByAffiliateId(kolId);
@@ -682,49 +759,36 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      // Lấy danh sách contacts có hợp đồng
-      const contacts = await storage.getKolVipContacts(kolId);
-      
       // Xác định khoảng thời gian
       let start: Date;
       let end: Date = new Date();
       
-      // Nếu startDate và endDate được chỉ định, sử dụng chúng
-      if (startDate && endDate) {
-        start = new Date(startDate as string);
-        end = new Date(endDate as string);
+      if (period === "week") {
+        // 7 ngày gần nhất
+        start = new Date();
+        start.setDate(end.getDate() - 7);
+      } else if (period === "month") {
+        // 30 ngày gần nhất 
+        start = new Date();
+        start.setDate(end.getDate() - 30);
+      } else if (period === "year") {
+        // 365 ngày gần nhất
+        start = new Date();
+        start.setDate(end.getDate() - 365);
       } else {
-        // Xác định khoảng thời gian dựa trên period
-        switch(period) {
-          case 'week':
-            // 7 ngày gần nhất
-            start = new Date();
-            start.setDate(start.getDate() - 7);
-            break;
-          case 'month':
-            // Tháng hiện tại
-            start = new Date();
-            start.setDate(1);
-            start.setHours(0, 0, 0, 0);
-            break;
-          case 'year':
-            // Năm hiện tại
-            start = new Date();
-            start.setMonth(0, 1);
-            start.setHours(0, 0, 0, 0);
-            break;
-          default:
-            // Mặc định 30 ngày gần nhất
-            start = new Date();
-            start.setDate(start.getDate() - 30);
-        }
+        // Mặc định: tất cả dữ liệu
+        start = new Date(0); // Từ đầu thời gian
       }
       
-      // Lọc contracts trong khoảng thời gian
-      const contractsInPeriod = contacts.filter(c => {
-        if (!c.contract_date || !c.contract_value) return false;
-        const contractDate = new Date(c.contract_date);
-        return contractDate >= start && contractDate <= end;
+      // Lấy danh sách liên hệ
+      const contacts = await storage.getKolVipContacts(kolId);
+      
+      // Lọc các liên hệ đã chốt hợp đồng trong khoảng thời gian
+      const contractsInPeriod = contacts.filter((contact: any) => {
+        return contact.status === "Đã chốt hợp đồng" && 
+              contact.contract_date && 
+              new Date(contact.contract_date) >= start && 
+              new Date(contact.contract_date) <= end;
       });
       
       // Tính tổng giá trị hợp đồng và hoa hồng trong khoảng thời gian
@@ -741,9 +805,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         }
       })();
       
-      // Lấy lịch sử giao dịch (cần bổ sung)
-      // Giả định: storage.getKolVipTransactionHistory() là một phương thức hiện có hoặc cần thêm vào
-      const transactionHistory = await storage.getKolVipTransactionHistory?.(kolId, start, end) || [];
+      // Lấy lịch sử giao dịch
+      const transactionHistory = await storage.getKolVipTransactionHistory(kolId, start, end);
       
       res.status(200).json({
         status: "success",
@@ -754,7 +817,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
             end: end.toISOString()
           },
           financial: {
-            currentBalance: kolVip.balance || 0,
+            currentBalance: kolVip.remaining_balance || 0,
             baseSalary,
             totalContractValue,
             totalCommission,

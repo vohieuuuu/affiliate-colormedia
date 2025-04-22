@@ -24,13 +24,118 @@ import {
   kolContacts,
   KpiPerformanceTypeValue,
   KolVipLevelType,
-  MonthlyKpi
+  MonthlyKpi,
+  TransactionHistory,
+  TransactionType,
+  TransactionTypeValue
 } from '../shared/schema.js';
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { IStorage } from "./storage";
+import { sql } from "drizzle-orm/sql";
+
+// Tạo bảng giao dịch tài chính tạm thời cho KOL VIP
+const kol_vip_transactions = "temp_kol_vip_transactions";
 
 export class DatabaseStorage implements IStorage {
+  // Phương thức quản lý giao dịch tài chính của KOL/VIP
+  async getKolVipTransactionHistory(
+    kolId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<TransactionHistory[]> {
+    try {
+      // Tạo các điều kiện lọc
+      let conditions = eq(sql`kol_id`, kolId);
+      
+      if (startDate) {
+        conditions = and(
+          conditions,
+          gte(sql`created_at`, startDate)
+        );
+      }
+      
+      if (endDate) {
+        conditions = and(
+          conditions,
+          lte(sql`created_at`, endDate)
+        );
+      }
+      
+      // Thực hiện truy vấn tới bảng tạm
+      const result = await db.execute(sql`
+        SELECT id, kol_id, transaction_type, amount, description, 
+               reference_id, created_at, balance_after
+        FROM ${sql.identifier(kol_vip_transactions)}
+        WHERE ${conditions}
+        ORDER BY created_at DESC
+      `);
+      
+      // Chuyển đổi dữ liệu kết quả sang định dạng phù hợp
+      return (result.rows as any[]).map(row => ({
+        id: row.id,
+        kol_id: row.kol_id,
+        transaction_type: row.transaction_type as TransactionTypeValue,
+        amount: row.amount,
+        description: row.description,
+        reference_id: row.reference_id,
+        created_at: row.created_at,
+        balance_after: row.balance_after
+      }));
+    } catch (error) {
+      console.error("Error fetching KOL/VIP transaction history:", error);
+      return [];
+    }
+  }
+  
+  async addKolVipTransaction(
+    transaction: Omit<TransactionHistory, 'id'>
+  ): Promise<TransactionHistory> {
+    try {
+      // Thực hiện thêm giao dịch vào bảng tạm
+      const result = await db.execute(sql`
+        INSERT INTO ${sql.identifier(kol_vip_transactions)}
+        (kol_id, transaction_type, amount, description, reference_id, created_at, balance_after)
+        VALUES (
+          ${transaction.kol_id},
+          ${transaction.transaction_type},
+          ${transaction.amount},
+          ${transaction.description},
+          ${transaction.reference_id || null},
+          ${transaction.created_at || new Date().toISOString()},
+          ${transaction.balance_after || 0}
+        )
+        RETURNING id, kol_id, transaction_type, amount, description, reference_id, created_at, balance_after
+      `);
+      
+      // Kiểm tra kết quả trả về
+      if (result.rows.length === 0) {
+        throw new Error("Failed to insert transaction");
+      }
+      
+      // Chuyển đổi dữ liệu kết quả sang định dạng phù hợp
+      const newTransaction = result.rows[0] as any;
+      
+      // Cập nhật số dư của KOL/VIP
+      if (transaction.transaction_type !== "WITHDRAWAL" && transaction.transaction_type !== "TAX") {
+        await this.updateKolVipAffiliateBalance(transaction.kol_id, transaction.amount);
+      }
+      
+      return {
+        id: newTransaction.id,
+        kol_id: newTransaction.kol_id,
+        transaction_type: newTransaction.transaction_type as TransactionTypeValue,
+        amount: newTransaction.amount,
+        description: newTransaction.description,
+        reference_id: newTransaction.reference_id,
+        created_at: newTransaction.created_at,
+        balance_after: newTransaction.balance_after
+      };
+    } catch (error) {
+      console.error("Error adding KOL/VIP transaction:", error);
+      throw error;
+    }
+  }
   async getAllKolVips(): Promise<KolVipAffiliate[]> {
     try {
       const kolVips = await db.select().from(kolVipAffiliates);
