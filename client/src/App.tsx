@@ -107,6 +107,7 @@ function AuthenticatedRoutes() {
       <ProtectedRoute path="/" component={RoleRouter} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
       <ProtectedRoute path="/kol-dashboard/withdrawal" component={DirectWithdrawalPage} />
+      <ProtectedRoute path="/kol/otp-verification" component={lazy(() => import("@/pages/kol-dashboard/OtpVerificationPage"))} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       {/* Admin routes */}
