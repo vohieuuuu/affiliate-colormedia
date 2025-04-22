@@ -1367,10 +1367,18 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       // Lưu thông tin withdrawal_data vào cache hoặc session
       // (ở đây ta giả định dữ liệu được lưu giữ ở server qua OTP)
       
+      // Tính thời điểm hết hạn OTP cho frontend hiển thị đồng hồ đếm ngược
+      const expiryDate = new Date();
+      expiryDate.setMinutes(expiryDate.getMinutes() + 5); // Thêm 5 phút vào thời gian hiện tại
+      
       res.status(200).json({
         status: "success",
         data: {
           message: "Mã OTP đã được gửi đến email của bạn",
+          email_masked: kolVip.email.replace(/(.{2})(.*)(?=@)/, function(_, prefix, rest) {
+            return prefix + rest.replace(/./g, '*');
+          }),
+          otpExpires: expiryDate.toISOString(),
           withdrawal_info: {
             amount: originalAmount,
             tax_amount: taxAmount,
