@@ -226,12 +226,13 @@ export default function KolWithdrawalModal({
     setError(null);
     
     const amountValue = parseFloat(amount);
-    if (isNaN(amountValue) || amountValue <= 0 || amountValue > maxAmount) {
+    const amountNumeric = parseFloat(amount || "0");
+    if (isNaN(amountNumeric) || amountNumeric <= 0 || amountNumeric > maxAmount) {
       setError(`Vui lòng nhập số tiền hợp lệ (từ 1 đến ${formatCurrency(maxAmount)} VND)`);
       return;
     }
     
-    if (amountValue > remainingDailyLimit) {
+    if (amountNumeric > remainingDailyLimit) {
       setError(`Vượt quá giới hạn rút tiền trong ngày. Bạn chỉ có thể rút tối đa ${formatCurrency(remainingDailyLimit)} VND cho đến 9:00 sáng ngày mai.`);
       return;
     }
@@ -240,6 +241,8 @@ export default function KolWithdrawalModal({
       setError("Vui lòng xác nhận thông tin tài khoản ngân hàng của bạn");
       return;
     }
+    
+    console.log("Submitting withdrawal request with amount:", amountNumeric);
     
     // Kiểm tra giới hạn trước khi gửi OTP
     checkLimit(amountValue);
@@ -416,9 +419,9 @@ export default function KolWithdrawalModal({
                 type="submit" 
                 disabled={
                   isLoading || 
-                  parseFloat(amount) <= 0 || 
-                  parseFloat(amount) > maxAmount ||
-                  parseFloat(amount) > remainingDailyLimit ||
+                  parseFloat(amount || "0") <= 0 || 
+                  parseFloat(amount || "0") > maxAmount ||
+                  parseFloat(amount || "0") > remainingDailyLimit ||
                   !confirmBankInfo
                 }
               >
