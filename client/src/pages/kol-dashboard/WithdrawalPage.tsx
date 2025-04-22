@@ -187,11 +187,20 @@ export default function WithdrawalPage() {
                   Tạo yêu cầu rút tiền hoa hồng về tài khoản của bạn
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <WithdrawalRequest
-                  kolData={kolData || {}}
-                  balance={financialSummary?.currentBalance || 0}
-                />
+              <CardContent className="text-center">
+                <div className="mb-6">
+                  <p className="mb-4 text-muted-foreground">
+                    Sử dụng nút "Tạo yêu cầu rút tiền" ở trên để bắt đầu quá trình rút tiền an toàn với xác thực OTP.
+                  </p>
+                  <Button
+                    onClick={() => setShowWithdrawalModal(true)}
+                    disabled={!financialSummary.currentBalance || financialSummary.currentBalance <= 0}
+                    className="w-full"
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    Tạo yêu cầu rút tiền
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -297,9 +306,9 @@ export default function WithdrawalPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Sử dụng component KolWithdrawalModalFixed (phiên bản đã sửa lỗi xác thực OTP) */}
+      {/* Sử dụng component KolWithdrawalFlow mới để xử lý rút tiền */}
       {showWithdrawalModal && (
-        <KolWithdrawalModalFixed
+        <KolWithdrawalFlow
           isOpen={showWithdrawalModal}
           onClose={() => setShowWithdrawalModal(false)}
           onSuccess={handleWithdrawalSuccess}
