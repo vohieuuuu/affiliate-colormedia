@@ -617,9 +617,16 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
 
       // Tính toán các chỉ số KPI trong tháng
       const monthlyContactsCount = monthlyContacts.length;
+      
+      // Tính số liên hệ tiềm năng - bao gồm "Đang tư vấn", "Chờ phản hồi" và "Đã chốt hợp đồng"
       const potentialContacts = monthlyContacts.filter((c: any) => 
-        c.status !== "Mới nhập" && c.status !== "Không tiềm năng"
+        c.status === "Đang tư vấn" || c.status === "Chờ phản hồi" || c.status === "Đã chốt hợp đồng"
       ).length;
+      
+      console.log(`Tính KPI cho KOL ${kolId} - tháng ${targetMonth}/${targetYear}:`);
+      console.log(`- Tổng số liên hệ: ${monthlyContactsCount}`);
+      console.log(`- Số liên hệ tiềm năng: ${potentialContacts}`);
+      console.log(`- Trong đó, số liên hệ "Chờ phản hồi": ${monthlyContacts.filter(c => c.status === "Chờ phản hồi").length}`);
       const contractsCount = monthlyContacts.filter((c: any) => c.status === "Đã chốt hợp đồng").length;
       const contractValue = monthlyContacts
         .filter((c: any) => c.status === "Đã chốt hợp đồng")
