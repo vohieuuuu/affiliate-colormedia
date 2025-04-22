@@ -196,23 +196,35 @@ export default function KolWithdrawalModalV2({
     }
   });
   
-  // Resend OTP
+  // Resend OTP - Sử dụng lại sendOtp thay vì gọi API resend-otp khác
   const { mutate: resendOtp, isPending: isResendingOtp } = useMutation({
     mutationFn: async () => {
+      // Sử dụng lại API sendOTP ban đầu
+      const amountValue = parseFloat(amount);
       const response = await apiRequest(
         "POST",
-        "/api/kol/withdrawal-request/resend-otp",
-        {}
+        "/api/kol/withdrawal-request/send-otp",
+        {
+          amount: amountValue,
+          note,
+          tax_id: taxId,
+        }
       );
       return await response.json();
     },
     onSuccess: (data) => {
       if (data.status === "success") {
-        setMaskedEmail(data.data.email_masked);
+        // Reset input OTP để người dùng nhập OTP mới
         setOtpInput("");
+        
+        // Mask email for UI display (example: j***@example.com)
+        const email = kolData.email;
+        const maskedEmail = email ? email.replace(/^(.)(.*)(@.*)$/, "$1***$3") : "your email";
+        setMaskedEmail(maskedEmail);
+        
         toast({
           title: "Đã gửi lại mã OTP",
-          description: `Mã OTP mới đã được gửi đến ${data.data.email_masked}`,
+          description: `Mã OTP mới đã được gửi đến ${maskedEmail}`,
         });
       }
     },
@@ -262,8 +274,8 @@ export default function KolWithdrawalModalV2({
       return;
     }
     
-    // Check limit before sending OTP
-    checkLimit(amountValue);
+    // Gửi OTP trực tiếp thay vì qua checkLimit
+    sendOtp();
   };
   
   const handleOtpVerifySubmit = (e: React.FormEvent) => {
