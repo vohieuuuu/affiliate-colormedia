@@ -184,12 +184,12 @@ const TransactionHistoryComponent: React.FC<TransactionHistoryProps> = ({ kolId 
             </SelectContent>
           </Select>
           
-          <Select value={typeFilter || ""} onValueChange={(value) => setTypeFilter(value || null)}>
+          <Select value={typeFilter || "ALL"} onValueChange={(value) => setTypeFilter(value === "ALL" ? null : value)}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Loại giao dịch" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả</SelectItem>
+              <SelectItem value="ALL">Tất cả</SelectItem>
               {Object.entries(TRANSACTION_TYPES).map(([type, label]) => (
                 <SelectItem key={type} value={type}>{label}</SelectItem>
               ))}

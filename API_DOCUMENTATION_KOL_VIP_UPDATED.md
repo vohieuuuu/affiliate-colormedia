@@ -618,6 +618,162 @@ hoặc cookie `auth_token`
 }
 ```
 
+## API Tài chính KOL/VIP
+
+### Lấy lịch sử giao dịch
+**Endpoint**: `GET /api/kol/:kolId/transactions`
+
+**Mô tả**: Lấy lịch sử giao dịch tài chính của KOL/VIP với khả năng lọc theo thời gian và loại giao dịch.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+hoặc cookie `auth_token`
+
+**Params**:
+- `kolId`: ID của KOL/VIP
+
+**Query Parameters (tùy chọn)**:
+- `startDate`: Ngày bắt đầu khoảng thời gian (định dạng: YYYY-MM-DD)
+- `endDate`: Ngày kết thúc khoảng thời gian (định dạng: YYYY-MM-DD)
+- `type`: Loại giao dịch (SALARY, COMMISSION, WITHDRAWAL, BONUS, TAX, ADJUSTMENT)
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 15,
+      "kol_id": "KOL8",
+      "transaction_type": "SALARY",
+      "description": "Lương cơ bản tháng 4/2025",
+      "amount": 5000000,
+      "created_at": "2025-04-01T00:00:00Z",
+      "balance_after": 5000000,
+      "reference_id": null
+    },
+    {
+      "id": 16,
+      "kol_id": "KOL8",
+      "transaction_type": "COMMISSION",
+      "description": "Hoa hồng từ hợp đồng Công ty ABC",
+      "amount": 2250000,
+      "created_at": "2025-04-15T14:30:00Z",
+      "balance_after": 7250000,
+      "reference_id": "C12345"
+    },
+    {
+      "id": 17,
+      "kol_id": "KOL8",
+      "transaction_type": "WITHDRAWAL",
+      "description": "Rút tiền về tài khoản Vietcombank",
+      "amount": -5000000,
+      "created_at": "2025-04-20T10:15:00Z",
+      "balance_after": 2250000,
+      "reference_id": "W67890"
+    }
+  ]
+}
+```
+
+### Lấy tổng quan tài chính
+**Endpoint**: `GET /api/kol/:kolId/financial-summary`
+
+**Mô tả**: Lấy thông tin tổng quan tài chính của KOL/VIP với khả năng lọc theo khoảng thời gian.
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+hoặc cookie `auth_token`
+
+**Params**:
+- `kolId`: ID của KOL/VIP
+
+**Query Parameters (tùy chọn)**:
+- `period`: Khoảng thời gian (week, month, year, all), mặc định là month
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "currentBalance": 2250000,
+    "totalIncome": 7250000,
+    "totalExpense": 5000000,
+    "netProfit": 2250000,
+    "incomeSources": {
+      "salary": 5000000,
+      "commission": 2250000,
+      "bonus": 0,
+      "other": 0
+    },
+    "expenseSources": {
+      "withdrawal": 5000000,
+      "tax": 0,
+      "other": 0
+    },
+    "timePeriod": {
+      "startDate": "2025-04-01T00:00:00Z",
+      "endDate": "2025-04-30T23:59:59Z",
+      "label": "Tháng 4/2025"
+    }
+  }
+}
+```
+
+### Thêm giao dịch mới (Admin)
+**Endpoint**: `POST /api/kol/:kolId/transactions`
+
+**Mô tả**: Thêm giao dịch mới cho KOL/VIP (chỉ dành cho admin).
+
+**Headers**:
+```
+Authorization: Bearer <token>
+```
+hoặc cookie `auth_token`
+
+**Params**:
+- `kolId`: ID của KOL/VIP
+
+**Request Body**:
+```json
+{
+  "transaction_type": "BONUS",
+  "description": "Thưởng hoàn thành KPI tháng 4/2025",
+  "amount": 1000000,
+  "reference_id": "B12345"
+}
+```
+
+**Phản hồi thành công**:
+```json
+{
+  "status": "success",
+  "data": {
+    "transaction": {
+      "id": 18,
+      "kol_id": "KOL8",
+      "transaction_type": "BONUS",
+      "description": "Thưởng hoàn thành KPI tháng 4/2025",
+      "amount": 1000000,
+      "created_at": "2025-04-22T08:45:00Z",
+      "balance_after": 3250000,
+      "reference_id": "B12345"
+    },
+    "kolVip": {
+      "id": 3,
+      "affiliate_id": "KOL8",
+      "full_name": "Trần Văn B",
+      "level": "LEVEL_1",
+      "balance": 3250000
+    }
+  }
+}
+```
+
 ## Các endpoints có thể triển khai thêm
 1. `PUT /api/admin/kol/:kolId` - API cập nhật thông tin KOL/VIP (dành cho admin)
 2. `GET /api/admin/kol/:kolId/kpi` - API lấy lịch sử KPI của KOL/VIP (dành cho admin)
