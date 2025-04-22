@@ -133,17 +133,18 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
         form.setValue('position', extractedData.position || '');
         form.setValue('phone', extractedData.phone || '');
         form.setValue('email', extractedData.email || '');
+        form.setValue('note', 'Thêm từ quét card visit');
         
         // Đánh dấu quét thành công và chuyển sang tab nhập thông tin
         setScanSuccess(true);
         toast({
           title: "Quét thành công",
-          description: "Hệ thống đã trích xuất thông tin từ card visit. Vui lòng kiểm tra và chỉnh sửa nếu cần.",
+          description: "Hệ thống đã trích xuất thông tin từ card visit. Vui lòng kiểm tra và nhấn 'Lưu thông tin' để tạo liên hệ mới.",
           variant: "default",
         });
         
-        // Chuyển sang tab nhập thông tin
-        setActiveTab("manual");
+        // Chuyển sang tab thông tin liên hệ
+        setActiveTab("info");
       } else {
         // Xử lý lỗi
         setError(data.error?.message || "Có lỗi xảy ra khi quét ảnh");
@@ -264,6 +265,20 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
       return;
     }
     
+    // Nếu chưa scanSuccess, thì chuyển sang tab info với form đã điền
+    if (!scanSuccess && activeTab !== "info") {
+      // Tiếp tục đến tab thông tin nếu đã nhập đầy đủ thông tin bắt buộc
+      if (values.contact_name && values.phone) {
+        setActiveTab("info");
+        return;
+      } else {
+        // Hiển thị lỗi nếu thiếu thông tin bắt buộc
+        if (!values.contact_name) form.setError("contact_name", { message: "Vui lòng nhập tên liên hệ" });
+        if (!values.phone) form.setError("phone", { message: "Vui lòng nhập số điện thoại" });
+        return;
+      }
+    }
+    
     setIsLoading(true);
     
     try {
@@ -284,6 +299,13 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
       setScanSuccess(false);
       form.reset();
       setActiveTab("upload");
+      
+      // Hiển thị thông báo thành công
+      toast({
+        title: "Thành công",
+        description: "Đã lưu thông tin liên hệ mới thành công!",
+        variant: "default",
+      });
     } catch (error) {
       console.error("Error processing card:", error);
       setError("Có lỗi xảy ra khi xử lý ảnh");
@@ -313,13 +335,17 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full">
-              <TabsTrigger value="upload" className="w-1/2">
+              <TabsTrigger value="upload" className="w-1/3">
                 <Camera className="mr-2 h-4 w-4" />
                 Tải ảnh
               </TabsTrigger>
-              <TabsTrigger value="manual" className="w-1/2" disabled={!image}>
+              <TabsTrigger value="manual" className="w-1/3" disabled={!image}>
                 <FileText className="mr-2 h-4 w-4" />
-                Nhập thông tin
+                Dữ liệu OCR
+              </TabsTrigger>
+              <TabsTrigger value="info" className="w-1/3" disabled={!scanSuccess}>
+                <UserCircle className="mr-2 h-4 w-4" />
+                Thông tin liên hệ
               </TabsTrigger>
             </TabsList>
             
@@ -613,7 +639,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                           Đang xử lý...
                         </>
                       ) : (
-                        "Lưu thông tin"
+                        scanSuccess ? "Lưu thông tin" : "Tiếp tục"
                       )}
                     </Button>
                   </DialogFooter>
