@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import KolDashboard from "@/pages/kol-dashboard";
-import DirectWithdrawalPage from "@/components/kol-dashboard/DirectWithdrawalPage";
 import SelectModePage from "@/pages/select-mode";
 import UnauthorizedPage from "@/pages/unauthorized";
 import AuthPage from "@/pages/auth-page";
@@ -107,7 +106,6 @@ function AuthenticatedRoutes() {
       {/* Các routes cần xác thực và có thể cần chọn chế độ */}
       <ProtectedRoute path="/" component={RoleRouter} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
-      <ProtectedRoute path="/kol-dashboard/withdrawal" component={DirectWithdrawalPage} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       {/* Admin routes */}

@@ -7,9 +7,7 @@ import { Loader2, DollarSign } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { WithdrawalRequest } from "@/components/kol-dashboard/WithdrawalRequest";
 import KolWithdrawalFlow from "@/components/withdrawal/KolWithdrawalFlow";
-import KolWithdrawalModalFixed from "@/components/kol-dashboard/KolWithdrawalModalFixed";
 
 export default function WithdrawalPage() {
   const { user } = useAuth();
