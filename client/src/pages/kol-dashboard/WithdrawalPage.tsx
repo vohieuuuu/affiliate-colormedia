@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { WithdrawalRequest } from "@/components/kol-dashboard/WithdrawalRequest";
-import DirectWithdrawalFlow from "@/components/kol-dashboard/DirectWithdrawalFlow";
+import KolWithdrawalFlow from "@/components/withdrawal/KolWithdrawalFlow";
 
 export default function WithdrawalPage() {
   const { user } = useAuth();
@@ -298,8 +298,8 @@ export default function WithdrawalPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Sử dụng component DirectWithdrawalFlow để quản lý luồng rút tiền */}
-      <DirectWithdrawalFlow
+      {/* Sử dụng component KolWithdrawalFlow để quản lý luồng rút tiền */}
+      <KolWithdrawalFlow
         isOpen={showWithdrawalModal}
         onClose={() => setShowWithdrawalModal(false)}
         onSuccess={handleWithdrawalSuccess}
