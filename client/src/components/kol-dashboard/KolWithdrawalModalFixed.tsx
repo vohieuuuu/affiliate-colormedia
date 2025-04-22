@@ -21,7 +21,7 @@ interface KolWithdrawalModalProps {
   balance: number;
 }
 
-type WithdrawalStep = "initial" | "verification";
+type WithdrawalStep = "initial";
 
 export default function KolWithdrawalModalFixed({ 
   isOpen, 
@@ -40,11 +40,7 @@ export default function KolWithdrawalModalFixed({
   const [error, setError] = useState<string | null>(null);
   const [isCheckingLimit, setIsCheckingLimit] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<WithdrawalStep>("initial");
-  const [maskedEmail, setMaskedEmail] = useState<string>("");
   const [withdrawalData, setWithdrawalData] = useState<any>(null);
-  const [otpInput, setOtpInput] = useState<string>("");
-  const [otpTimer, setOtpTimer] = useState<number>(300); // 5 phút = 300 giây
-  const [timerActive, setTimerActive] = useState<boolean>(false);
 
   // Giới hạn số tiền có thể rút: Min(20M VND hoặc số dư khả dụng)
   const DAILY_WITHDRAWAL_LIMIT = 20000000; // 20 triệu VND
@@ -91,22 +87,7 @@ export default function KolWithdrawalModalFixed({
     return () => clearTimeout(timeoutId);
   }, [amount]);
 
-  // Đếm ngược thời gian OTP
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    
-    if (timerActive && otpTimer > 0) {
-      interval = setInterval(() => {
-        setOtpTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (otpTimer === 0) {
-      setTimerActive(false);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [timerActive, otpTimer]);
+
 
   // Gửi yêu cầu OTP
   const { mutate: requestOtp, isPending: isRequestingOtp } = useMutation({
@@ -190,82 +171,7 @@ export default function KolWithdrawalModalFixed({
     }
   });
   
-  // Xác thực OTP và hoàn tất yêu cầu rút tiền
-  const { mutate: verifyOtp, isPending: isVerifyingOtp } = useMutation({
-    mutationFn: async (otp: string) => {
-      if (!otp || otp.length !== 6) {
-        throw new Error("Vui lòng nhập đầy đủ mã OTP");
-      }
-      
-      if (!withdrawalData) {
-        throw new Error("Dữ liệu rút tiền không hợp lệ, vui lòng thử lại");
-      }
-      
-      const response = await apiRequest("POST", "/api/kol/withdrawal-request/verify", {
-        otp,
-        withdrawal_data: withdrawalData
-      });
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (data.status === "success") {
-        // Invalidate KOL data cache và buộc refresh để cập nhật số dư mới
-        queryClient.invalidateQueries({ queryKey: ['/api/kol/me'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/kol/financial-summary'] });
-        
-        // Buộc refresh ngay lập tức
-        queryClient.refetchQueries({ queryKey: ['/api/kol/me'] });
-        queryClient.refetchQueries({ queryKey: ['/api/kol/financial-summary'] });
-        
-        toast({
-          title: "Thành công",
-          description: "Yêu cầu rút tiền đã được xử lý thành công",
-          variant: "default"
-        });
-        resetForm();
-        if (onSuccess) onSuccess();
-        onClose();
-      }
-    },
-    onError: (error: any) => {
-      setError(error.message);
-      toast({
-        title: "Lỗi",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Gửi lại mã OTP
-  const { mutate: resendOtp, isPending: isResendingOtp } = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/kol/withdrawal-request/resend-otp", {});
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (data.status === "success") {
-        setMaskedEmail(data.data.email_masked);
-        setOtpInput("");
-        setOtpTimer(300); // Đặt lại thời gian
-        setTimerActive(true); // Khởi động lại bộ đếm
-        toast({
-          title: "Đã gửi lại mã OTP",
-          description: `Mã OTP mới đã được gửi đến ${data.data.email_masked}`,
-          variant: "default"
-        });
-      }
-    },
-    onError: (error: Error) => {
-      setError(error.message);
-      toast({
-        title: "Lỗi",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
+
   
   const resetForm = () => {
     setAmount("");
@@ -275,11 +181,7 @@ export default function KolWithdrawalModalFixed({
     setConfirmBankInfo(false);
     setError(null);
     setCurrentStep("initial");
-    setMaskedEmail("");
     setWithdrawalData(null);
-    setOtpInput("");
-    setTimerActive(false);
-    setOtpTimer(300);
   };
   
   const handleInitialSubmit = (e: React.FormEvent) => {
@@ -288,36 +190,9 @@ export default function KolWithdrawalModalFixed({
     requestOtp();
   };
   
-  const handleOtpVerifySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (otpInput.length === 6) {
-      verifyOtp(otpInput);
-    } else {
-      setError("Vui lòng nhập đầy đủ mã OTP 6 chữ số");
-    }
-  };
-  
   const handleClose = () => {
-    // Nếu đang ở bước xác thực, hiện xác nhận trước khi đóng
-    if (currentStep === "verification") {
-      if (confirm("Bạn có chắc muốn hủy quá trình xác thực? Yêu cầu rút tiền sẽ không được hoàn tất.")) {
-        resetForm();
-        onClose();
-      }
-      return;
-    }
-    
     resetForm();
     onClose();
-  };
-  
-  const handleBackToInitial = () => {
-    // Hiện xác nhận trước khi quay lại
-    if (confirm("Quay lại sẽ hủy yêu cầu xác thực hiện tại. Bạn có chắc không?")) {
-      setCurrentStep("initial");
-      setError(null);
-    }
   };
   
   // Khi mở modal, reset form
@@ -509,106 +384,11 @@ export default function KolWithdrawalModalFixed({
             </DialogFooter>
           </form>
         ) : (
-          <form onSubmit={handleOtpVerifySubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-1 text-center">
-                <Mail className="w-8 h-8 mx-auto text-primary" />
-                <p className="text-sm">
-                  Mã OTP đã được gửi đến email {maskedEmail}
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="otp" className="text-center">Nhập mã OTP 6 chữ số</Label>
-                <div className="flex justify-center">
-                  <Input
-                    id="otp"
-                    type="text"
-                    className="w-40 text-center text-xl tracking-widest font-mono"
-                    value={otpInput}
-                    onChange={(e) => {
-                      // Giới hạn 6 chữ số
-                      const value = e.target.value.replace(/\D/g, '').substring(0, 6);
-                      setOtpInput(value);
-                    }}
-                    maxLength={6}
-                    placeholder="______"
-                  />
-                </div>
-                <p className="text-xs text-center text-muted-foreground">
-                  {otpTimer > 0 ? (
-                    <span>Mã OTP sẽ hết hạn sau {Math.floor(otpTimer / 60)}:{(otpTimer % 60).toString().padStart(2, '0')}</span>
-                  ) : (
-                    <span className="text-red-500">Mã OTP đã hết hạn</span>
-                  )}
-                </p>
-                
-                <div className="flex justify-center mt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    onClick={() => resendOtp()}
-                    disabled={isResendingOtp || otpTimer > 240} // Cho phép gửi lại sau 1 phút
-                  >
-                    {isResendingOtp ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                    )}
-                    Gửi lại mã OTP
-                  </Button>
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <p className="text-sm font-medium">Chi tiết yêu cầu:</p>
-                <div className="bg-muted/50 rounded-md p-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Số tiền:</span>
-                    <span className="text-sm font-medium">{formatCurrency(parseFloat(amount))} VND</span>
-                  </div>
-                  {parseFloat(amount) > 2000000 && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Thuế TNCN (10%):</span>
-                        <span className="text-sm font-medium text-amber-600">- {formatCurrency(parseFloat(amount) * 0.1)} VND</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Thực nhận:</span>
-                        <span className="text-sm font-medium text-green-600">{formatCurrency(parseFloat(amount) * 0.9)} VND</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              {error && (
-                <Alert variant="destructive" className="mt-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <DialogFooter className="gap-3 sm:gap-0">
-                <Button 
-                  variant="outline" 
-                  type="button" 
-                  onClick={handleBackToInitial}
-                  disabled={isVerifyingOtp}
-                >
-                  Quay lại
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isVerifyingOtp || otpInput.length < 6 || otpTimer <= 0}
-                >
-                  {isVerifyingOtp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Xác thực
-                </Button>
-              </DialogFooter>
-            </div>
-          </form>
+          <div className="p-4 text-center">
+            <p className="text-muted-foreground text-sm">
+              Xác thực OTP sẽ xuất hiện trong cửa sổ thông báo riêng biệt.
+            </p>
+          </div>
         )}
       </DialogContent>
     </Dialog>
