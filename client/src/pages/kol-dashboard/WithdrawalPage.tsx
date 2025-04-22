@@ -59,22 +59,25 @@ export default function WithdrawalPage() {
     enabled: !!user,
   });
   
-  // Lấy thông tin tài chính
+  // Lấy thông tin tài chính - sử dụng staleTime để tránh gọi API nhiều lần
   const { data: financialSummary, isLoading: isLoadingFinancialSummary } = useQuery({
-    queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary"],
+    queryKey: ["/api/kol", kolData?.affiliate_id, "financial-summary", "month"],
     queryFn: async () => {
       try {
-        console.log("Fetching financial summary in WithdrawalPage with affiliate_id:", kolData?.affiliate_id);
         if (!kolData?.affiliate_id) {
           throw new Error("Không tìm thấy ID của KOL/VIP để tải thông tin tài chính");
+        }
+        
+        // Sử dụng API đã được cache từ kol-dashboard.tsx nếu có
+        const cachedData = queryClient.getQueryData(["/api/kol", kolData?.affiliate_id, "financial-summary", "month"]);
+        if (cachedData) {
+          return cachedData;
         }
         
         const period = "month"; // Mặc định tính giai đoạn 30 ngày gần nhất
         const response = await apiRequest("GET", `/api/kol/${kolData.affiliate_id}/financial-summary?period=${period}`);
         const data = await response.json();
-        console.log("Financial summary API response in WithdrawalPage:", data);
         if (data.status === "success") {
-          console.log("Current balance in summary:", data.data.currentBalance);
           return data.data;
         }
         return null;
@@ -84,6 +87,7 @@ export default function WithdrawalPage() {
       }
     },
     enabled: !!kolData?.affiliate_id,
+    staleTime: 5 * 60 * 1000, // Cache trong 5 phút
   });
 
   // Kiểm tra trạng thái tải dữ liệu
