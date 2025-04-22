@@ -66,12 +66,15 @@ interface OtpResponse {
 }
 
 // Component hiển thị số dư hiện tại từ giá trị trực tiếp
-function CurrentBalanceDisplay({ kolData }: { kolData: any }) {
-  console.log("CurrentBalanceDisplay received kolData:", kolData);
-  console.log("Current balance from remaining_balance:", kolData.remaining_balance);
+function CurrentBalanceDisplay({ balance, loading }: { balance: number; loading?: boolean }) {
+  console.log("CurrentBalanceDisplay received balance:", balance);
   
-  // Trực tiếp sử dụng giá trị remaining_balance từ prop thay vì gọi lại API
-  return <>{formatCurrency(kolData.remaining_balance || 0)}</>;
+  if (loading) {
+    return <Loader2 className="h-4 w-4 animate-spin" />;
+  }
+  
+  // Sử dụng giá trị balance được truyền vào từ parent
+  return <>{formatCurrency(balance || 0)}</>;
 }
 
 export function WithdrawalForm({ kolData }: { kolData: any }) {
@@ -260,7 +263,7 @@ export function WithdrawalForm({ kolData }: { kolData: any }) {
                     Số dư hiện tại:
                   </span>
                   <span className="font-bold text-primary">
-                    <CurrentBalanceDisplay kolData={kolData} />
+                    <CurrentBalanceDisplay balance={kolData.remaining_balance || 0} />
                   </span>
                 </div>
 

@@ -90,7 +90,12 @@ export default function WithdrawalPage() {
               <TabsTrigger value="history">Lịch sử rút tiền</TabsTrigger>
             </TabsList>
             <TabsContent value="request" className="mt-6">
-              <WithdrawalForm kolData={{...kolData, remaining_balance: financialSummary?.currentBalance || 0, affiliate_id: kolData?.affiliate_id}} />
+              {/* Trực tiếp đặt giá trị currentBalance vào remaining_balance để component sử dụng */}
+              <WithdrawalForm kolData={{
+                ...kolData, 
+                remaining_balance: financialSummary?.currentBalance || 0, 
+                affiliate_id: kolData?.affiliate_id
+              }} />
             </TabsContent>
             <TabsContent value="history" className="mt-6">
               <Card>
