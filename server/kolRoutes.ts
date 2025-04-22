@@ -256,6 +256,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
       const { kolId, contactId } = req.params;
       const { status, note } = req.body;
 
+      console.log(`API: Cập nhật trạng thái contact ${contactId} của KOL ${kolId}:`, { status, note });
+
       // Validate status
       if (!status) {
         return res.status(400).json({
@@ -267,11 +269,16 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
 
+      // Đối tượng updateData phù hợp với định nghĩa hàm updateKolVipContactStatus
+      const updateData = {
+        status: status as CustomerStatusType,
+        description: note
+      };
+
       const updatedContact = await storage.updateKolVipContactStatus(
         kolId,
         parseInt(contactId),
-        status,
-        note || ""
+        updateData
       );
 
       if (!updatedContact) {
