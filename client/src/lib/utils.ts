@@ -14,6 +14,22 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
+ * Định dạng số với dấu phân cách hàng nghìn
+ * @param input Chuỗi số cần định dạng
+ * @returns Chuỗi số đã định dạng với dấu phân cách hàng nghìn
+ */
+export function formatNumberWithCommas(input: string): string {
+  // Xóa hết dấu phẩy hiện có
+  const value = input.replace(/,/g, '');
+  
+  // Nếu rỗng hoặc không phải số, trả về chuỗi rỗng
+  if (!value || isNaN(Number(value))) return '';
+  
+  // Định dạng số với dấu phân cách hàng nghìn
+  return Number(value).toLocaleString('vi-VN');
+}
+
+/**
  * Định dạng ngày tháng theo định dạng Việt Nam
  * @param dateString Chuỗi ngày tháng cần định dạng
  * @param includeTime Có hiển thị giờ phút hay không

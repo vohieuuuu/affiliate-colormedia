@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { WithdrawalForm } from "@/components/kol-dashboard/WithdrawalForm";
+import { Loader2, DollarSign } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import KolWithdrawalModal from "@/components/kol-dashboard/KolWithdrawalModal";
 
 export default function WithdrawalPage() {
   const { user } = useAuth();
@@ -90,12 +92,20 @@ export default function WithdrawalPage() {
               <TabsTrigger value="history">Lịch sử rút tiền</TabsTrigger>
             </TabsList>
             <TabsContent value="request" className="mt-6">
-              {/* Trực tiếp đặt giá trị currentBalance vào remaining_balance để component sử dụng */}
-              <WithdrawalForm kolData={{
-                ...kolData, 
-                remaining_balance: financialSummary?.currentBalance || 0, 
-                affiliate_id: kolData?.affiliate_id
-              }} />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tạo yêu cầu rút tiền</CardTitle>
+                  <CardDescription>
+                    Tạo yêu cầu rút tiền hoa hồng về tài khoản ngân hàng của bạn
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <WithdrawalRequest 
+                    kolData={kolData} 
+                    balance={financialSummary?.currentBalance || 0} 
+                  />
+                </CardContent>
+              </Card>
             </TabsContent>
             <TabsContent value="history" className="mt-6">
               <Card>
