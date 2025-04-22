@@ -7,6 +7,7 @@ import {
   DialogFooter,
   DialogDescription
 } from "@/components/ui/dialog";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,12 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
   const [extractedText, setExtractedText] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
+  
+  // Kiểm tra nếu là thiết bị di động
+  const isMobile = useMediaQuery("(max-width: 640px)");
+  
+  // Tham chiếu đến timeout để có thể clear
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form cho nhập thông tin thủ công
   const form = useForm<ContactFormValues>({
@@ -88,6 +95,12 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
     setError(null);
     setScanSuccess(false);
     
+    // Clear any existing timeout
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
+    }
+    
     try {
       // Lấy ra base64 thực sự (bỏ phần đầu data:image/...)
       const base64Data = imageBase64.split(',')[1];
@@ -96,6 +109,14 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
         setError("Không tìm thấy ID của KOL/VIP để quét ảnh");
         setIsScanning(false);
         return;
+      }
+      
+      // Hiển thị thông báo tải lên mobile
+      if (isMobile) {
+        toast({
+          title: "Đang xử lý ảnh",
+          description: "Hệ thống đang xử lý ảnh và trích xuất thông tin, vui lòng đợi...",
+        });
       }
       
       // Gọi API để quét với kolId
@@ -127,37 +148,49 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
           setImage(data.data.image_preview);
         }
         
-        // Cập nhật form với dữ liệu trích xuất
-        form.setValue('contact_name', extractedData.contact_name || '');
-        form.setValue('company', extractedData.company || '');
-        form.setValue('position', extractedData.position || '');
-        form.setValue('phone', extractedData.phone || '');
-        form.setValue('email', extractedData.email || '');
-        form.setValue('note', 'Thêm từ quét card visit');
+        // Đảm bảo quá trình cập nhật form được thực hiện sau khi render hoàn tất
+        // Đặc biệt quan trọng cho thiết bị di động
+        processingTimeoutRef.current = setTimeout(() => {
+          // Cập nhật form với dữ liệu trích xuất
+          form.setValue('contact_name', extractedData.contact_name || '');
+          form.setValue('company', extractedData.company || '');
+          form.setValue('position', extractedData.position || '');
+          form.setValue('phone', extractedData.phone || '');
+          form.setValue('email', extractedData.email || '');
+          form.setValue('note', 'Thêm từ quét card visit');
+          
+          // Đánh dấu quét thành công
+          setScanSuccess(true);
+          
+          // Thông báo trên mobile
+          toast({
+            title: "Quét thành công",
+            description: "Vui lòng kiểm tra và điền thông tin còn thiếu trước khi lưu.",
+            variant: "default",
+          });
+          
+          // Chuyển sang tab info sau khi đã xử lý
+          setActiveTab("info");
+          setIsScanning(false);
+        }, 300); // Độ trễ nhỏ để đảm bảo UI cập nhật trước khi thao tác form
         
-        // Đánh dấu quét thành công và chuyển sang tab nhập thông tin
-        setScanSuccess(true);
-        toast({
-          title: "Quét thành công",
-          description: "Hệ thống đã trích xuất thông tin từ card visit. Vui lòng kiểm tra và nhấn 'Lưu thông tin' để tạo liên hệ mới.",
-          variant: "default",
-        });
-        
-        // Chuyển sang tab thông tin liên hệ
-        setActiveTab("info");
       } else {
         // Xử lý lỗi
         setError(data.error?.message || "Có lỗi xảy ra khi quét ảnh");
         // Vẫn chuyển sang tab nhập thông tin nhưng với form trống
-        setActiveTab("manual");
+        processingTimeoutRef.current = setTimeout(() => {
+          setActiveTab("manual");
+          setIsScanning(false);
+        }, 300);
       }
     } catch (error) {
       console.error("Lỗi khi quét ảnh:", error);
       setError("Có lỗi xảy ra khi quét ảnh. Vui lòng nhập thông tin thủ công.");
       // Vẫn chuyển sang tab nhập thông tin
-      setActiveTab("manual");
-    } finally {
-      setIsScanning(false);
+      processingTimeoutRef.current = setTimeout(() => {
+        setActiveTab("manual");
+        setIsScanning(false);
+      }, 300);
     }
   };
   
@@ -250,8 +283,25 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
     setIsLoading(false);
     form.reset();
     setActiveTab("upload");
+    
+    // Clear any existing timeout
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
+    }
+    
     onClose();
   };
+  
+  // useEffect để cleanup timeouts khi component unmounts
+  useEffect(() => {
+    return () => {
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
+      stopCamera();
+    }
+  }, []);
 
   // Xử lý khi submit form
   const onFormSubmit = (values: ContactFormValues) => {
