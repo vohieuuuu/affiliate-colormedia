@@ -68,8 +68,7 @@ export interface IStorage {
   updateKolVipContactStatus(
     kolId: string,
     contactId: number,
-    status: CustomerStatusType,
-    note: string
+    updateData: { status?: CustomerStatusType, description?: string }
   ): Promise<KolContact | undefined>;
   updateKolVipContactWithContract(
     contactId: number,

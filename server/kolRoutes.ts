@@ -309,6 +309,8 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         updateData.description = note;
       }
       
+      console.log(`Calling updateKolVipContactStatus with kolId=${kolId}, contactId=${parseInt(contactId)}, updateData=`, updateData);
+      
       const updatedContact = await storage.updateKolVipContactStatus(
         kolId,
         parseInt(contactId),

@@ -31,6 +31,15 @@ import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { IStorage } from "./storage";
 
 export class DatabaseStorage implements IStorage {
+  async getAllKolVips(): Promise<KolVipAffiliate[]> {
+    try {
+      const kolVips = await db.select().from(kolVipAffiliates);
+      return kolVips;
+    } catch (error) {
+      console.error("Error fetching all KOL/VIPs:", error);
+      return [];
+    }
+  }
   async getCurrentAffiliate(): Promise<Affiliate | undefined> {
     // Đọc affiliate đầu tiên từ cơ sở dữ liệu
     const [affiliate] = await db.select().from(affiliates).limit(1);
