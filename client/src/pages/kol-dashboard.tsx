@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,9 @@ import {
   DollarSign,
   LineChart,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Construction,
+  AlertTriangle
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import KolContactsTable from "@/components/kol-vip/kol-contacts-table";
@@ -37,6 +39,12 @@ import { Separator } from "@/components/ui/separator";
 import AddContactModal from "@/components/kol-vip/add-contact-modal";
 import ScanCardModal from "@/components/kol-vip/scan-card-modal";
 import { KolVipAffiliate, KolContact, MonthlyKpi, KolVipLevel, KolVipLevelType } from "@shared/schema";
+
+// Hàm kiểm tra xem có đang ở môi trường production hay không
+const isProduction = () => {
+  // Kiểm tra URL có phải là URL sản xuất không
+  return typeof window !== 'undefined' && window.location.hostname.endsWith('.replit.app');
+};
 
 const KolDashboard = () => {
   const { toast } = useToast();

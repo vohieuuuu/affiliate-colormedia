@@ -3,16 +3,55 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, DollarSign } from "lucide-react";
+import { Loader2, DollarSign, AlertTriangle, Construction } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { WithdrawalRequest } from "@/components/kol-dashboard/WithdrawalRequest";
 import KolWithdrawalFlow from "@/components/withdrawal/KolWithdrawalFlow";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+// Hàm kiểm tra xem có đang ở môi trường production hay không
+const isProduction = () => {
+  // Kiểm tra URL có phải là URL sản xuất không
+  return typeof window !== 'undefined' && window.location.hostname.endsWith('.replit.app');
+};
 
 export default function WithdrawalPage() {
   const { user } = useAuth();
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+
+  // Nếu đang ở môi trường production, hiển thị thông báo "Đang phát triển"
+  if (isProduction()) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <Construction className="h-6 w-6 text-yellow-500" />
+              Tính năng đang phát triển
+            </CardTitle>
+            <CardDescription>
+              Chức năng rút tiền cho KOL/VIP hiện đang trong quá trình phát triển
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="warning" className="mb-4">
+              <AlertTriangle className="h-5 w-5" />
+              <AlertTitle>Thông báo quan trọng</AlertTitle>
+              <AlertDescription>
+                Tính năng rút tiền cho KOL/VIP đang được phát triển và sẽ sớm được triển khai. 
+                Vui lòng quay lại sau để sử dụng tính năng này.
+              </AlertDescription>
+            </Alert>
+            <p className="mt-2 text-muted-foreground">
+              Cảm ơn bạn đã kiên nhẫn chờ đợi. Chúng tôi đang nỗ lực để mang đến trải nghiệm tốt nhất cho bạn.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Lấy thông tin KOL/VIP
   const { data: kolData, isLoading: isLoadingKolData } = useQuery({
