@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatCurrency, formatNumberWithCommas } from "@/lib/utils";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from "@/lib/queryClient";
+import { OtpInput } from "@/components/OtpInput";
 
 /**
  * Props for BaseWithdrawalFlow
