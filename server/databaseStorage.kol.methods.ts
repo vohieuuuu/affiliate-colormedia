@@ -215,18 +215,26 @@
         .returning();
       
       // 4. Cập nhật số lượng liên hệ tiềm năng nếu status = 'Đang tư vấn' hoặc 'Chờ phản hồi'
-      if (updateData.status && 
-         ((updateData.status === 'Đang tư vấn' && contact.status !== 'Đang tư vấn') || 
-          (updateData.status === 'Chờ phản hồi' && contact.status !== 'Chờ phản hồi'))) {
-        const newPotentialContacts = (kolVip.potential_contacts || 0) + 1;
+      if (updateData.status) {
+        console.log(`Trạng thái mới của contact: ${updateData.status} (trước đó: ${contact.status})`);
         
-        console.log(`Tăng số lượng liên hệ tiềm năng cho KOL/VIP ${kolId}: ${kolVip.potential_contacts} -> ${newPotentialContacts}`);
+        // Kiểm tra điều kiện theo từng trạng thái riêng biệt để gỡ lỗi
+        const isConsultingNew = updateData.status === 'Đang tư vấn' && contact.status !== 'Đang tư vấn';
+        const isWaitingResponseNew = updateData.status === 'Chờ phản hồi' && contact.status !== 'Chờ phản hồi';
         
-        await db.update(kolVipAffiliates)
-          .set({ potential_contacts: newPotentialContacts })
-          .where(eq(kolVipAffiliates.affiliate_id, kolId));
+        console.log(`Điều kiện cập nhật KPI: isConsultingNew=${isConsultingNew}, isWaitingResponseNew=${isWaitingResponseNew}`);
+        
+        if (isConsultingNew || isWaitingResponseNew) {
+          const newPotentialContacts = (kolVip.potential_contacts || 0) + 1;
           
-        console.log(`Đã cập nhật KPI lead tiềm năng cho KOL/VIP ${kolId} thành ${newPotentialContacts}`);
+          console.log(`Tăng số lượng liên hệ tiềm năng cho KOL/VIP ${kolId}: ${kolVip.potential_contacts} -> ${newPotentialContacts}`);
+          
+          await db.update(kolVipAffiliates)
+            .set({ potential_contacts: newPotentialContacts })
+            .where(eq(kolVipAffiliates.affiliate_id, kolId));
+            
+          console.log(`Đã cập nhật KPI lead tiềm năng cho KOL/VIP ${kolId} thành ${newPotentialContacts}`);
+        }
       }
       
       return updatedContact;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Loader2 } from "lucide-react";
-import KolWithdrawalModal from "./KolWithdrawalModal";
+import KolWithdrawalFlow from "@/components/withdrawal/KolWithdrawalFlow";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/utils";
@@ -100,7 +100,7 @@ export function WithdrawalRequest({ kolData, balance: initialBalance }: Withdraw
       )}
       
       {modalOpen && (
-        <KolWithdrawalModal
+        <KolWithdrawalFlow
           isOpen={modalOpen}
           onClose={handleCloseModal}
           onSuccess={handleSuccess}
