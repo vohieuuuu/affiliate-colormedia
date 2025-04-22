@@ -558,25 +558,19 @@ export default function BaseWithdrawalFlow({
                 
                 <div className="grid gap-2">
                   <Label htmlFor="otp">Mã OTP</Label>
-                  <div className="relative">
-                    <Input
-                      id="otp"
-                      type="text"
-                      placeholder="Nhập mã OTP 6 chữ số"
-                      value={otpInput}
-                      onChange={(e) => {
-                        // Only allow numbers and limit to 6 digits
-                        const value = e.target.value.replace(/\D/g, '').substring(0, 6);
+                  <div className="flex flex-col items-center space-y-3">
+                    <OtpInput 
+                      length={6}
+                      onComplete={(value) => {
+                        console.log("OTP completed:", value);
                         setOtpInput(value);
                       }}
-                      required
-                      maxLength={6}
-                      className="pl-10"
                       disabled={isLoading}
-                      autoFocus
+                      className="justify-center"
                     />
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                      <Key className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Key className="h-4 w-4 mr-1" />
+                      <span>Vui lòng nhập đủ 6 chữ số OTP</span>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
