@@ -365,7 +365,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className={isMobile ? "max-w-[90vw] p-4 sm:max-w-xl" : "sm:max-w-xl"}>
         <DialogHeader>
           <DialogTitle>Thông tin Card Visit</DialogTitle>
           <DialogDescription>
@@ -432,11 +432,11 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
                       <Button 
                         variant="outline" 
                         onClick={() => fileInputRef.current?.click()}
-                        className="h-32 flex flex-col gap-2"
+                        className={isMobile ? "h-24 flex flex-col gap-2" : "h-32 flex flex-col gap-2"}
                         disabled={isLoading}
                       >
                         <Upload className="h-6 w-6" />
@@ -454,7 +454,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                       <Button 
                         variant="outline" 
                         onClick={startCamera}
-                        className="h-32 flex flex-col gap-2"
+                        className={isMobile ? "h-24 flex flex-col gap-2" : "h-32 flex flex-col gap-2"}
                         disabled={isLoading}
                       >
                         <Camera className="h-6 w-6" />
