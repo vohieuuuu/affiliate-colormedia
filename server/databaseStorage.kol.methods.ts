@@ -2,7 +2,7 @@
   async createKolVipAffiliate(kolVipData: InsertKolVipAffiliate): Promise<KolVipAffiliate> {
     try {
       // Kiểm tra xem affiliate_id đã tồn tại chưa
-      const existingKolVip = await this.getKolVipAffiliateByAffiliateId(kolVipData.affiliate_id);
+      const existingKolVip = await this.getKolVipByAffiliateId(kolVipData.affiliate_id);
       if (existingKolVip) {
         console.log(`KOL/VIP Affiliate with ID ${kolVipData.affiliate_id} already exists`);
         return existingKolVip;
@@ -75,7 +75,7 @@
   async updateKolVipAffiliateLevel(affiliateId: string, newLevel: KolVipLevelType): Promise<KolVipAffiliate | undefined> {
     try {
       // 1. Tìm KOL/VIP affiliate
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(affiliateId);
+      const kolVip = await this.getKolVipByAffiliateId(affiliateId);
       if (!kolVip) {
         return undefined;
       }
@@ -142,7 +142,7 @@
   async addKolVipContact(kolId: string, contactData: KolContact): Promise<KolContact> {
     try {
       // 1. Kiểm tra xem KOL/VIP có tồn tại không
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await this.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         throw new Error("KOL/VIP affiliate not found");
       }
@@ -179,7 +179,7 @@
   ): Promise<KolContact | undefined> {
     try {
       // 1. Kiểm tra xem KOL/VIP có tồn tại không
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await this.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         return undefined;
       }
@@ -241,7 +241,7 @@
       }
       
       // 2. Lấy thông tin KOL/VIP
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(contact.kol_id);
+      const kolVip = await this.getKolVipByAffiliateId(contact.kol_id);
       if (!kolVip) {
         return undefined;
       }
@@ -299,7 +299,7 @@
   ): Promise<MonthlyKpi> {
     try {
       // 1. Tìm KOL/VIP
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await this.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         throw new Error("KOL/VIP affiliate not found");
       }
@@ -347,7 +347,7 @@
   ): Promise<{ success: boolean, newLevel?: KolVipLevelType, previousLevel?: KolVipLevelType }> {
     try {
       // 1. Tìm KOL/VIP
-      const kolVip = await this.getKolVipAffiliateByAffiliateId(kolId);
+      const kolVip = await this.getKolVipByAffiliateId(kolId);
       if (!kolVip) {
         return { success: false };
       }
