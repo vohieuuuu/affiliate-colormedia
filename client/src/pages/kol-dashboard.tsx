@@ -18,7 +18,10 @@ import {
   AlertCircle,
   Loader2,
   Camera,
-  ListFilter
+  ListFilter,
+  Wallet,
+  DollarSign,
+  LineChart
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import KolContactsTable from "@/components/kol-vip/kol-contacts-table";
@@ -147,6 +150,46 @@ const KolDashboard = () => {
       }
     },
     enabled: !!kolInfo?.affiliate_id && activeTab === "kpi",
+  });
+  
+  // Lấy dữ liệu tổng quan tài chính
+  const {
+    data: financialSummary,
+    isLoading: isLoadingFinancialSummary,
+    error: financialSummaryError,
+  } = useQuery({
+    queryKey: ["/api/kol", kolInfo?.affiliate_id, "financial-summary"],
+    queryFn: async () => {
+      try {
+        console.log("Fetching financial summary for KOL with affiliate_id:", kolInfo?.affiliate_id);
+        
+        // Kiểm tra affiliate_id tồn tại để đảm bảo có thể lấy dữ liệu
+        if (!kolInfo?.affiliate_id) {
+          console.error("Missing affiliate_id for KOL when fetching financial summary");
+          throw new Error("Không tìm thấy ID của KOL/VIP để tải thông tin tài chính");
+        }
+        
+        const period = "month"; // Mặc định tính giai đoạn 30 ngày gần nhất
+        const response = await apiRequest("GET", `/api/kol/${kolInfo.affiliate_id}/financial-summary?period=${period}`);
+        const data = await response.json();
+        console.log("Received financial summary:", data);
+        if (data.status === "success") {
+          return data.data;
+        }
+        return data;
+      } catch (error) {
+        console.error("Error fetching financial summary:", error);
+        return { 
+          currentBalance: 0,
+          totalIncome: 0,
+          totalExpense: 0,
+          netProfit: 0,
+          incomeSources: { salary: 0, commission: 0, bonus: 0, other: 0 },
+          expenseSources: { withdrawal: 0, tax: 0, other: 0 }
+        };
+      }
+    },
+    enabled: !!kolInfo?.affiliate_id && activeTab === "finance",
   });
 
   // Mutation thêm liên hệ mới - sử dụng affiliate_id
@@ -473,7 +516,7 @@ const KolDashboard = () => {
 
           {/* Tabs chính */}
           <Tabs defaultValue="contacts" value={activeTab} onValueChange={setActiveTab} className="relative" style={{ zIndex: 20 }}>
-            <TabsList className="grid w-full md:w-[400px] grid-cols-2 bg-white/60 backdrop-blur-sm shadow-sm rounded-lg relative" style={{ zIndex: 20 }}>
+            <TabsList className="grid w-full md:w-[600px] grid-cols-3 bg-white/60 backdrop-blur-sm shadow-sm rounded-lg relative" style={{ zIndex: 20 }}>
               <TabsTrigger 
                 value="contacts" 
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#07ADB8] data-[state=active]:to-[#FFC919] data-[state=active]:text-white pointer-events-auto"
@@ -487,6 +530,16 @@ const KolDashboard = () => {
                 style={{ pointerEvents: 'auto' }}
               >
                 Theo dõi KPI
+              </TabsTrigger>
+              <TabsTrigger 
+                value="finance" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#07ADB8] data-[state=active]:to-[#FFC919] data-[state=active]:text-white pointer-events-auto"
+                style={{ pointerEvents: 'auto' }}
+              >
+                <div className="flex items-center gap-1">
+                  <Wallet className="h-4 w-4" />
+                  <span>Tài chính</span>
+                </div>
               </TabsTrigger>
             </TabsList>
 
