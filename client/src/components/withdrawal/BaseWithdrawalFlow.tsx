@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -165,6 +166,9 @@ export default function BaseWithdrawalFlow({
     }
   });
   
+  // Navigation hook
+  const [, navigate] = useLocation();
+  
   // Send OTP
   const { mutate: sendOtp, isPending: isSendingOtp } = useMutation({
     mutationFn: async () => {
@@ -183,24 +187,45 @@ export default function BaseWithdrawalFlow({
     onSuccess: (data) => {
       console.log("Send OTP response:", data);
       if (data.status === "success") {
-        // Extract masked email from response or create one
-        const email = userData.email || data.data?.email;
-        const maskedEmail = data.data?.email_masked || 
-          (email ? email.replace(/^(.)(.*)(@.*)$/, "$1***$3") : "your email");
+        // Extract withdrawal information
+        const amountValue = parseFloat(amount);
+        const requestId = data.data?.requestId || data.data?.request_id;
+        const affiliateId = userData?.affiliate_id;
         
-        setMaskedEmail(maskedEmail);
-        
-        // Switch to verification step - add force log để debug
-        const prevStep = currentStep;
-        setCurrentStep('verification');
-        currentStepRef.current = 'verification';
-        console.log(`[DEBUG] Changing step from '${prevStep}' to 'verification', ref is now ${currentStepRef.current}`);
-        
-        // Use toast notification
-        toast({
-          title: "Mã OTP đã được gửi",
-          description: `Mã OTP đã được gửi đến ${maskedEmail}. Mã có hiệu lực trong 5 phút.`,
+        // Save withdrawal data to query cache for the OTP verification page to use
+        queryClient.setQueryData(["kolWithdrawalData"], {
+          amount: amountValue,
+          requestId,
+          maskedEmail: data.data?.email_masked,
+          note: note || "",
+          taxId: taxId || ""
         });
+        
+        // Close the current modal
+        handleClose();
+        
+        // Navigate to OTP verification page with necessary parameters
+        if (requestId && affiliateId) {
+          const otpVerificationUrl = `/kol/otp-verification?amount=${amountValue}&affiliateId=${affiliateId}&requestId=${requestId}`;
+          console.log(`Redirecting to OTP verification page: ${otpVerificationUrl}`);
+          
+          // Show toast to indicate redirect
+          toast({
+            title: "Chuyển hướng đến trang xác thực",
+            description: "Bạn đang được chuyển hướng đến trang xác thực OTP",
+          });
+          
+          // Navigate to OTP verification page
+          navigate(otpVerificationUrl);
+        } else {
+          console.error("Missing required parameters for OTP verification:", { requestId, affiliateId });
+          setError("Lỗi xử lý yêu cầu. Vui lòng thử lại sau.");
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: "Không thể chuyển hướng đến trang xác thực OTP do thiếu thông tin cần thiết",
+          });
+        }
       } else if (data.error) {
         setError(data.error.message || "Lỗi gửi mã OTP");
         toast({

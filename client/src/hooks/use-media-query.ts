@@ -1,39 +1,65 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 /**
- * Hook kiểm tra media query cho responsive design
- * @param query Media query string, ví dụ: "(max-width: 768px)"
- * @returns Boolean cho biết có match với media query hay không
+ * Hook để kiểm tra media query và theo dõi thay đổi kích thước màn hình
+ * 
+ * @param query Media query cần kiểm tra, ví dụ: '(max-width: 768px)'
+ * @returns boolean - true nếu media query khớp, false nếu không
  */
 export function useMediaQuery(query: string): boolean {
-  // Giá trị mặc định là false khi không có window
   const [matches, setMatches] = useState<boolean>(false);
 
   useEffect(() => {
-    // Chỉ thực hiện trên phía client
-    if (typeof window !== "undefined") {
+    // Chỉ chạy trên client-side
+    if (typeof window !== 'undefined') {
       const media = window.matchMedia(query);
       
-      // Cập nhật giá trị ban đầu
+      // Cập nhật trạng thái ban đầu
       setMatches(media.matches);
       
-      // Callback để cập nhật state khi media query thay đổi
+      // Hàm callback khi media matching thay đổi
       const listener = (event: MediaQueryListEvent) => {
         setMatches(event.matches);
       };
       
-      // Đăng ký listener cho media query
-      media.addEventListener("change", listener);
+      // Đăng ký listener
+      media.addEventListener('change', listener);
       
-      // Hủy đăng ký listener khi component unmount
+      // Cleanup: hủy đăng ký listener khi component unmount
       return () => {
-        media.removeEventListener("change", listener);
+        media.removeEventListener('change', listener);
       };
     }
     
-    // Fallback cho SSR
-    return undefined;
+    // Mặc định là false cho SSR
+    return () => {};
   }, [query]);
   
   return matches;
 }
+
+/**
+ * Pre-defined hooks for common device sizes
+ */
+
+// Trả về true nếu thiết bị là điện thoại di động
+export function useIsMobile(): boolean {
+  return useMediaQuery('(max-width: 640px)');
+}
+
+// Trả về true nếu thiết bị là tablet
+export function useIsTablet(): boolean {
+  return useMediaQuery('(min-width: 641px) and (max-width: 1024px)');
+}
+
+// Trả về true nếu thiết bị là desktop
+export function useIsDesktop(): boolean {
+  return useMediaQuery('(min-width: 1025px)');
+}
+
+// Trả về true cho các thiết bị có kích thước nhỏ (bao gồm cả điện thoại nhỏ như iPhone SE)
+export function useIsSmallDevice(): boolean {
+  return useMediaQuery('(max-width: 375px)');
+}
+
+export default useMediaQuery;
