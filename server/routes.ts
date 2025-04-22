@@ -2058,11 +2058,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         new_commission: updatedCustomer.commission
       }));
       
-      // Cập nhật khách hàng và số dư của affiliate, truyền ID thật của khách hàng
+      // Cập nhật khách hàng và số dư của affiliate, truyền ID thật của khách hàng và affiliate_id
       const result = await storage.updateCustomerWithContract(
         customerId, // Sử dụng ID khách hàng thực thay vì chỉ số trong mảng
         updatedCustomer,
-        balanceUpdates
+        balanceUpdates,
+        affiliate_id // Truyền affiliate_id để đảm bảo tìm đúng affiliate
       );
       
       if (!result) {

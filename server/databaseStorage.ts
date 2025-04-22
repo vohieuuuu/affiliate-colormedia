@@ -698,22 +698,30 @@ export class DatabaseStorage implements IStorage {
       contract_value: number; 
       received_balance: number; 
       remaining_balance: number 
-    }
+    },
+    affiliateId?: string // Thêm tham số affiliate_id
   ): Promise<ReferredCustomer | undefined> {
     try {
       console.log(`DatabaseStorage: Updating customer contract for ID ${customerId}`);
       
-      // 1. Lấy affiliate cụ thể theo customerData.affiliate_id hoặc lấy affiliate đầu tiên nếu không có
+      // 1. Lấy affiliate cụ thể theo affiliate_id được truyền vào
       let affiliate;
       
-      if (customerData.affiliate_id) {
+      if (affiliateId) {
+        console.log(`Looking for affiliate with ID: ${affiliateId}`);
         [affiliate] = await db.select()
           .from(affiliates)
-          .where(eq(affiliates.affiliate_id, customerData.affiliate_id));
+          .where(eq(affiliates.affiliate_id, affiliateId));
+      } else if ((customerData as any).affiliate_id) {
+        // Fallback: sử dụng customerData.affiliate_id nếu có (backward compatibility)
+        [affiliate] = await db.select()
+          .from(affiliates)
+          .where(eq(affiliates.affiliate_id, (customerData as any).affiliate_id));
       }
       
       // Nếu không tìm thấy, lấy affiliate đầu tiên
       if (!affiliate) {
+        console.log(`No affiliate found with ID, falling back to first affiliate`);
         [affiliate] = await db.select().from(affiliates).limit(1);
       }
       
