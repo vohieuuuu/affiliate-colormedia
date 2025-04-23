@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { affiliates, kolVipAffiliates, otpVerifications, users } from '../shared/schema.js';
+import { affiliates, kolVipAffiliates, otpVerifications, users, VideoSchema, salesKits } from '../shared/schema.js';
 import type {
   Affiliate,
   CustomerStatusType,
@@ -20,7 +20,10 @@ import type {
   KolVipLevelType,
   MonthlyKpi,
   TransactionHistory,
-  TransactionTypeValue
+  TransactionTypeValue,
+  SalesKitData,
+  InsertVideo,
+  InsertSalesKit
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { DatabaseStorage } from "./databaseStorage";
@@ -123,9 +126,17 @@ export interface IStorage {
   
   // Phương thức quản lý video
   getTopVideos(limit?: number): Promise<VideoData[]>;
-  addVideo(video: VideoData): Promise<VideoData>;
-  updateVideo(id: number, video: Partial<VideoData>): Promise<VideoData | undefined>;
+  getAllVideos(): Promise<VideoData[]>;
+  addVideo(videoData: Partial<InsertVideo>): Promise<VideoData | undefined>;
+  updateVideo(id: number, videoData: Partial<InsertVideo>): Promise<VideoData | undefined>;
   deleteVideo(id: number): Promise<boolean>;
+  
+  // Phương thức quản lý Sales Kit
+  getAllSalesKits(): Promise<SalesKitData[]>;
+  addSalesKit(kitData: Partial<InsertSalesKit>): Promise<SalesKitData | undefined>;
+  updateSalesKit(id: number, kitData: Partial<InsertSalesKit>): Promise<SalesKitData | undefined>;
+  deleteSalesKit(id: number): Promise<boolean>;
+  incrementSalesKitDownloads(id: number): Promise<number | undefined>;
   
   // Seed data
   seedData(affiliatesCount: number, customersPerAffiliate: number, withdrawalsPerAffiliate: number): Promise<{ affiliates_added: number, customers_added: number, withdrawals_added: number }>;

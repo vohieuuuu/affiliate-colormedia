@@ -1928,4 +1928,229 @@ export class DatabaseStorage implements IStorage {
       return { success: false };
     }
   }
+
+  // Video and Sales Kit Methods
+
+  /**
+   * Lấy tất cả các video
+   * @returns Danh sách các video
+   */
+  async getAllVideos(): Promise<VideoData[]> {
+    try {
+      const videos = await db.select().from(VideoSchema).orderBy(desc(VideoSchema.order), desc(VideoSchema.created_at));
+      return videos.map(video => ({
+        ...video,
+        published_at: video.published_at.toISOString(),
+        created_at: video.created_at.toISOString()
+      }));
+    } catch (error) {
+      console.error("Error getting all videos:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Thêm video mới
+   * @param videoData Dữ liệu video cần thêm
+   * @returns Video đã thêm
+   */
+  async addVideo(videoData: Partial<InsertVideo>): Promise<VideoData | undefined> {
+    try {
+      const [newVideo] = await db.insert(VideoSchema)
+        .values({
+          title: videoData.title || "",
+          description: videoData.description || "",
+          youtube_id: videoData.youtube_id || "",
+          thumbnail_url: videoData.thumbnail_url,
+          order: videoData.order || 0,
+          is_featured: videoData.is_featured || false
+        })
+        .returning();
+      
+      return {
+        ...newVideo,
+        published_at: newVideo.published_at.toISOString(),
+        created_at: newVideo.created_at.toISOString()
+      };
+    } catch (error) {
+      console.error("Error adding video:", error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Cập nhật thông tin video
+   * @param id ID của video
+   * @param videoData Dữ liệu cập nhật
+   * @returns Video đã cập nhật hoặc undefined nếu không tìm thấy
+   */
+  async updateVideo(id: number, videoData: Partial<InsertVideo>): Promise<VideoData | undefined> {
+    try {
+      const [updatedVideo] = await db.update(VideoSchema)
+        .set({
+          title: videoData.title,
+          description: videoData.description,
+          youtube_id: videoData.youtube_id,
+          thumbnail_url: videoData.thumbnail_url,
+          order: videoData.order,
+          is_featured: videoData.is_featured
+        })
+        .where(eq(VideoSchema.id, id))
+        .returning();
+      
+      if (!updatedVideo) {
+        return undefined;
+      }
+      
+      return {
+        ...updatedVideo,
+        published_at: updatedVideo.published_at.toISOString(),
+        created_at: updatedVideo.created_at.toISOString()
+      };
+    } catch (error) {
+      console.error("Error updating video:", error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Xóa video
+   * @param id ID của video
+   * @returns true nếu xóa thành công, false nếu không tìm thấy
+   */
+  async deleteVideo(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(VideoSchema).where(eq(VideoSchema.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting video:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Lấy tất cả các Sales Kit
+   * @returns Danh sách các Sales Kit
+   */
+  async getAllSalesKits(): Promise<SalesKitData[]> {
+    try {
+      const salesKitsData = await db.select().from(salesKits).orderBy(desc(salesKits.order), desc(salesKits.created_at));
+      return salesKitsData.map(kit => ({
+        ...kit,
+        created_at: kit.created_at.toISOString(),
+        updated_at: kit.updated_at.toISOString()
+      }));
+    } catch (error) {
+      console.error("Error getting all sales kits:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Thêm Sales Kit mới
+   * @param kitData Dữ liệu Sales Kit cần thêm
+   * @returns Sales Kit đã thêm
+   */
+  async addSalesKit(kitData: Partial<InsertSalesKit>): Promise<SalesKitData | undefined> {
+    try {
+      const [newKit] = await db.insert(salesKits)
+        .values({
+          title: kitData.title || "",
+          description: kitData.description || "",
+          file_url: kitData.file_url || "",
+          thumbnail_url: kitData.thumbnail_url,
+          category: kitData.category,
+          order: kitData.order || 0,
+          is_featured: kitData.is_featured || false
+        })
+        .returning();
+      
+      return {
+        ...newKit,
+        created_at: newKit.created_at.toISOString(),
+        updated_at: newKit.updated_at.toISOString()
+      };
+    } catch (error) {
+      console.error("Error adding sales kit:", error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Cập nhật thông tin Sales Kit
+   * @param id ID của Sales Kit
+   * @param kitData Dữ liệu cập nhật
+   * @returns Sales Kit đã cập nhật hoặc undefined nếu không tìm thấy
+   */
+  async updateSalesKit(id: number, kitData: Partial<InsertSalesKit>): Promise<SalesKitData | undefined> {
+    try {
+      const [updatedKit] = await db.update(salesKits)
+        .set({
+          title: kitData.title,
+          description: kitData.description,
+          file_url: kitData.file_url,
+          thumbnail_url: kitData.thumbnail_url,
+          category: kitData.category,
+          order: kitData.order,
+          is_featured: kitData.is_featured,
+          updated_at: new Date()
+        })
+        .where(eq(salesKits.id, id))
+        .returning();
+      
+      if (!updatedKit) {
+        return undefined;
+      }
+      
+      return {
+        ...updatedKit,
+        created_at: updatedKit.created_at.toISOString(),
+        updated_at: updatedKit.updated_at.toISOString()
+      };
+    } catch (error) {
+      console.error("Error updating sales kit:", error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Xóa Sales Kit
+   * @param id ID của Sales Kit
+   * @returns true nếu xóa thành công, false nếu không tìm thấy
+   */
+  async deleteSalesKit(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(salesKits).where(eq(salesKits.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting sales kit:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Tăng số lượt tải xuống của Sales Kit
+   * @param id ID của Sales Kit
+   * @returns Số lượt tải xuống mới
+   */
+  async incrementSalesKitDownloads(id: number): Promise<number | undefined> {
+    try {
+      const [kit] = await db.select().from(salesKits).where(eq(salesKits.id, id));
+      
+      if (!kit) {
+        return undefined;
+      }
+      
+      const newDownloads = (kit.downloads || 0) + 1;
+      
+      await db.update(salesKits)
+        .set({ downloads: newDownloads })
+        .where(eq(salesKits.id, id));
+      
+      return newDownloads;
+    } catch (error) {
+      console.error("Error incrementing sales kit downloads:", error);
+      return undefined;
+    }
+  }
 }

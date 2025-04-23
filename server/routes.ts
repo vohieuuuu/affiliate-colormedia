@@ -15,7 +15,12 @@ import {
   Affiliate,
   VideoData,
   KolVipAffiliate,
-  users
+  users,
+  SalesKitData,
+  VideoDataSchema,
+  SalesKitDataSchema,
+  InsertVideo,
+  InsertSalesKit
 } from "@shared/schema";
 import { calculateCommission } from "@shared/schemas/commission";
 import { db } from "./db";
