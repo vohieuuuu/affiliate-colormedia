@@ -1427,59 +1427,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
       
-      // Gửi thông tin yêu cầu rút tiền tới các webhook
+      // Gửi thông báo webhook về yêu cầu rút tiền thành công
       try {
-        // Mảng chứa các webhook URL để gửi dữ liệu
-        const webhookUrls = [
-          "https://auto.autogptvn.com/webhook-test/yeu-cau-thanh-toan-affilate",
-          "https://auto.autogptvn.com/webhook/yeu-cau-thanh-toan-affilate"
-        ];
-        const webhookPayload = {
-          affiliate_id: validatedPayload.user_id,
-          full_name: validatedPayload.full_name,
-          email: validatedPayload.email,
-          phone: validatedPayload.phone,
-          bank_account: validatedPayload.bank_account,
-          bank_name: validatedPayload.bank_name,
-          tax_id: validatedPayload.tax_id || "", // Thêm MST cá nhân
-          amount_requested: validatedPayload.amount_requested,
-          amount_after_tax: validatedPayload.amount_after_tax,
-          tax_amount: validatedPayload.tax_amount,
-          has_tax: validatedPayload.has_tax,
-          tax_rate: validatedPayload.tax_rate,
-          note: validatedPayload.note,
-          request_time: validatedPayload.request_time,
-          status: "PENDING",
-          timestamp: new Date().toISOString(),
-        };
+        // Import dịch vụ thông báo
+        const { sendWithdrawalNotification } = await import("./notificationService");
         
-        console.log("Sending webhook notification for withdrawal request:", webhookPayload);
+        // Gửi thông báo với thông tin rút tiền của Affiliate thường (normal)
+        const notificationResult = await sendWithdrawalNotification(validatedPayload, 'normal');
         
-        // Gửi webhook không đồng bộ tới tất cả các URL (không đợi phản hồi)
-        // Sử dụng Promise.all để gửi đến tất cả URL
-        Promise.all(webhookUrls.map(url => 
-          fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(webhookPayload),
-          })
-          .then(webhookRes => {
-            console.log(`Webhook notification sent to ${url}, status:`, webhookRes.status);
-            return webhookRes;
-          })
-          .catch(webhookErr => {
-            console.error(`Error sending webhook notification to ${url}:`, webhookErr);
-            return null; // Trả về null nếu có lỗi để Promise.all tiếp tục thực hiện
-          })
-        )).then(results => {
-          const successCount = results.filter(res => res && res.ok).length;
-          console.log(`Successfully sent webhook notifications to ${successCount}/${webhookUrls.length} endpoints`);
-        });
+        if (notificationResult) {
+          console.log("NORMAL Withdrawal notification sent successfully to webhook");
+        } else {
+          console.warn("Failed to send NORMAL withdrawal notification to webhook");
+        }
       } catch (webhookError) {
         // Lỗi webhook không ngăn cản quy trình chính
-        console.error("Failed to send webhook notification:", webhookError);
+        console.error("Failed to send NORMAL withdrawal webhook notification:", webhookError);
       }
       
       res.status(200).json({ 

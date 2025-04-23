@@ -1574,16 +1574,14 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      // Webhook gửi thông báo rút tiền (nếu cần)
+      // Gửi thông báo webhook về yêu cầu rút tiền thành công cho KOL/VIP
       try {
-        const webhookUrls = [
-          "https://auto.autogptvn.com/webhook-test/yeu-cau-thanh-toan-affilate",
-          "https://auto.autogptvn.com/webhook/yeu-cau-thanh-toan-affilate"
-        ];
+        // Import dịch vụ thông báo
+        const { sendWithdrawalNotification } = await import("./notificationService");
         
-        // Chuẩn bị payload webhook
-        const webhookPayload = {
-          affiliate_id: kolVip.affiliate_id,
+        // Tạo đối tượng dữ liệu rút tiền theo định dạng WithdrawalRequestPayload
+        const withdrawalPayload = {
+          user_id: kolVip.affiliate_id,
           full_name: kolVip.full_name,
           email: kolVip.email,
           phone: kolVip.phone,
@@ -1594,34 +1592,22 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
           amount_after_tax: netAmount,
           tax_amount: taxAmount,
           has_tax: hasTax,
+          tax_rate: INCOME_TAX_RATE,
           note: note || "",
-          request_time: withdrawalRequest.request_time,
-          type: "KOL_VIP"
+          request_time: withdrawalRequest.request_time
         };
         
-        // Gửi webhook không đồng bộ
-        Promise.all(webhookUrls.map(url => 
-          fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(webhookPayload),
-          })
-          .then(response => {
-            console.log(`Webhook sent to ${url}, status: ${response.status}`);
-            return response;
-          })
-          .catch(error => {
-            console.error(`Error sending webhook to ${url}:`, error);
-            return null;
-          })
-        )).then(results => {
-          const successCount = results.filter(res => res && res.ok).length;
-          console.log(`Successfully sent webhooks to ${successCount}/${webhookUrls.length} endpoints`);
-        });
+        // Gửi thông báo với thông tin rút tiền của KOL/VIP
+        const notificationResult = await sendWithdrawalNotification(withdrawalPayload, 'kol');
+        
+        if (notificationResult) {
+          console.log("KOL/VIP Withdrawal notification sent successfully to webhook");
+        } else {
+          console.warn("Failed to send KOL/VIP withdrawal notification to webhook");
+        }
       } catch (webhookError) {
-        console.error("Failed to send withdrawal webhook:", webhookError);
+        // Lỗi webhook không ngăn cản quy trình chính
+        console.error("Failed to send KOL/VIP withdrawal webhook notification:", webhookError);
       }
       
       // Trả về kết quả thành công
@@ -1709,53 +1695,48 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      // Gửi webhook khi cập nhật trạng thái (nếu cần)
+      // Gửi thông báo webhook về cập nhật trạng thái rút tiền cho KOL/VIP
       try {
-        const webhookUrls = [
-          "https://auto.autogptvn.com/webhook-test/cap-nhat-trang-thai-rut-tien",
-          "https://auto.autogptvn.com/webhook/cap-nhat-trang-thai-rut-tien"
-        ];
+        // Import dịch vụ thông báo
+        const { sendWithdrawalNotification } = await import("./notificationService");
         
         // Tìm KOL/VIP để lấy thông tin đầy đủ
         const kolVipData = await storage.getKolVipAffiliateByAffiliateId(affiliateId);
         
-        const webhookPayload = {
-          affiliate_id: affiliateId,
+        // Tạo đối tượng dữ liệu rút tiền theo định dạng WithdrawalRequestPayload
+        const statusUpdatePayload = {
+          user_id: affiliateId,
           full_name: kolVipData?.full_name || "Unknown",
           email: kolVipData?.email || "Unknown",
+          phone: kolVipData?.phone || "",
+          bank_account: kolVipData?.bank_account || "",
+          bank_name: kolVipData?.bank_name || "",
           amount_requested: updatedWithdrawal.amount,
-          request_time: requestTime,
-          previous_status: req.body.previous_status || "Pending",
-          new_status: status,
-          updated_by: req.user?.username || "admin",
-          updated_at: new Date().toISOString(),
+          amount_after_tax: updatedWithdrawal.amount_after_tax,
+          tax_amount: updatedWithdrawal.tax_amount || 0,
+          has_tax: updatedWithdrawal.has_tax || false,
+          tax_rate: updatedWithdrawal.tax_rate || 0,
           note: note || "",
-          type: "KOL_VIP"
+          request_time: requestTime,
+          status_update: {
+            previous_status: req.body.previous_status || "Pending",
+            new_status: status,
+            updated_by: req.user?.username || "admin",
+            updated_at: new Date().toISOString()
+          }
         };
         
-        // Gửi webhook không đồng bộ tới tất cả các URL
-        Promise.all(webhookUrls.map(url => 
-          fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(webhookPayload),
-          })
-          .then(webhookRes => {
-            console.log(`Status update webhook sent to ${url}, status:`, webhookRes.status);
-            return webhookRes;
-          })
-          .catch(webhookErr => {
-            console.error(`Error sending status update webhook to ${url}:`, webhookErr);
-            return null;
-          })
-        )).then(results => {
-          const successCount = results.filter(res => res && res.ok).length;
-          console.log(`Successfully sent status update webhooks to ${successCount}/${webhookUrls.length} endpoints`);
-        });
+        // Gửi thông báo với thông tin cập nhật trạng thái rút tiền của KOL/VIP
+        const notificationResult = await sendWithdrawalNotification(statusUpdatePayload, 'kol');
+        
+        if (notificationResult) {
+          console.log("KOL/VIP Withdrawal status update notification sent successfully to webhook");
+        } else {
+          console.warn("Failed to send KOL/VIP withdrawal status update notification to webhook");
+        }
       } catch (webhookError) {
-        console.error("Failed to send status update webhook for KOL/VIP:", webhookError);
+        // Lỗi webhook không ngăn cản quy trình chính
+        console.error("Failed to send KOL/VIP withdrawal status update webhook notification:", webhookError);
       }
       
       // Lấy thông tin KOL/VIP mới nhất sau khi cập nhật
