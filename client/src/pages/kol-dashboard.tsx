@@ -31,6 +31,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import KolContactsTable from "@/components/kol-vip/kol-contacts-table";
 import KpiProgressCard from "@/components/kol-vip/kpi-progress-card";
 import KolHeader from "@/components/kol-vip/kol-header";
+import KolFooter from "@/components/kol-vip/kol-footer";
 import KolVideosSection from "@/components/kol-vip/kol-videos-section";
 import KolSalesMaterials from "@/components/kol-vip/kol-sales-materials";
 import TransactionHistoryComponent from "@/components/kol-vip/transaction-history";
@@ -482,9 +483,9 @@ const KolDashboard = () => {
   }
 
   return (
-    <div className="bg-gradient-to-b from-slate-50 to-white min-h-screen">
+    <div className="bg-gradient-to-b from-slate-50 to-white min-h-screen flex flex-col">
       <KolHeader />
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-6 max-w-7xl mx-auto flex-1">
         <div className="flex flex-col space-y-6">
           {/* Thông tin cá nhân KOL */}
           <Card className="border-0 shadow-lg overflow-hidden bg-white">
