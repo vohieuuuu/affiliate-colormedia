@@ -44,7 +44,10 @@ import {
   Briefcase,
   Phone,
   Mail,
-  Check
+  Check,
+  Save,
+  ArrowRight,
+  CheckCircle
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
@@ -170,48 +173,58 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
           setImage(data.data.image_preview);
         }
         
-        // Cập nhật form với dữ liệu trích xuất - Trực tiếp để tránh vấn đề với timeout
-        form.setValue('contact_name', extractedData.contact_name || '');
-        form.setValue('company', extractedData.company || '');
-        form.setValue('position', extractedData.position || '');
-        form.setValue('phone', extractedData.phone || '');
-        form.setValue('email', extractedData.email || '');
-        form.setValue('note', 'Thêm từ quét card visit');
-        
         // Đánh dấu quét thành công
         setScanSuccess(true);
         
-        // Đảm bảo quá trình cập nhật form được thực hiện sau khi render hoàn tất
-        // Đặc biệt quan trọng cho thiết bị di động
-        processingTimeoutRef.current = setTimeout(() => {
-          // Thông báo trên mobile
-          toast({
-            title: "Quét thành công",
-            description: "Vui lòng kiểm tra và điền thông tin còn thiếu trước khi lưu.",
-            variant: "default",
-          });
+        // Cập nhật form với dữ liệu trích xuất - Sử dụng setTimeout để đảm bảo chuyển tab hoạt động đúng
+        setTimeout(() => {
+          form.setValue('contact_name', extractedData.contact_name || '');
+          form.setValue('company', extractedData.company || '');
+          form.setValue('position', extractedData.position || '');
+          form.setValue('phone', extractedData.phone || '');
+          form.setValue('email', extractedData.email || '');
+          form.setValue('note', 'Thêm từ quét card visit');
           
-          // Chuyển sang tab info sau khi đã xử lý
-          setActiveTab("info");
+          // Thông báo trên mobile
+          if (isMobile) {
+            toast({
+              title: "Quét thành công",
+              description: "Vui lòng kiểm tra và điền thông tin còn thiếu trước khi lưu.",
+              variant: "default",
+            });
+          }
+          
+          // Quy trình 2 bước: Đầu tiên dừng scanning, sau đó chuyển tab
           setIsScanning(false);
-        }, 500); // Tăng độ trễ để đảm bảo UI cập nhật hoàn thành trước khi chuyển tab
+          
+          // Chờ thêm để đảm bảo UI cập nhật xong
+          setTimeout(() => {
+            setActiveTab("info");
+          }, 300);
+        }, 800); // Tăng độ trễ lên 800ms để đảm bảo đủ thời gian cho các thao tác xử lý
         
       } else {
         // Xử lý lỗi
         setError(data.error?.message || "Có lỗi xảy ra khi quét ảnh");
-        // Vẫn chuyển sang tab nhập thông tin nhưng với form trống
-        processingTimeoutRef.current = setTimeout(() => {
-          setActiveTab("manual");
+        
+        // Vẫn chuyển sang tab nhập thông tin nhưng với form trống, sử dụng setTimeout lồng nhau
+        setTimeout(() => {
           setIsScanning(false);
+          setTimeout(() => {
+            setActiveTab("manual");
+          }, 300);
         }, 500);
       }
     } catch (error) {
       console.error("Lỗi khi quét ảnh:", error);
       setError("Có lỗi xảy ra khi quét ảnh. Vui lòng nhập thông tin thủ công.");
-      // Vẫn chuyển sang tab nhập thông tin
-      processingTimeoutRef.current = setTimeout(() => {
-        setActiveTab("manual");
+      
+      // Vẫn chuyển sang tab nhập thông tin, sử dụng setTimeout lồng nhau
+      setTimeout(() => {
         setIsScanning(false);
+        setTimeout(() => {
+          setActiveTab("manual");
+        }, 300);
       }, 500);
     }
   };
@@ -714,7 +727,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                         </>
                       ) : (
                         <>
-                          {scanSuccess ? <Save className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
+                          {scanSuccess ? <Check className="mr-2 h-4 w-4" /> : <Camera className="mr-2 h-4 w-4" />}
                           {scanSuccess ? "Lưu thông tin" : "Tiếp tục"}
                         </>
                       )}
@@ -877,7 +890,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                           </>
                         ) : (
                           <>
-                            <Save className="mr-2 h-4 w-4" />
+                            <Check className="mr-2 h-4 w-4" />
                             Lưu thông tin
                           </>
                         )}
