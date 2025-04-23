@@ -63,9 +63,10 @@ export default function OtpVerificationPage() {
         queryClient.invalidateQueries({ queryKey: ["/api/kol/me"] });
         queryClient.invalidateQueries({ queryKey: ["/api/kol", affiliateId, "financial-summary"] });
         
-        // Navigate back to withdrawal page with startTransition để tránh lỗi suspense
+        // Chuyển hướng đến trang dashboard KOL với startTransition để tránh lỗi suspense
         startTransition(() => {
-          navigate("/kol/withdrawal");
+          console.log("Navigating to KOL dashboard after successful verification");
+          navigate("/kol/dashboard");
         });
       } else if (data.error) {
         setError(data.error.message || "Mã OTP không chính xác");
