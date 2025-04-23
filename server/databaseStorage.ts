@@ -1932,6 +1932,55 @@ export class DatabaseStorage implements IStorage {
   // Video and Sales Kit Methods
 
   /**
+   * Lấy danh sách video nổi bật
+   * @param limit Số lượng video cần lấy
+   * @returns Danh sách video nổi bật
+   */
+  async getTopVideos(limit: number = 5): Promise<VideoData[]> {
+    try {
+      const videos = await db.select()
+        .from(VideoSchema)
+        .where(eq(VideoSchema.is_featured, true))
+        .orderBy(VideoSchema.order)
+        .limit(limit);
+      
+      return videos.map(video => ({
+        ...video,
+        published_at: video.published_at.toISOString(),
+        created_at: video.created_at.toISOString()
+      }));
+    } catch (error) {
+      console.error("Error getting top videos:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Lấy danh sách video theo danh mục
+   * @param category Tên danh mục (commerce, pharma, finance, tech, government, conglomerate)
+   * @param limit Số lượng video cần lấy
+   * @returns Danh sách video thuộc danh mục
+   */
+  async getTopVideosByCategory(category: string, limit: number = 5): Promise<VideoData[]> {
+    try {
+      const videos = await db.select()
+        .from(VideoSchema)
+        .where(eq(VideoSchema.category, category))
+        .orderBy(VideoSchema.order)
+        .limit(limit);
+      
+      return videos.map(video => ({
+        ...video,
+        published_at: video.published_at.toISOString(),
+        created_at: video.created_at.toISOString()
+      }));
+    } catch (error) {
+      console.error(`Error getting videos for category ${category}:`, error);
+      return [];
+    }
+  }
+
+  /**
    * Lấy tất cả các video
    * @returns Danh sách các video
    */

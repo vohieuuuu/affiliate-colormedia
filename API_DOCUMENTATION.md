@@ -899,42 +899,44 @@ Authorization: Bearer <token>
 ```json
 {
   "status": "success",
-  "data": {
-    "category": "commerce",
-    "videos": [
-      {
-        "id": 3,
-        "title": "Chiến lược tiếp thị cho ngành thương mại",
-        "description": "Các chiến lược tiếp thị hiệu quả cho doanh nghiệp thương mại",
-        "url": "https://youtu.be/comm123",
-        "thumbnail_url": "https://i.ytimg.com/vi/comm123/maxresdefault.jpg",
-        "created_at": "2024-02-15T00:00:00Z",
-        "category": "commerce",
-        "views": 450
-      },
-      {
-        "id": 4,
-        "title": "Xu hướng thương mại điện tử 2024",
-        "description": "Phân tích các xu hướng thương mại điện tử năm 2024",
-        "url": "https://youtu.be/ecomm456",
-        "thumbnail_url": "https://i.ytimg.com/vi/ecomm456/maxresdefault.jpg",
-        "created_at": "2024-01-20T00:00:00Z",
-        "category": "commerce",
-        "views": 380
-      }
-    ]
-  }
+  "data": [
+    {
+      "id": 3,
+      "title": "Chiến lược tiếp thị cho ngành thương mại",
+      "description": "Các chiến lược tiếp thị hiệu quả cho doanh nghiệp thương mại",
+      "youtube_id": "comm123",
+      "thumbnail_url": "https://i.ytimg.com/vi/comm123/maxresdefault.jpg",
+      "created_at": "2024-02-15T00:00:00Z",
+      "published_at": "2024-02-15T00:00:00Z",
+      "category": "commerce",
+      "views": 450,
+      "order": 1,
+      "is_featured": true
+    },
+    {
+      "id": 4,
+      "title": "Xu hướng thương mại điện tử 2024",
+      "description": "Phân tích các xu hướng thương mại điện tử năm 2024",
+      "youtube_id": "ecomm456",
+      "thumbnail_url": "https://i.ytimg.com/vi/ecomm456/maxresdefault.jpg",
+      "created_at": "2024-01-20T00:00:00Z",
+      "published_at": "2024-01-20T00:00:00Z",
+      "category": "commerce",
+      "views": 380,
+      "order": 2,
+      "is_featured": true
+    }
+  ]
 }
 ```
 
-Danh sách các ngành được hỗ trợ:
+**Danh sách các ngành được hỗ trợ**:
 - `commerce`: Thương mại - Sản xuất
 - `pharma`: Dược - Mỹ phẩm
 - `finance`: Tài chính - Bảo hiểm
 - `tech`: Công nghệ
 - `government`: Tổ chức N.G.Os (Chính phủ)
 - `conglomerate`: Tập đoàn Đa ngành
-```
 
 ### 1.4 Thêm video mới (Admin only)
 **Endpoint**: `POST /api/videos`

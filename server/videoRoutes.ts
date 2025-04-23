@@ -30,6 +30,52 @@ export function setupVideoRoutes(app: Express) {
     }
   });
   
+  // API để lấy top videos theo danh mục ngành
+  app.get("/api/videos/category/:category", async (req: Request, res: Response) => {
+    try {
+      const category = req.params.category;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      // Danh sách các danh mục hợp lệ
+      const validCategories = [
+        "commerce", // Thương mại - Sản xuất
+        "pharma",   // Dược - Mỹ phẩm
+        "finance",  // Tài chính - Bảo hiểm
+        "tech",     // Công nghệ
+        "government", // Tổ chức N.G.O/Chính phủ
+        "conglomerate" // Tập đoàn Đa ngành
+      ];
+      
+      // Kiểm tra danh mục có hợp lệ không
+      if (!validCategories.includes(category)) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_CATEGORY",
+            message: `Danh mục không hợp lệ. Danh mục hợp lệ: ${validCategories.join(", ")}`
+          }
+        });
+      }
+      
+      // Lấy videos theo danh mục từ storage
+      const videos = await storage.getTopVideosByCategory(category, limit);
+      
+      res.status(200).json({
+        status: "success",
+        data: videos
+      });
+    } catch (error) {
+      console.error(`Error retrieving videos by category:`, error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Không thể lấy danh sách video theo danh mục"
+        }
+      });
+    }
+  });
+  
   // API để lấy chi tiết video theo ID
   app.get("/api/videos/:id", async (req: Request, res: Response) => {
     try {
