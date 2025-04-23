@@ -19,35 +19,44 @@ export default function OtpVerificationPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Parse query params from URL - Only do this once during component initialization
-  // Avoid re-parsing on every render which could cause issues
-  const [amount, setAmount] = useState<string>("");
-  const [affiliateId, setAffiliateId] = useState<string>("");
-  const [requestId, setRequestId] = useState<string>("");
-  const [hasRequiredParams, setHasRequiredParams] = useState<boolean>(false);
+  // Xử lý URL query params bên ngoài useEffect để tránh lỗi tải hai lần
+  const getQueryParams = () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const amountParam = params.get("amount") || "";
+      const affiliateIdParam = params.get("affiliateId") || "";
+      const requestIdParam = params.get("requestId") || "";
+      
+      // Check if we have required params
+      const hasParams = !!amountParam && !!affiliateIdParam && !!requestIdParam;
+      
+      return {
+        amount: amountParam,
+        affiliateId: affiliateIdParam,
+        requestId: requestIdParam,
+        hasRequiredParams: hasParams
+      };
+    } catch (error) {
+      console.error("Error parsing URL parameters:", error);
+      return {
+        amount: "",
+        affiliateId: "",
+        requestId: "",
+        hasRequiredParams: false
+      };
+    }
+  };
   
-  // Initialize params only once - runs before the first render
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const amountParam = params.get("amount") || "";
-    const affiliateIdParam = params.get("affiliateId") || "";
-    const requestIdParam = params.get("requestId") || "";
-    
-    setAmount(amountParam);
-    setAffiliateId(affiliateIdParam);
-    setRequestId(requestIdParam);
-    
-    // Check if we have the required parameters
-    const hasParams = !!amountParam && !!affiliateIdParam && !!requestIdParam;
-    setHasRequiredParams(hasParams);
-    
-    console.log("OTP Verification page initialized with params:", {
-      amount: amountParam,
-      affiliateId: affiliateIdParam,
-      requestId: requestIdParam,
-      hasParams
-    });
-  }, []);
+  // Lấy dữ liệu từ URL chỉ một lần khi component khởi tạo
+  const { amount, affiliateId, requestId, hasRequiredParams } = getQueryParams();
+  
+  // Log kết quả phân tích URL cho mục đích debug
+  console.log("OTP Verification page initialized with params:", {
+    amount,
+    affiliateId,
+    requestId,
+    hasRequiredParams
+  });
   
   // Verify OTP
   const { mutate: verifyOtp, isPending: isVerifying } = useMutation({
@@ -84,11 +93,11 @@ export default function OtpVerificationPage() {
         queryClient.invalidateQueries({ queryKey: ["/api/kol/me"] });
         queryClient.invalidateQueries({ queryKey: ["/api/kol", affiliateId, "financial-summary"] });
         
-        // Chuyển hướng đến trang dashboard KOL với startTransition để tránh lỗi suspense
-        startTransition(() => {
-          console.log("Navigating to KOL dashboard after successful verification");
-          navigate("/kol-dashboard");
-        });
+        // Chuyển hướng đến trang dashboard KOL bằng window.location thay vì Navigate của React Router
+        console.log("Navigating to KOL dashboard after successful verification");
+        
+        // Sử dụng window.location để tránh các vấn đề với React routing
+        window.location.href = "/kol-dashboard";
       } else if (data.error) {
         setError(data.error.message || "Mã OTP không chính xác");
         toast({

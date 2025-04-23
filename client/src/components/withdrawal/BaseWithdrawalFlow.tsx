@@ -215,13 +215,15 @@ export default function BaseWithdrawalFlow({
             description: "Bạn đang được chuyển hướng đến trang xác thực OTP",
           });
           
-          // Sử dụng setTimeout để đảm bảo modal đã đóng hoàn toàn trước khi chuyển hướng
-          // Điều này giúp tránh việc tải lại trang OTP nhiều lần
+          // Tránh quá trình chuyển hướng nhiều lần bằng cách sử dụng kỹ thuật debounce
+          // và đảm bảo modal đã đóng hoàn toàn trước khi chuyển hướng
           setTimeout(() => {
-            startTransition(() => {
-              navigate(otpVerificationUrl);
-            });
-          }, 100);
+            // Tạm thời lưu URL vào localStorage để tránh chuyển hướng nhiều lần
+            localStorage.setItem('lastOtpRedirect', Date.now().toString());
+            
+            // Sử dụng window.location.href thay vì navigate từ wouter để tránh các vấn đề với React Router
+            window.location.href = otpVerificationUrl;
+          }, 150);
         } else {
           console.error("Missing required parameters for OTP verification:", { requestId, affiliateId });
           setError("Lỗi xử lý yêu cầu. Vui lòng thử lại sau.");

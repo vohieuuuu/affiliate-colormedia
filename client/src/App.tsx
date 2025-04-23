@@ -108,10 +108,12 @@ function AuthenticatedRoutes() {
       <ProtectedRoute path="/" component={RoleRouter} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
       <ProtectedRoute path="/kol-dashboard/withdrawal" component={DirectWithdrawalPage} />
+      {/* Để tránh lỗi tải, dùng component wrapper với dynamic import */}
       <ProtectedRoute 
         path="/kol/otp-verification" 
         component={() => {
-          const OtpVerificationPage = lazy(() => import("@/pages/kol-dashboard/OtpVerificationPage"));
+          const OtpPage = lazy(() => import("@/pages/kol-dashboard/OtpVerificationPage"));
+          
           return (
             <Suspense fallback={
               <div className="flex flex-col gap-2 items-center justify-center min-h-screen">
@@ -119,7 +121,7 @@ function AuthenticatedRoutes() {
                 <p className="text-sm text-muted-foreground">Đang tải trang xác thực OTP...</p>
               </div>
             }>
-              <OtpVerificationPage />
+              <OtpPage />
             </Suspense>
           );
         }}
