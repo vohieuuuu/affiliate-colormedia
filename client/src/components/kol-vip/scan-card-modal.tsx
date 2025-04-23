@@ -399,8 +399,8 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose} className="fixed inset-0 flex items-center justify-center z-50">
-      <DialogContent className={isMobile ? "max-w-[95vw] p-2 max-h-[90vh] overflow-y-auto mx-auto my-auto" : "sm:max-w-xl"} style={{ touchAction: "pan-y", overscrollBehavior: "contain", position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className={isMobile ? "p-2 max-h-[90vh] overflow-y-auto" : ""} style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}>
         <DialogHeader className={isMobile ? "pb-1" : "pb-2"}>
           <DialogTitle className={isMobile ? "text-center text-lg font-medium" : ""}>Thông tin Card Visit</DialogTitle>
           <DialogDescription className={isMobile ? "text-center text-xs" : ""}>
