@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="36" viewBox="0 0 120 36" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="36" rx="4" fill="#3C3C3C"/>
+  <rect x="2" y="2" width="116" height="32" rx="3" fill="#5A5A5A"/>
+  <text x="10" y="16" font-family="Arial, sans-serif" font-size="10" fill="white">PROTECTED</text>
+  <text x="60" y="24" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#FFD700">DMCA</text>
+</svg>

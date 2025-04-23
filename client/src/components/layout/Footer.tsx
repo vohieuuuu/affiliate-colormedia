@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="w-full md:w-auto mb-6 md:mb-0">
             <div className="flex items-center">
               <div className="text-white font-bold text-2xl">
-                <img src="/color-media-logo-white.png" alt="ColorMedia Logo" className="h-16" />
+                <img src="/color-media-logo-white.svg" alt="ColorMedia Logo" className="h-16" />
               </div>
             </div>
           </div>
@@ -48,7 +48,7 @@ export default function Footer() {
               </div>
               <div>
                 <a href="#" className="inline-block">
-                  <img src="/dmca-badge.png" alt="DMCA Protected" className="h-8" />
+                  <img src="/dmca-protected.svg" alt="DMCA Protected" className="h-8" />
                 </a>
               </div>
             </div>
