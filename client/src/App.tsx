@@ -16,7 +16,8 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import { RoleBasedRoute } from "@/lib/role-based-route";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
-import { useEffect, Suspense, lazy } from "react";
+import { useEffect, Suspense, lazy, startTransition } from "react";
+import { TransitionBoundary } from "@/lib/transition-boundary-fixed";
 import { Loader2 } from "lucide-react";
 
 // Thêm một component mới để xử lý điều hướng một cách thông minh
@@ -107,7 +108,22 @@ function AuthenticatedRoutes() {
       <ProtectedRoute path="/" component={RoleRouter} />
       <ProtectedRoute path="/kol-dashboard" component={KolDashboard} />
       <ProtectedRoute path="/kol-dashboard/withdrawal" component={DirectWithdrawalPage} />
-      <ProtectedRoute path="/kol/otp-verification" component={lazy(() => import("@/pages/kol-dashboard/OtpVerificationPage"))} />
+      <ProtectedRoute 
+        path="/kol/otp-verification" 
+        component={() => {
+          const OtpVerificationPage = lazy(() => import("@/pages/kol-dashboard/OtpVerificationPage"));
+          return (
+            <Suspense fallback={
+              <div className="flex flex-col gap-2 items-center justify-center min-h-screen">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Đang tải trang xác thực OTP...</p>
+              </div>
+            }>
+              <OtpVerificationPage />
+            </Suspense>
+          );
+        }}
+      />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       {/* Admin routes */}
@@ -147,7 +163,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        {/* Bọc toàn bộ ứng dụng trong TransitionBoundary để ngăn lỗi suspense */}
+        <TransitionBoundary>
+          <Router />
+        </TransitionBoundary>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

@@ -38,4 +38,3 @@ export function useTransitionLocation() {
   
   return [location, setLocation] as const;
 }
-
