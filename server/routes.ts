@@ -41,6 +41,7 @@ import {
 import commissionRouter from "./api/commission";
 import { setupAdminKolRoutes } from "./api/admin-kol";
 import { Router } from "express";
+import webhookRoutes from "./webhookRoutes";
 
 // Hàm trợ giúp để kiểm tra vai trò thống nhất
 function isUserRole(role: any, expectedRole: string): boolean {
@@ -3159,6 +3160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Thiết lập API cho videos và sales kits
   setupResourceRoutes(app);
+  
+  // Setup webhook routes để nhận yêu cầu thanh toán từ Normal và Partner
+  app.use('/api/webhooks', webhookRoutes);
 
   const httpServer = createServer(app);
 
