@@ -290,6 +290,7 @@ export const VideoSchema = pgTable("videos", {
   views: integer("views"), // Số lượt xem video
   order: integer("order").notNull().default(0), // For custom ordering
   is_featured: boolean("is_featured").notNull().default(false),
+  category: text("category"), // Danh mục ngành (commerce, pharma, finance, tech, government, conglomerate)
   published_at: timestamp("published_at").notNull().defaultNow(),
   created_at: timestamp("created_at").notNull().defaultNow(),
 });
@@ -318,6 +319,7 @@ export const VideoDataSchema = z.object({
   views: z.number().optional(),
   order: z.number(),
   is_featured: z.boolean().default(false),
+  category: z.string().optional(), // Danh mục ngành (commerce, pharma, finance, tech, government, conglomerate)
   published_at: z.string(),
   created_at: z.string(),
 });
