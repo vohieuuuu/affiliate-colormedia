@@ -294,6 +294,21 @@ export const VideoSchema = pgTable("videos", {
   created_at: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Sales Kit Schema
+export const salesKits = pgTable("sales_kits", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  file_url: text("file_url").notNull(), // URL tới file tài liệu (có thể là Google Drive, Dropbox, v.v.)
+  thumbnail_url: text("thumbnail_url"),
+  downloads: integer("downloads").notNull().default(0), // Số lượt tải xuống
+  category: text("category"), // Loại tài liệu (brochure, presentation, template, v.v.)
+  order: integer("order").notNull().default(0), // For custom ordering
+  is_featured: boolean("is_featured").notNull().default(false),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const VideoDataSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -309,6 +324,23 @@ export const VideoDataSchema = z.object({
 
 export type VideoData = z.infer<typeof VideoDataSchema>;
 
+// SalesKit schema
+export const SalesKitDataSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string().optional(),
+  file_url: z.string(),
+  thumbnail_url: z.string().optional(),
+  downloads: z.number().optional(),
+  category: z.string().optional(),
+  order: z.number(),
+  is_featured: z.boolean().default(false),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export type SalesKitData = z.infer<typeof SalesKitDataSchema>;
+
 // Schema for storing videos in memory storage
 export const VideoCollectionSchema = z.object({
   videos: z.array(VideoDataSchema),
@@ -319,6 +351,10 @@ export type VideoCollection = z.infer<typeof VideoCollectionSchema>;
 export const insertVideoSchema = createInsertSchema(VideoSchema);
 export type InsertVideo = z.infer<typeof insertVideoSchema>;
 export type Video = typeof VideoSchema.$inferSelect;
+
+export const insertSalesKitSchema = createInsertSchema(salesKits);
+export type InsertSalesKit = z.infer<typeof insertSalesKitSchema>;
+export type SalesKit = typeof salesKits.$inferSelect;
 
 // KOL/VIP Level Type
 export const KolVipLevel = z.enum([
