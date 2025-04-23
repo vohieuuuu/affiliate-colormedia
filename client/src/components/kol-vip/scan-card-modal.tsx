@@ -400,10 +400,10 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={isMobile ? "max-w-[95vw] p-3 max-h-[95vh] overflow-y-auto" : "sm:max-w-xl"} style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}>
-        <DialogHeader>
-          <DialogTitle>Thông tin Card Visit</DialogTitle>
-          <DialogDescription>
+      <DialogContent className={isMobile ? "max-w-[95vw] p-2 max-h-[90vh] overflow-y-auto" : "sm:max-w-xl"} style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}>
+        <DialogHeader className={isMobile ? "pb-1" : "pb-2"}>
+          <DialogTitle className={isMobile ? "text-center text-lg font-medium" : ""}>Thông tin Card Visit</DialogTitle>
+          <DialogDescription className={isMobile ? "text-center text-xs" : ""}>
             Tải lên ảnh card visit và nhập thông tin liên hệ
           </DialogDescription>
         </DialogHeader>
@@ -419,17 +419,17 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full">
-              <TabsTrigger value="upload" className="w-1/3" style={{ touchAction: "manipulation" }}>
-                <Camera className="mr-2 h-4 w-4" />
-                Tải ảnh
+              <TabsTrigger value="upload" className="w-1/3 px-1 h-8" style={{ touchAction: "manipulation" }}>
+                <Camera className={isMobile ? "h-3 w-3" : "mr-2 h-4 w-4"} />
+                {!isMobile && "Tải ảnh"}
               </TabsTrigger>
-              <TabsTrigger value="manual" className="w-1/3" disabled={!image} style={{ touchAction: "manipulation" }}>
-                <FileText className="mr-2 h-4 w-4" />
-                Dữ liệu OCR
+              <TabsTrigger value="manual" className="w-1/3 px-1 h-8" disabled={!image} style={{ touchAction: "manipulation" }}>
+                <FileText className={isMobile ? "h-3 w-3" : "mr-2 h-4 w-4"} />
+                {!isMobile ? "Dữ liệu OCR" : "OCR"}
               </TabsTrigger>
-              <TabsTrigger value="info" className="w-1/3" disabled={!image} style={{ touchAction: "manipulation" }}>
-                <UserCircle className="mr-2 h-4 w-4" />
-                Thông tin liên hệ
+              <TabsTrigger value="info" className="w-1/3 px-1 h-8" disabled={!image} style={{ touchAction: "manipulation" }}>
+                <UserCircle className={isMobile ? "h-3 w-3" : "mr-2 h-4 w-4"} />
+                {!isMobile ? "Thông tin liên hệ" : "Thông tin"}
               </TabsTrigger>
             </TabsList>
             
@@ -437,13 +437,13 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
               {!isCapturing && (
                 <div className="space-y-4">
                   {image ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <Card>
-                        <CardContent className="p-2">
+                        <CardContent className="p-1">
                           <img 
                             src={image} 
                             alt="Card Visit" 
-                            className="max-h-[250px] w-full object-contain rounded"
+                            className={isMobile ? "max-h-[180px] w-full object-contain rounded" : "max-h-[250px] w-full object-contain rounded"}
                           />
                         </CardContent>
                       </Card>
@@ -453,6 +453,9 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                           variant="outline" 
                           onClick={() => setImage(null)}
                           disabled={isLoading}
+                          size={isMobile ? "sm" : "default"}
+                          className="flex-1"
+                          style={{ touchAction: "manipulation" }}
                         >
                           Chọn ảnh khác
                         </Button>
@@ -460,21 +463,24 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                         <Button 
                           onClick={() => setActiveTab("manual")}
                           disabled={isLoading}
-                          className="bg-gradient-to-r from-[#07ADB8] to-[#07ADB8]/80 hover:from-[#07ADB8]/90 hover:to-[#07ADB8]/70"
+                          size={isMobile ? "sm" : "default"}
+                          className="bg-gradient-to-r from-[#07ADB8] to-[#07ADB8]/80 hover:from-[#07ADB8]/90 hover:to-[#07ADB8]/70 flex-1"
+                          style={{ touchAction: "manipulation" }}
                         >
                           Tiếp theo
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <div className={isMobile ? "flex flex-col gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+                    <div className={isMobile ? "flex flex-col gap-3" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
                       <Button 
                         variant="outline" 
                         onClick={() => fileInputRef.current?.click()}
-                        className={isMobile ? "h-24 flex flex-col gap-2" : "h-32 flex flex-col gap-2"}
+                        className={isMobile ? "h-20 flex flex-col gap-1 text-sm" : "h-32 flex flex-col gap-2"}
                         disabled={isLoading}
+                        style={{ touchAction: "manipulation" }}
                       >
-                        <Upload className="h-6 w-6" />
+                        <Upload className={isMobile ? "h-5 w-5" : "h-6 w-6"} />
                         Tải ảnh lên
                         <Input
                           type="file"
@@ -489,10 +495,11 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                       <Button 
                         variant="outline" 
                         onClick={startCamera}
-                        className={isMobile ? "h-24 flex flex-col gap-2" : "h-32 flex flex-col gap-2"}
+                        className={isMobile ? "h-20 flex flex-col gap-1 text-sm" : "h-32 flex flex-col gap-2"}
                         disabled={isLoading}
+                        style={{ touchAction: "manipulation" }}
                       >
-                        <Camera className="h-6 w-6" />
+                        <Camera className={isMobile ? "h-5 w-5" : "h-6 w-6"} />
                         Chụp ảnh
                       </Button>
                     </div>
@@ -501,7 +508,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
               )}
               
               {isCapturing && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="relative border rounded-md overflow-hidden">
                     <video 
                       ref={videoRef} 
@@ -512,11 +519,22 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                     />
                   </div>
                   
-                  <div className="flex justify-center gap-4">
-                    <Button variant="secondary" onClick={stopCamera}>
+                  <div className="flex justify-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={stopCamera} 
+                      size={isMobile ? "sm" : "default"}
+                      className="flex-1"
+                      style={{ touchAction: "manipulation" }}
+                    >
                       Hủy
                     </Button>
-                    <Button onClick={captureImage}>
+                    <Button 
+                      onClick={captureImage}
+                      size={isMobile ? "sm" : "default"}
+                      className="bg-gradient-to-r from-[#07ADB8] to-[#07ADB8]/80 hover:from-[#07ADB8]/90 hover:to-[#07ADB8]/70 flex-1"
+                      style={{ touchAction: "manipulation" }}
+                    >
                       Chụp ảnh
                     </Button>
                   </div>
@@ -525,10 +543,10 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
               
               {image && (
                 <Alert className="bg-gradient-to-r from-[#07ADB8]/10 to-[#FFC919]/5">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Đang xử lý OCR</AlertTitle>
-                  <AlertDescription>
-                    Hệ thống đang trích xuất thông tin từ card visit. Nhấn "Tiếp theo" khi đã sẵn sàng.
+                  <AlertCircle className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
+                  <AlertTitle className={isMobile ? "text-sm" : ""}>Đang xử lý OCR</AlertTitle>
+                  <AlertDescription className={isMobile ? "text-xs" : ""}>
+                    {isMobile ? "Nhấn 'Tiếp theo' để xem kết quả OCR" : "Hệ thống đang trích xuất thông tin từ card visit. Nhấn 'Tiếp theo' khi đã sẵn sàng."}
                   </AlertDescription>
                 </Alert>
               )}
