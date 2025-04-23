@@ -170,20 +170,20 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
           setImage(data.data.image_preview);
         }
         
+        // Cập nhật form với dữ liệu trích xuất - Trực tiếp để tránh vấn đề với timeout
+        form.setValue('contact_name', extractedData.contact_name || '');
+        form.setValue('company', extractedData.company || '');
+        form.setValue('position', extractedData.position || '');
+        form.setValue('phone', extractedData.phone || '');
+        form.setValue('email', extractedData.email || '');
+        form.setValue('note', 'Thêm từ quét card visit');
+        
+        // Đánh dấu quét thành công
+        setScanSuccess(true);
+        
         // Đảm bảo quá trình cập nhật form được thực hiện sau khi render hoàn tất
         // Đặc biệt quan trọng cho thiết bị di động
         processingTimeoutRef.current = setTimeout(() => {
-          // Cập nhật form với dữ liệu trích xuất
-          form.setValue('contact_name', extractedData.contact_name || '');
-          form.setValue('company', extractedData.company || '');
-          form.setValue('position', extractedData.position || '');
-          form.setValue('phone', extractedData.phone || '');
-          form.setValue('email', extractedData.email || '');
-          form.setValue('note', 'Thêm từ quét card visit');
-          
-          // Đánh dấu quét thành công
-          setScanSuccess(true);
-          
           // Thông báo trên mobile
           toast({
             title: "Quét thành công",
@@ -194,7 +194,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
           // Chuyển sang tab info sau khi đã xử lý
           setActiveTab("info");
           setIsScanning(false);
-        }, 300); // Độ trễ nhỏ để đảm bảo UI cập nhật trước khi thao tác form
+        }, 500); // Tăng độ trễ để đảm bảo UI cập nhật hoàn thành trước khi chuyển tab
         
       } else {
         // Xử lý lỗi
@@ -203,7 +203,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
         processingTimeoutRef.current = setTimeout(() => {
           setActiveTab("manual");
           setIsScanning(false);
-        }, 300);
+        }, 500);
       }
     } catch (error) {
       console.error("Lỗi khi quét ảnh:", error);
@@ -212,7 +212,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
       processingTimeoutRef.current = setTimeout(() => {
         setActiveTab("manual");
         setIsScanning(false);
-      }, 300);
+      }, 500);
     }
   };
   
@@ -387,7 +387,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={isMobile ? "max-w-[90vw] p-4 sm:max-w-xl" : "sm:max-w-xl"}>
+      <DialogContent className={isMobile ? "max-w-[90vw] p-4 sm:max-w-xl" : "sm:max-w-xl"} style={{ touchAction: "none", overscrollBehavior: "contain" }}>
         <DialogHeader>
           <DialogTitle>Thông tin Card Visit</DialogTitle>
           <DialogDescription>
@@ -406,15 +406,15 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full">
-              <TabsTrigger value="upload" className="w-1/3">
+              <TabsTrigger value="upload" className="w-1/3" style={{ touchAction: "manipulation" }}>
                 <Camera className="mr-2 h-4 w-4" />
                 Tải ảnh
               </TabsTrigger>
-              <TabsTrigger value="manual" className="w-1/3" disabled={!image}>
+              <TabsTrigger value="manual" className="w-1/3" disabled={!image} style={{ touchAction: "manipulation" }}>
                 <FileText className="mr-2 h-4 w-4" />
                 Dữ liệu OCR
               </TabsTrigger>
-              <TabsTrigger value="info" className="w-1/3" disabled={!image}>
+              <TabsTrigger value="info" className="w-1/3" disabled={!image} style={{ touchAction: "manipulation" }}>
                 <UserCircle className="mr-2 h-4 w-4" />
                 Thông tin liên hệ
               </TabsTrigger>
