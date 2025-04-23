@@ -32,12 +32,19 @@ export default function OtpVerificationPage() {
   const { mutate: verifyOtp, isPending: isVerifying } = useMutation({
     mutationFn: async (otp: string) => {
       console.log("Verifying OTP:", otp);
+      console.log("Sending OTP verification request with params:", {
+        otp,
+        requestId,
+        amount // Thêm tham số amount từ URL
+      });
+      
       const response = await apiRequest(
         "POST",
         "/api/kol/withdrawal-request/verify",
         {
           otp,
-          requestId
+          requestId,
+          amount: parseFloat(amount) // Thêm số tiền từ URL query param
         }
       );
       return await response.json();

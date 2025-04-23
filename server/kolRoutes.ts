@@ -1316,7 +1316,7 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      // Tạo OTP cho user
+      // Tạo OTP cho user - đảm bảo đặt cùng chữ thường cho tất cả giá trị verification_type
       const otpCode = await storage.createOtp(req.user.id, "withdrawal");
       
       // Gửi email OTP
@@ -1407,14 +1407,27 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
   // API endpoint to verify OTP and process withdrawal for KOL/VIP
   app.post("/api/kol/withdrawal-request/verify", authenticateUser, requireKolVip, async (req: Request, res: Response) => {
     try {
-      const { otp, amount, note, tax_id } = req.body;
+      const { otp, requestId, amount, note, tax_id } = req.body;
       
-      if (!otp || !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      // Kiểm tra thông tin OTP
+      if (!otp) {
         return res.status(400).json({
           status: "error",
           error: {
             code: "INVALID_INPUT",
-            message: "Mã OTP và số tiền rút là bắt buộc"
+            message: "Mã OTP là bắt buộc"
+          }
+        });
+      }
+      
+      // Sửa lỗi yêu cầu amount - cho phép nhận requestId từ client
+      // hoặc tham số amount nếu gọi trực tiếp
+      if (!requestId && (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)) {
+        return res.status(400).json({
+          status: "error",
+          error: {
+            code: "INVALID_INPUT",
+            message: "Thông tin yêu cầu rút tiền không hợp lệ"
           }
         });
       }
@@ -1443,11 +1456,20 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         });
       }
       
-      const otpValid = await storage.verifyOtp(req.user.id, otp, "withdrawal");
+      // Thử xác thực OTP với cả "withdrawal" và "WITHDRAWAL" (sửa sự khác biệt giữa hoa/thường)
+      let otpValid = await storage.verifyOtp(req.user.id, otp, "withdrawal");
+      
+      // Nếu không tìm thấy, thử với loại xác thực viết hoa
+      if (!otpValid) {
+        otpValid = await storage.verifyOtp(req.user.id, otp, "WITHDRAWAL");
+      }
       
       if (!otpValid) {
+        console.log(`OTP validation failed for user ${req.user.id}, OTP: ${otp}`);
+        
         // Tăng số lần thử OTP
         const attempts = await storage.increaseOtpAttempt(req.user.id, otp);
+        console.log(`Attempts increased to ${attempts} for user ${req.user.id}`);
         
         // Nếu sai quá 5 lần, vô hiệu hóa OTP
         if (attempts >= 5) {
