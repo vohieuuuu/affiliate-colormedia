@@ -962,6 +962,7 @@ const KolDashboard = () => {
         <KolVideosSection />
         <KolSalesMaterials />
       </div>
+      <KolFooter />
     </div>
   );
 };
