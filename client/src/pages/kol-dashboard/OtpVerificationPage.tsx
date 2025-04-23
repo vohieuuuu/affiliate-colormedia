@@ -19,8 +19,8 @@ export default function OtpVerificationPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Xử lý URL query params bên ngoài useEffect để tránh lỗi tải hai lần
-  const getQueryParams = () => {
+  // Parse query params từ URL và lưu vào state để sử dụng
+  const [queryParams, setQueryParams] = useState(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const amountParam = params.get("amount") || "";
@@ -29,6 +29,13 @@ export default function OtpVerificationPage() {
       
       // Check if we have required params
       const hasParams = !!amountParam && !!affiliateIdParam && !!requestIdParam;
+      
+      console.log("OTP Verification page initialized with params:", {
+        amount: amountParam,
+        affiliateId: affiliateIdParam,
+        requestId: requestIdParam,
+        hasParams
+      });
       
       return {
         amount: amountParam,
@@ -45,18 +52,10 @@ export default function OtpVerificationPage() {
         hasRequiredParams: false
       };
     }
-  };
-  
-  // Lấy dữ liệu từ URL chỉ một lần khi component khởi tạo
-  const { amount, affiliateId, requestId, hasRequiredParams } = getQueryParams();
-  
-  // Log kết quả phân tích URL cho mục đích debug
-  console.log("OTP Verification page initialized with params:", {
-    amount,
-    affiliateId,
-    requestId,
-    hasRequiredParams
   });
+  
+  // Destructuring for easier access
+  const { amount, affiliateId, requestId, hasRequiredParams } = queryParams;
   
   // Verify OTP
   const { mutate: verifyOtp, isPending: isVerifying } = useMutation({
