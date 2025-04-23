@@ -2133,7 +2133,7 @@ function extractPositionFromText(text: string): string | null {
       const { kolId } = req.params;
       const { startDate, endDate, type } = req.query;
       
-      console.log(`Getting transaction history for KOL/VIP ${kolId} with filters:`, { startDate, endDate, type });
+      // Lấy lịch sử giao dịch theo bộ lọc
       
       // Chuyển đổi startDate và endDate thành đối tượng Date nếu có
       let startDateObj, endDateObj;
@@ -2174,7 +2174,7 @@ function extractPositionFromText(text: string): string | null {
       const { kolId } = req.params;
       const { period } = req.query; // 'week', 'month', 'year', 'all'
       
-      console.log(`Getting financial summary for KOL/VIP ${kolId} with period: ${period || 'all'}`);
+      // Bắt đầu tính toán tổng quan tài chính
       
       // Thiết lập thời gian dựa trên period
       let startDate: Date | undefined;
@@ -2196,9 +2196,6 @@ function extractPositionFromText(text: string): string | null {
       
       // Lấy lịch sử giao dịch từ storage
       const transactions = await storage.getKolVipTransactionHistory(kolId, startDate);
-      
-      // In ra dữ liệu để debug
-      console.log("DEBUG - Transactions for financial summary:", JSON.stringify(transactions, null, 2));
       
       // Tính toán tổng quan tài chính
       let totalIncome = 0;
@@ -2222,13 +2219,11 @@ function extractPositionFromText(text: string): string | null {
       const incomeTypes = ['SALARY', 'COMMISSION', 'BONUS'];
       
       transactions.forEach((transaction, index) => {
-        console.log(`DEBUG - Processing transaction ${index + 1}:`, JSON.stringify(transaction, null, 2));
         const amount = transaction.amount;
         const transactionType = transaction.transaction_type;
         
         // Xác định loại giao dịch là thu nhập hay chi tiêu
         const isIncome = incomeTypes.includes(transactionType);
-        console.log(`DEBUG - Transaction type: ${transactionType}, isIncome: ${isIncome}, amount: ${amount}`);
         
         if (isIncome) {
           totalIncome += amount;
@@ -2262,15 +2257,7 @@ function extractPositionFromText(text: string): string | null {
       const kolVip = await storage.getKolVipAffiliateByAffiliateId(kolId);
       const currentBalance = kolVip?.remaining_balance || 0;
       
-      // In ra thông tin để debug
-      console.log("DEBUG - Financial summary calculation results:", {
-        totalIncome,
-        totalExpense,
-        totalTax,
-        incomeSources,
-        expenseSources,
-        currentBalance
-      });
+      // Thông tin tổng quan tài chính đã tính toán xong
       
       res.status(200).json({
         status: "success",
