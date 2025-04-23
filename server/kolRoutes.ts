@@ -1530,6 +1530,34 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         ...withdrawalRequest
       });
       
+      // Thêm giao dịch vào lịch sử giao dịch
+      try {
+        await storage.addKolVipTransaction({
+          kol_id: kolVip.affiliate_id,
+          transaction_type: "WITHDRAWAL",
+          amount: originalAmount,
+          description: `Rút tiền${hasTax ? ' (đã trừ thuế TNCN)' : ''}${note ? ': ' + note : ''}`,
+          reference_id: withdrawalRequest.request_time,
+          created_at: withdrawalRequest.request_time
+        });
+        
+        // Nếu có thuế, thêm giao dịch thuế
+        if (hasTax && taxAmount > 0) {
+          await storage.addKolVipTransaction({
+            kol_id: kolVip.affiliate_id,
+            transaction_type: "TAX",
+            amount: taxAmount,
+            description: `Thuế TNCN (10%) cho khoản rút ${originalAmount.toLocaleString('vi-VN')} VNĐ`,
+            reference_id: withdrawalRequest.request_time,
+            created_at: withdrawalRequest.request_time
+          });
+        }
+        
+        console.log(`Đã thêm giao dịch rút tiền vào lịch sử: ${originalAmount} VNĐ cho KOL/VIP ${kolVip.affiliate_id}`);
+      } catch (transactionError) {
+        console.error("Lỗi khi thêm giao dịch rút tiền vào lịch sử:", transactionError);
+      }
+      
       // Vô hiệu hóa OTP đã sử dụng
       await storage.invalidateOtp(req.user.id, otp);
       
@@ -1800,14 +1828,16 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         const contactData = {
           kol_id: kolId,
           contact_name,
-          company: company || null,
-          position: position || null,
+          company: company || "",
+          position: position || "",
           phone,
-          email: email || null,
-          status: "Mới nhập" as CustomerStatusType,
-          note: note || null,
+          email: email || "",
+          status: "Mới nhập",
+          note: note || "",
           // Lưu ảnh card visit
-          image_url: `data:image/jpeg;base64,${image_base64}`
+          image_url: `data:image/jpeg;base64,${image_base64}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
         // Thêm liên hệ mới vào cơ sở dữ liệu
