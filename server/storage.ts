@@ -126,6 +126,7 @@ export interface IStorage {
   
   // Phương thức quản lý video
   getTopVideos(limit?: number): Promise<VideoData[]>;
+  getTopVideosByCategory(category: string, limit?: number): Promise<VideoData[]>;
   getAllVideos(): Promise<VideoData[]>;
   addVideo(videoData: Partial<InsertVideo>): Promise<VideoData | undefined>;
   updateVideo(id: number, videoData: Partial<InsertVideo>): Promise<VideoData | undefined>;
@@ -1922,6 +1923,25 @@ export class MemStorage implements IStorage {
     return this.videos
       .sort((a, b) => a.order - b.order)
       .filter(video => video.is_featured)
+      .slice(0, limit);
+  }
+  
+  /**
+   * Lấy Top videos của một danh mục cụ thể
+   * @param category Tên danh mục (commerce, pharma, finance, tech, government, conglomerate)
+   * @param limit Số lượng video muốn lấy
+   * @returns Danh sách video thuộc danh mục đã chọn
+   */
+  async getTopVideosByCategory(category: string, limit: number = 5): Promise<VideoData[]> {
+    // Nếu không có video nào, khởi tạo dữ liệu mẫu
+    if (this.videos.length === 0) {
+      this.initializeDefaultVideos();
+    }
+    
+    // Sắp xếp theo thứ tự và lọc theo danh mục
+    return this.videos
+      .filter(video => video.category === category)
+      .sort((a, b) => a.order - b.order)
       .slice(0, limit);
   }
   
