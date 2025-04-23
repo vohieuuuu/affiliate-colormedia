@@ -96,9 +96,19 @@ router.post('/normal-payment', webhookAuth, async (req: Request, res: Response) 
       });
     }
 
+    // Lấy thông tin affiliate đầy đủ để kiểm tra khách hàng
+    if (!affiliate.referred_customers) {
+      return res.status(404).json({
+        status: 'error',
+        error: {
+          code: 'REFERRED_CUSTOMERS_NOT_FOUND',
+          message: 'Không tìm thấy danh sách khách hàng được giới thiệu'
+        }
+      });
+    }
+    
     // Kiểm tra khách hàng tồn tại
-    const customers = await storage.getCustomersByAffiliateId(affiliate_id);
-    const customer = customers.find(c => c.id === customer_id);
+    const customer = affiliate.referred_customers.find((c: any) => c.id === customer_id);
     if (!customer) {
       return res.status(404).json({
         status: 'error',
@@ -109,18 +119,11 @@ router.post('/normal-payment', webhookAuth, async (req: Request, res: Response) 
       });
     }
 
-    // Xử lý thanh toán commission
-    await storage.addTransaction({
-      affiliate_id: affiliate_id,
-      amount: amount,
-      type: 'COMMISSION',
-      description: description || `Commission for contract #${contract_id}`,
-      transaction_id: transaction_id || crypto.randomUUID(),
-      created_at: new Date()
-    });
-
     // Cập nhật số dư của affiliate
     await storage.updateAffiliateBalance(affiliate_id, amount);
+
+    // Ghi log giao dịch
+    console.log(`Thanh toán commission cho Normal Affiliate ${affiliate_id}: ${amount.toLocaleString()} VND (Contract #${contract_id})`);
 
     return res.status(200).json({
       status: 'success',
@@ -179,9 +182,19 @@ router.post('/partner-payment', webhookAuth, async (req: Request, res: Response)
       });
     }
 
+    // Lấy thông tin affiliate đầy đủ để kiểm tra khách hàng
+    if (!affiliate.referred_customers) {
+      return res.status(404).json({
+        status: 'error',
+        error: {
+          code: 'REFERRED_CUSTOMERS_NOT_FOUND',
+          message: 'Không tìm thấy danh sách khách hàng được giới thiệu'
+        }
+      });
+    }
+    
     // Kiểm tra khách hàng tồn tại
-    const customers = await storage.getCustomersByAffiliateId(affiliate_id);
-    const customer = customers.find(c => c.id === customer_id);
+    const customer = affiliate.referred_customers.find((c: any) => c.id === customer_id);
     if (!customer) {
       return res.status(404).json({
         status: 'error',
@@ -194,27 +207,23 @@ router.post('/partner-payment', webhookAuth, async (req: Request, res: Response)
 
     // Cập nhật thông tin hợp đồng cho khách hàng
     await storage.updateCustomerWithContract(
-      affiliate_id,
       customer_id,
       {
-        contract_id,
+        ...customer,
+        status: 'CONVERTED' as CustomerStatusType
+      },
+      {
         contract_value,
-        status: 'CONVERTED'
+        received_balance: amount,
+        remaining_balance: 0
       }
     );
 
-    // Xử lý thanh toán commission
-    await storage.addTransaction({
-      affiliate_id: affiliate_id,
-      amount: amount,
-      type: 'COMMISSION',
-      description: description || `Commission for contract #${contract_id} (${contract_value.toLocaleString()} VND)`,
-      transaction_id: transaction_id || crypto.randomUUID(),
-      created_at: new Date()
-    });
-
     // Cập nhật số dư của affiliate
     await storage.updateAffiliateBalance(affiliate_id, amount);
+
+    // Ghi log giao dịch
+    console.log(`Thanh toán commission cho Partner Affiliate ${affiliate_id}: ${amount.toLocaleString()} VND (Contract #${contract_id}, Value: ${contract_value.toLocaleString()} VND)`);
 
     return res.status(200).json({
       status: 'success',
