@@ -2,6 +2,7 @@ import { Request, Response, Router } from 'express';
 import { db } from './db';
 import { storage } from './storage';
 import crypto from 'crypto';
+import { CustomerStatusType, Transaction, TransactionType } from '@shared/schema';
 
 const router = Router();
 
