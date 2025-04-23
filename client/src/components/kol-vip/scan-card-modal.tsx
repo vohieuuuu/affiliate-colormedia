@@ -387,7 +387,7 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={isMobile ? "max-w-[90vw] p-4 sm:max-w-xl" : "sm:max-w-xl"} style={{ touchAction: "none", overscrollBehavior: "contain" }}>
+      <DialogContent className={isMobile ? "max-w-[95vw] p-3 max-h-[95vh] overflow-y-auto" : "sm:max-w-xl"} style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}>
         <DialogHeader>
           <DialogTitle>Thông tin Card Visit</DialogTitle>
           <DialogDescription>
@@ -689,20 +689,23 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                     />
                   </div>
 
-                  <DialogFooter className="pt-4">
+                  <div className="flex flex-row justify-between gap-2 pt-4">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleClose}
                       disabled={isLoading}
+                      className="flex-1"
+                      style={{ touchAction: "manipulation" }}
                     >
                       Hủy
                     </Button>
                     
                     <Button 
                       type="submit"
-                      className="bg-gradient-to-r from-[#07ADB8] to-[#FFC919] hover:from-[#07ADB8]/90 hover:to-[#FFC919]/90"
+                      className="bg-gradient-to-r from-[#07ADB8] to-[#07ADB8]/80 hover:from-[#07ADB8]/90 hover:to-[#07ADB8]/70 flex-1"
                       disabled={isLoading}
+                      style={{ touchAction: "manipulation" }}
                     >
                       {isLoading ? (
                         <>
@@ -710,10 +713,13 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                           Đang xử lý...
                         </>
                       ) : (
-                        scanSuccess ? "Lưu thông tin" : "Tiếp tục"
+                        <>
+                          {scanSuccess ? <Save className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
+                          {scanSuccess ? "Lưu thông tin" : "Tiếp tục"}
+                        </>
                       )}
                     </Button>
-                  </DialogFooter>
+                  </div>
                 </form>
               </Form>
             </TabsContent>
@@ -846,20 +852,23 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                       />
                     </div>
 
-                    <DialogFooter className="pt-4">
+                    <div className="flex flex-row justify-between gap-2 pt-4">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={handleClose}
                         disabled={isLoading}
+                        className="flex-1"
+                        style={{ touchAction: "manipulation" }}
                       >
                         Hủy
                       </Button>
                       
                       <Button 
                         type="submit"
-                        className="bg-gradient-to-r from-[#07ADB8] to-[#FFC919] hover:from-[#07ADB8]/90 hover:to-[#FFC919]/90"
+                        className="bg-gradient-to-r from-[#07ADB8] to-[#07ADB8]/80 hover:from-[#07ADB8]/90 hover:to-[#07ADB8]/70 flex-1"
                         disabled={isLoading}
+                        style={{ touchAction: "manipulation" }}
                       >
                         {isLoading ? (
                           <>
@@ -867,10 +876,13 @@ const ScanCardModal = ({ isOpen, onClose, onSubmit, kolId }: ScanCardModalProps)
                             Đang xử lý...
                           </>
                         ) : (
-                          "Lưu thông tin"
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Lưu thông tin
+                          </>
                         )}
                       </Button>
-                    </DialogFooter>
+                    </div>
                   </form>
                 </Form>
               </div>
