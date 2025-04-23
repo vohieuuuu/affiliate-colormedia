@@ -5,32 +5,7 @@ import { storage } from "./storage";
  * Đăng ký các routes quản lý video
  */
 export function setupVideoRoutes(app: Express) {
-  // API để lấy danh sách top videos từ YouTube
-  app.get("/api/videos", async (req: Request, res: Response) => {
-    try {
-      // Lấy limit từ query parameters hoặc mặc định là 5
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
-      
-      // Lấy top videos từ storage
-      const videos = await storage.getTopVideos(limit);
-      
-      res.status(200).json({
-        status: "success",
-        data: videos
-      });
-    } catch (error) {
-      console.error("Error retrieving videos:", error);
-      res.status(500).json({
-        status: "error",
-        error: {
-          code: "SERVER_ERROR",
-          message: "Không thể lấy danh sách video"
-        }
-      });
-    }
-  });
-  
-  // API để lấy top videos theo danh mục ngành
+  // API để lấy top videos theo danh mục ngành - đặt TRƯỚC các route khác có cùng pattern
   app.get("/api/videos/category/:category", async (req: Request, res: Response) => {
     try {
       const category = req.params.category;
@@ -71,6 +46,31 @@ export function setupVideoRoutes(app: Express) {
         error: {
           code: "SERVER_ERROR",
           message: "Không thể lấy danh sách video theo danh mục"
+        }
+      });
+    }
+  });
+
+  // API để lấy danh sách top videos từ YouTube
+  app.get("/api/videos", async (req: Request, res: Response) => {
+    try {
+      // Lấy limit từ query parameters hoặc mặc định là 5
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      // Lấy top videos từ storage
+      const videos = await storage.getTopVideos(limit);
+      
+      res.status(200).json({
+        status: "success",
+        data: videos
+      });
+    } catch (error) {
+      console.error("Error retrieving videos:", error);
+      res.status(500).json({
+        status: "error",
+        error: {
+          code: "SERVER_ERROR",
+          message: "Không thể lấy danh sách video"
         }
       });
     }
