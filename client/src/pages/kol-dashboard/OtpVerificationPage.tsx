@@ -66,7 +66,7 @@ export default function OtpVerificationPage() {
         // Chuyển hướng đến trang dashboard KOL với startTransition để tránh lỗi suspense
         startTransition(() => {
           console.log("Navigating to KOL dashboard after successful verification");
-          navigate("/kol/dashboard");
+          navigate("/kol-dashboard");
         });
       } else if (data.error) {
         setError(data.error.message || "Mã OTP không chính xác");
@@ -152,7 +152,7 @@ export default function OtpVerificationPage() {
       // Redirect back to withdrawal page after delay
       const timeout = setTimeout(() => {
         startTransition(() => {
-          navigate("/kol/withdrawal");
+          navigate("/kol-withdrawal");
         });
       }, 3000);
       
@@ -176,7 +176,7 @@ export default function OtpVerificationPage() {
   // Cancel verification and go back
   const handleCancel = () => {
     startTransition(() => {
-      navigate("/kol/withdrawal");
+      navigate("/kol-withdrawal");
     });
   };
   
@@ -189,7 +189,7 @@ export default function OtpVerificationPage() {
           Không tìm thấy thông tin cần thiết để xác thực OTP. 
           Bạn sẽ được chuyển hướng về trang rút tiền trong vài giây.
         </p>
-        <Button onClick={() => startTransition(() => navigate("/kol/withdrawal"))}>
+        <Button onClick={() => startTransition(() => navigate("/kol-withdrawal"))}>
           Quay lại trang rút tiền
         </Button>
       </div>
