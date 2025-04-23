@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
 export function ProtectedRoute({
   path,
@@ -73,6 +73,17 @@ export function ProtectedRoute({
     );
   }
 
-  // Nếu người dùng đã đăng nhập, hiển thị component được bảo vệ
-  return <Route path={path} component={Component} />;
+  // Nếu người dùng đã đăng nhập, hiển thị component được bảo vệ trong Suspense
+  return (
+    <Route path={path}>
+      <Suspense fallback={
+        <div className="flex flex-col gap-2 items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Đang tải nội dung...</p>
+        </div>
+      }>
+        <Component />
+      </Suspense>
+    </Route>
+  );
 }
