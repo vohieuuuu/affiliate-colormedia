@@ -8,8 +8,8 @@ export default function Footer() {
         <div className="flex flex-wrap justify-between items-start">
           <div className="w-full md:w-auto mb-6 md:mb-0">
             <div className="flex items-center">
-              <div className="text-white font-bold text-2xl">
-                <img src="/color-media-logo-white.svg" alt="ColorMedia Logo" className="h-16" />
+              <div className="inline-flex items-center font-bold text-2xl bg-white py-1 px-2 rounded-md mb-2">
+                <img src="/color-media-logo.png" alt="ColorMedia Logo" className="h-12" />
               </div>
             </div>
           </div>
