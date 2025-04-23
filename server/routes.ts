@@ -28,6 +28,7 @@ import { eq } from "drizzle-orm";
 import { setupDevAuthRoutes } from "./devAuth";
 import { setupVideoRoutes } from "./videoRoutes";
 import { setupKolVipRoutes } from "./kolRoutes";
+import { requireAdmin } from "./api/admin-kol";
 import { 
   detectSuspiciousWithdrawal, 
   withdrawalLimiter, 
@@ -3156,7 +3157,302 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Thiết lập routes API cho hoa hồng
   app.use("/api/commission", commissionRouter);
 
+  // Thiết lập API cho videos và sales kits
+  setupResourceRoutes(app);
+
   const httpServer = createServer(app);
 
   return httpServer;
+}
+
+// Hàm thiết lập API cho video và sales kit
+function setupResourceRoutes(app: Express) {
+  // GET all videos
+  app.get('/api/videos', async (req, res) => {
+    try {
+      const videos = await storage.getAllVideos();
+      res.json({
+        status: 'success',
+        data: { videos }
+      });
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      res.status(500).json({
+        status: 'error',
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to fetch videos'
+        }
+      });
+    }
+  });
+
+  // GET top videos
+  app.get('/api/videos/top', async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      const videos = await storage.getTopVideos(limit);
+      res.json({
+        status: 'success',
+        data: { videos }
+      });
+    } catch (error) {
+      console.error('Error fetching top videos:', error);
+      res.status(500).json({
+        status: 'error',
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to fetch top videos'
+        }
+      });
+    }
+  });
+
+  // POST add new video (admin only)
+  app.post('/api/videos', requireAdmin, async (req, res) => {
+    try {
+      const videoData = VideoDataSchema.parse(req.body);
+      const newVideo = await storage.addVideo(videoData);
+      
+      if (!newVideo) {
+        return res.status(400).json({
+          status: 'error',
+          error: {
+            code: 'INVALID_DATA',
+            message: 'Failed to add video with provided data'
+          }
+        });
+      }
+      
+      res.status(201).json({
+        status: 'success',
+        data: { video: newVideo }
+      });
+    } catch (error) {
+      console.error('Error adding video:', error);
+      res.status(400).json({
+        status: 'error',
+        error: {
+          code: 'INVALID_DATA',
+          message: error instanceof Error ? error.message : 'Invalid video data'
+        }
+      });
+    }
+  });
+
+  // PUT update video (admin only)
+  app.put('/api/videos/:id', requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const videoData = req.body;
+      
+      const updatedVideo = await storage.updateVideo(id, videoData);
+      
+      if (!updatedVideo) {
+        return res.status(404).json({
+          status: 'error',
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Video not found'
+          }
+        });
+      }
+      
+      res.json({
+        status: 'success',
+        data: { video: updatedVideo }
+      });
+    } catch (error) {
+      console.error('Error updating video:', error);
+      res.status(400).json({
+        status: 'error',
+        error: {
+          code: 'INVALID_DATA',
+          message: error instanceof Error ? error.message : 'Invalid video data'
+        }
+      });
+    }
+  });
+
+  // DELETE video (admin only)
+  app.delete('/api/videos/:id', requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteVideo(id);
+      
+      if (!success) {
+        return res.status(404).json({
+          status: 'error',
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Video not found or already deleted'
+          }
+        });
+      }
+      
+      res.json({
+        status: 'success',
+        data: { message: 'Video deleted successfully' }
+      });
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      res.status(500).json({
+        status: 'error',
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to delete video'
+        }
+      });
+    }
+  });
+
+  // GET all sales kits
+  app.get('/api/sales-kits', async (req, res) => {
+    try {
+      const salesKits = await storage.getAllSalesKits();
+      res.json({
+        status: 'success',
+        data: { salesKits }
+      });
+    } catch (error) {
+      console.error('Error fetching sales kits:', error);
+      res.status(500).json({
+        status: 'error',
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to fetch sales kits'
+        }
+      });
+    }
+  });
+
+  // POST add new sales kit (admin only)
+  app.post('/api/sales-kits', requireAdmin, async (req, res) => {
+    try {
+      const kitData = SalesKitDataSchema.parse(req.body);
+      const newKit = await storage.addSalesKit(kitData);
+      
+      if (!newKit) {
+        return res.status(400).json({
+          status: 'error',
+          error: {
+            code: 'INVALID_DATA',
+            message: 'Failed to add sales kit with provided data'
+          }
+        });
+      }
+      
+      res.status(201).json({
+        status: 'success',
+        data: { salesKit: newKit }
+      });
+    } catch (error) {
+      console.error('Error adding sales kit:', error);
+      res.status(400).json({
+        status: 'error',
+        error: {
+          code: 'INVALID_DATA',
+          message: error instanceof Error ? error.message : 'Invalid sales kit data'
+        }
+      });
+    }
+  });
+
+  // PUT update sales kit (admin only)
+  app.put('/api/sales-kits/:id', requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const kitData = req.body;
+      
+      const updatedKit = await storage.updateSalesKit(id, kitData);
+      
+      if (!updatedKit) {
+        return res.status(404).json({
+          status: 'error',
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Sales kit not found'
+          }
+        });
+      }
+      
+      res.json({
+        status: 'success',
+        data: { salesKit: updatedKit }
+      });
+    } catch (error) {
+      console.error('Error updating sales kit:', error);
+      res.status(400).json({
+        status: 'error',
+        error: {
+          code: 'INVALID_DATA',
+          message: error instanceof Error ? error.message : 'Invalid sales kit data'
+        }
+      });
+    }
+  });
+
+  // DELETE sales kit (admin only)
+  app.delete('/api/sales-kits/:id', requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteSalesKit(id);
+      
+      if (!success) {
+        return res.status(404).json({
+          status: 'error',
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Sales kit not found or already deleted'
+          }
+        });
+      }
+      
+      res.json({
+        status: 'success',
+        data: { message: 'Sales kit deleted successfully' }
+      });
+    } catch (error) {
+      console.error('Error deleting sales kit:', error);
+      res.status(500).json({
+        status: 'error',
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to delete sales kit'
+        }
+      });
+    }
+  });
+
+  // POST increment downloads count for a sales kit
+  app.post('/api/sales-kits/:id/download', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const newDownloads = await storage.incrementSalesKitDownloads(id);
+      
+      if (newDownloads === undefined) {
+        return res.status(404).json({
+          status: 'error',
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Sales kit not found'
+          }
+        });
+      }
+      
+      res.json({
+        status: 'success',
+        data: { downloads: newDownloads }
+      });
+    } catch (error) {
+      console.error('Error incrementing downloads:', error);
+      res.status(500).json({
+        status: 'error',
+        error: {
+          code: 'SERVER_ERROR',
+          message: 'Failed to record download'
+        }
+      });
+    }
+  });
 }
