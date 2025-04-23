@@ -19,14 +19,35 @@ export default function OtpVerificationPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Parse query params from URL
-  const params = new URLSearchParams(window.location.search);
-  const amount = params.get("amount") || "";
-  const affiliateId = params.get("affiliateId") || "";
-  const requestId = params.get("requestId") || "";
+  // Parse query params from URL - Only do this once during component initialization
+  // Avoid re-parsing on every render which could cause issues
+  const [amount, setAmount] = useState<string>("");
+  const [affiliateId, setAffiliateId] = useState<string>("");
+  const [requestId, setRequestId] = useState<string>("");
+  const [hasRequiredParams, setHasRequiredParams] = useState<boolean>(false);
   
-  // Check if we have the required parameters
-  const hasRequiredParams = !!amount && !!affiliateId && !!requestId;
+  // Initialize params only once - runs before the first render
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const amountParam = params.get("amount") || "";
+    const affiliateIdParam = params.get("affiliateId") || "";
+    const requestIdParam = params.get("requestId") || "";
+    
+    setAmount(amountParam);
+    setAffiliateId(affiliateIdParam);
+    setRequestId(requestIdParam);
+    
+    // Check if we have the required parameters
+    const hasParams = !!amountParam && !!affiliateIdParam && !!requestIdParam;
+    setHasRequiredParams(hasParams);
+    
+    console.log("OTP Verification page initialized with params:", {
+      amount: amountParam,
+      affiliateId: affiliateIdParam,
+      requestId: requestIdParam,
+      hasParams
+    });
+  }, []);
   
   // Verify OTP
   const { mutate: verifyOtp, isPending: isVerifying } = useMutation({
@@ -140,38 +161,59 @@ export default function OtpVerificationPage() {
     }
   };
   
-  // Effect to handle missing parameters
+  // Effect to handle missing parameters and fetch user data - runs only once on mount
   useEffect(() => {
-    if (!hasRequiredParams) {
-      toast({
-        title: "Lỗi tham số",
-        description: "Thiếu thông tin cần thiết để xác thực OTP. Vui lòng thử lại từ đầu.",
-        variant: "destructive"
-      });
-      
-      // Redirect back to withdrawal page after delay
-      const timeout = setTimeout(() => {
-        startTransition(() => {
-          navigate("/kol-withdrawal");
-        });
-      }, 3000);
-      
-      return () => clearTimeout(timeout);
-    }
+    // Define a flag to track if component is mounted
+    let isMounted = true;
     
-    // Try to get email from data stored during the withdrawal process
-    const withdrawalData = queryClient.getQueryData<any>(["kolWithdrawalData"]);
-    if (withdrawalData?.maskedEmail) {
-      setMaskedEmail(withdrawalData.maskedEmail);
-    } else {
-      // Mask email format if we have user data
-      const userData = queryClient.getQueryData<any>(["/api/kol/me"]);
-      if (userData?.email) {
-        const email = userData.email;
-        setMaskedEmail(email.replace(/^(.)(.*)(@.*)$/, "$1***$3"));
+    const handleInitialization = async () => {
+      // Check if we have all required params
+      if (!hasRequiredParams && isMounted) {
+        toast({
+          title: "Lỗi tham số",
+          description: "Thiếu thông tin cần thiết để xác thực OTP. Vui lòng thử lại từ đầu.",
+          variant: "destructive"
+        });
+        
+        // Redirect back to withdrawal page after delay
+        const timeout = setTimeout(() => {
+          if (isMounted) {
+            startTransition(() => {
+              navigate("/kol-withdrawal");
+            });
+          }
+        }, 3000);
+        
+        return () => {
+          clearTimeout(timeout);
+          isMounted = false;
+        };
       }
-    }
-  }, [hasRequiredParams, navigate, queryClient, toast]);
+      
+      // Only continue if we have required params
+      if (isMounted) {
+        // Try to get email from data stored during the withdrawal process
+        const withdrawalData = queryClient.getQueryData<any>(["kolWithdrawalData"]);
+        if (withdrawalData?.maskedEmail && isMounted) {
+          setMaskedEmail(withdrawalData.maskedEmail);
+        } else {
+          // Mask email format if we have user data
+          const userData = queryClient.getQueryData<any>(["/api/kol/me"]);
+          if (userData?.email && isMounted) {
+            const email = userData.email;
+            setMaskedEmail(email.replace(/^(.)(.*)(@.*)$/, "$1***$3"));
+          }
+        }
+      }
+    };
+    
+    handleInitialization();
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array - run only once on mount
   
   // Cancel verification and go back
   const handleCancel = () => {
