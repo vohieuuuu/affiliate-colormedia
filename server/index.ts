@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import cookieParser from 'cookie-parser';
+import { setupVideoRoutes } from './videoRoutes';
 
 // Thiết lập xử lý lỗi toàn cục để ngăn không cho ứng dụng tắt đột ngột
 process.on('uncaughtException', (error) => {
@@ -133,6 +134,9 @@ app.use((req, res, next) => {
       }
     }
 
+    // Thiết lập các routes video YouTube trước khi đăng ký các routes khác
+    setupVideoRoutes(app);
+    
     const server = await registerRoutes(app);
   
   // Thêm middleware để xử lý các API không xác định
