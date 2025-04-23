@@ -19,43 +19,14 @@ export default function OtpVerificationPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Parse query params từ URL và lưu vào state để sử dụng
-  const [queryParams, setQueryParams] = useState(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const amountParam = params.get("amount") || "";
-      const affiliateIdParam = params.get("affiliateId") || "";
-      const requestIdParam = params.get("requestId") || "";
-      
-      // Check if we have required params
-      const hasParams = !!amountParam && !!affiliateIdParam && !!requestIdParam;
-      
-      console.log("OTP Verification page initialized with params:", {
-        amount: amountParam,
-        affiliateId: affiliateIdParam,
-        requestId: requestIdParam,
-        hasParams
-      });
-      
-      return {
-        amount: amountParam,
-        affiliateId: affiliateIdParam,
-        requestId: requestIdParam,
-        hasRequiredParams: hasParams
-      };
-    } catch (error) {
-      console.error("Error parsing URL parameters:", error);
-      return {
-        amount: "",
-        affiliateId: "",
-        requestId: "",
-        hasRequiredParams: false
-      };
-    }
-  });
+  // Parse query params from URL
+  const params = new URLSearchParams(window.location.search);
+  const amount = params.get("amount") || "";
+  const affiliateId = params.get("affiliateId") || "";
+  const requestId = params.get("requestId") || "";
   
-  // Destructuring for easier access
-  const { amount, affiliateId, requestId, hasRequiredParams } = queryParams;
+  // Check if we have the required parameters
+  const hasRequiredParams = !!amount && !!affiliateId && !!requestId;
   
   // Verify OTP
   const { mutate: verifyOtp, isPending: isVerifying } = useMutation({
@@ -92,11 +63,11 @@ export default function OtpVerificationPage() {
         queryClient.invalidateQueries({ queryKey: ["/api/kol/me"] });
         queryClient.invalidateQueries({ queryKey: ["/api/kol", affiliateId, "financial-summary"] });
         
-        // Chuyển hướng đến trang dashboard KOL bằng window.location thay vì Navigate của React Router
-        console.log("Navigating to KOL dashboard after successful verification");
-        
-        // Sử dụng window.location để tránh các vấn đề với React routing
-        window.location.href = "/kol-dashboard";
+        // Chuyển hướng đến trang dashboard KOL với startTransition để tránh lỗi suspense
+        startTransition(() => {
+          console.log("Navigating to KOL dashboard after successful verification");
+          navigate("/kol-dashboard");
+        });
       } else if (data.error) {
         setError(data.error.message || "Mã OTP không chính xác");
         toast({
@@ -169,59 +140,38 @@ export default function OtpVerificationPage() {
     }
   };
   
-  // Effect to handle missing parameters and fetch user data - runs only once on mount
+  // Effect to handle missing parameters
   useEffect(() => {
-    // Define a flag to track if component is mounted
-    let isMounted = true;
-    
-    const handleInitialization = async () => {
-      // Check if we have all required params
-      if (!hasRequiredParams && isMounted) {
-        toast({
-          title: "Lỗi tham số",
-          description: "Thiếu thông tin cần thiết để xác thực OTP. Vui lòng thử lại từ đầu.",
-          variant: "destructive"
-        });
-        
-        // Redirect back to withdrawal page after delay
-        const timeout = setTimeout(() => {
-          if (isMounted) {
-            startTransition(() => {
-              navigate("/kol-withdrawal");
-            });
-          }
-        }, 3000);
-        
-        return () => {
-          clearTimeout(timeout);
-          isMounted = false;
-        };
-      }
+    if (!hasRequiredParams) {
+      toast({
+        title: "Lỗi tham số",
+        description: "Thiếu thông tin cần thiết để xác thực OTP. Vui lòng thử lại từ đầu.",
+        variant: "destructive"
+      });
       
-      // Only continue if we have required params
-      if (isMounted) {
-        // Try to get email from data stored during the withdrawal process
-        const withdrawalData = queryClient.getQueryData<any>(["kolWithdrawalData"]);
-        if (withdrawalData?.maskedEmail && isMounted) {
-          setMaskedEmail(withdrawalData.maskedEmail);
-        } else {
-          // Mask email format if we have user data
-          const userData = queryClient.getQueryData<any>(["/api/kol/me"]);
-          if (userData?.email && isMounted) {
-            const email = userData.email;
-            setMaskedEmail(email.replace(/^(.)(.*)(@.*)$/, "$1***$3"));
-          }
-        }
+      // Redirect back to withdrawal page after delay
+      const timeout = setTimeout(() => {
+        startTransition(() => {
+          navigate("/kol-withdrawal");
+        });
+      }, 3000);
+      
+      return () => clearTimeout(timeout);
+    }
+    
+    // Try to get email from data stored during the withdrawal process
+    const withdrawalData = queryClient.getQueryData<any>(["kolWithdrawalData"]);
+    if (withdrawalData?.maskedEmail) {
+      setMaskedEmail(withdrawalData.maskedEmail);
+    } else {
+      // Mask email format if we have user data
+      const userData = queryClient.getQueryData<any>(["/api/kol/me"]);
+      if (userData?.email) {
+        const email = userData.email;
+        setMaskedEmail(email.replace(/^(.)(.*)(@.*)$/, "$1***$3"));
       }
-    };
-    
-    handleInitialization();
-    
-    // Cleanup function to prevent state updates after unmount
-    return () => {
-      isMounted = false;
-    };
-  }, []); // Empty dependency array - run only once on mount
+    }
+  }, [hasRequiredParams, navigate, queryClient, toast]);
   
   // Cancel verification and go back
   const handleCancel = () => {
