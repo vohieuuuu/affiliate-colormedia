@@ -615,6 +615,13 @@ export class DatabaseStorage implements IStorage {
     status: CustomerStatusType, 
     description: string
   ): Promise<ReferredCustomer | undefined> {
+    console.log(`ENTERING updateCustomerStatus with params:`, {
+      affiliateId,
+      customerId,
+      customerId_type: typeof customerId,
+      status,
+      description_length: description ? description.length : 0
+    });
     // Tìm affiliate theo ID
     const [affiliate] = await db.select()
       .from(affiliates)

@@ -2098,6 +2098,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerId = parseInt(req.params.id);
       const { status, description, affiliate_id } = req.body;
       
+      // Log thêm thông tin debug chi tiết
+      console.log(`DEBUG - PUT /api/admin/customers/:id/status - Request params:`, {
+        customerId,
+        customerId_type: typeof customerId,
+        req_params_id: req.params.id,
+        req_params_id_type: typeof req.params.id,
+        status,
+        description,
+        affiliate_id
+      });
+      
       if (isNaN(customerId) || !status) {
         return res.status(400).json({
           status: "error",
