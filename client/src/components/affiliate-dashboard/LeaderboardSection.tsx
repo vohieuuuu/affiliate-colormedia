@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import SalesKitMaterials from "./SalesKitMaterials";
 import { formatCurrency } from "@/lib/formatters";
 import { Trophy, Award, ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
 interface LeaderboardSectionProps {
   topAffiliates?: TopAffiliate[];
@@ -13,6 +15,38 @@ interface LeaderboardSectionProps {
 }
 
 export default function LeaderboardSection({ topAffiliates, isLoading }: LeaderboardSectionProps) {
+  const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
+  
+  // Lấy thông tin affiliate hiện tại để so sánh với bảng xếp hạng
+  const { data: apiAffiliateResponse } = useQuery({
+    queryKey: ['/api/affiliate'],
+    staleTime: 5 * 60 * 1000, // 5 phút, để giảm số lượng requests
+  });
+  
+  // Hàm để tính toán xếp hạng của người dùng hiện tại
+  useEffect(() => {
+    if (topAffiliates && topAffiliates.length > 0 && apiAffiliateResponse) {
+      const affiliateData = apiAffiliateResponse && typeof apiAffiliateResponse === 'object' && 'status' in apiAffiliateResponse && apiAffiliateResponse.status === "success" 
+        ? (apiAffiliateResponse as any).data 
+        : undefined;
+      
+      if (affiliateData && affiliateData.affiliate_id) {
+        // Tìm vị trí của affiliate trong danh sách topAffiliates
+        const affiliateIndex = topAffiliates.findIndex(
+          (affiliate) => affiliate.affiliate_id === affiliateData.affiliate_id
+        );
+        
+        if (affiliateIndex !== -1) {
+          // Nếu tìm thấy, xếp hạng = index + 1
+          setCurrentUserRank(affiliateIndex + 1);
+        } else {
+          // Nếu không tìm thấy trong danh sách top, có thể họ không nằm trong top
+          setCurrentUserRank(topAffiliates.length + 1);
+        }
+      }
+    }
+  }, [topAffiliates, apiAffiliateResponse]);
+  
   const getRankIcon = (index: number) => {
     if (index === 0) return <Trophy className="h-5 w-5 text-yellow-500" />;
     if (index === 1) return <Trophy className="h-5 w-5 text-gray-400" />;
@@ -94,7 +128,9 @@ export default function LeaderboardSection({ topAffiliates, isLoading }: Leaderb
           )}
           <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 text-center">
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Xếp hạng của bạn: <span className="font-medium text-[#07ADB8] dark:text-[#07ADB8]">2</span>
+              Xếp hạng của bạn: <span className="font-medium text-[#07ADB8] dark:text-[#07ADB8]">
+                {currentUserRank !== null ? currentUserRank : 'Đang tính...'}
+              </span>
             </span>
           </div>
         </CardContent>
