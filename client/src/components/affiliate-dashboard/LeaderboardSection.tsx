@@ -26,23 +26,35 @@ export default function LeaderboardSection({ topAffiliates, isLoading }: Leaderb
   // Hàm để tính toán xếp hạng của người dùng hiện tại
   useEffect(() => {
     if (topAffiliates && topAffiliates.length > 0 && apiAffiliateResponse) {
-      const affiliateData = apiAffiliateResponse && typeof apiAffiliateResponse === 'object' && 'status' in apiAffiliateResponse && apiAffiliateResponse.status === "success" 
-        ? (apiAffiliateResponse as any).data 
-        : undefined;
-      
-      if (affiliateData && affiliateData.affiliate_id) {
-        // Tìm vị trí của affiliate trong danh sách topAffiliates
-        const affiliateIndex = topAffiliates.findIndex(
-          (affiliate) => affiliate.affiliate_id === affiliateData.affiliate_id
-        );
+      try {
+        console.log("Calculating rank with topAffiliates:", topAffiliates);
         
-        if (affiliateIndex !== -1) {
-          // Nếu tìm thấy, xếp hạng = index + 1
-          setCurrentUserRank(affiliateIndex + 1);
-        } else {
-          // Nếu không tìm thấy trong danh sách top, có thể họ không nằm trong top
-          setCurrentUserRank(topAffiliates.length + 1);
+        const affiliateData = apiAffiliateResponse && typeof apiAffiliateResponse === 'object' && 'status' in apiAffiliateResponse && apiAffiliateResponse.status === "success" 
+          ? (apiAffiliateResponse as any).data 
+          : undefined;
+        
+        console.log("Current user affiliate data:", affiliateData?.affiliate_id);
+        
+        if (affiliateData && affiliateData.affiliate_id) {
+          // Tìm vị trí của affiliate trong danh sách topAffiliates
+          const affiliateIndex = topAffiliates.findIndex(
+            (affiliate) => String(affiliate.affiliate_id) === String(affiliateData.affiliate_id)
+          );
+          
+          console.log("Found index in top affiliates:", affiliateIndex);
+          
+          if (affiliateIndex !== -1) {
+            // Nếu tìm thấy, xếp hạng = index + 1
+            setCurrentUserRank(affiliateIndex + 1);
+            console.log("Setting rank to:", affiliateIndex + 1);
+          } else {
+            // Nếu không tìm thấy trong danh sách top, có thể họ không nằm trong top
+            setCurrentUserRank(topAffiliates.length + 1);
+            console.log("Setting rank outside top list:", topAffiliates.length + 1);
+          }
         }
+      } catch (error) {
+        console.error("Error calculating user rank:", error);
       }
     }
   }, [topAffiliates, apiAffiliateResponse]);
@@ -103,7 +115,6 @@ export default function LeaderboardSection({ topAffiliates, isLoading }: Leaderb
                   </div>
                   <div className="min-w-0 flex-1 flex items-center px-4">
                     <Avatar className="border-2 border-white shadow-sm">
-                      <AvatarImage src={affiliate.profile_image} alt={affiliate.full_name} />
                       <AvatarFallback className="bg-gradient-to-br from-[#07ADB8] to-[#05868f] text-white">
                         {affiliate.full_name.charAt(0)}
                       </AvatarFallback>
