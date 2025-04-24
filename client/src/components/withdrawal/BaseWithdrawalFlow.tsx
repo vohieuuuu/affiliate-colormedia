@@ -673,14 +673,15 @@ export default function BaseWithdrawalFlow({
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={isLoading || otpInput.length !== 6}
+                  // Sửa lỗi không nhấn được nút Tiếp tục - cho phép nút hoạt động ngay cả khi chưa nhập đủ mã OTP
+                  disabled={isLoading}
                 >
                   {isVerifyingOtp ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <LockKeyhole className="mr-2 h-4 w-4" />
                   )}
-                  Xác nhận rút tiền
+                  Tiếp tục
                 </Button>
               </DialogFooter>
               
