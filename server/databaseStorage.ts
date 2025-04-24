@@ -628,9 +628,23 @@ export class DatabaseStorage implements IStorage {
     // Lấy danh sách khách hàng và tìm theo ID thực
     const customers = [...(affiliate.referred_customers || [])]; // Tạo bản sao
     
-    // Tìm khách hàng theo ID duy nhất
+    console.log(`DatabaseStorage: Customer ID type received: ${typeof customerId}, value: ${customerId}`);
+    console.log(`All customer IDs:`, customers.map(c => ({id: c.id, type: typeof c.id})));
+    
+    // Tìm khách hàng theo ID duy nhất (xử lý cả chuỗi và số)
     const customerIndex = customers.findIndex(
-      customer => customer.id === customerId
+      customer => {
+        // So sánh trực tiếp
+        if (customer.id === customerId) return true;
+        
+        // So sánh khi convert thành số
+        if (typeof customer.id === 'string' && !isNaN(Number(customer.id)) && Number(customer.id) === customerId) return true;
+        
+        // So sánh khi convert thành chuỗi
+        if (typeof customerId === 'number' && customer.id !== undefined && customer.id.toString() === customerId.toString()) return true;
+        
+        return false;
+      }
     );
     
     console.log(`DatabaseStorage: Finding customer with ID ${customerId} for affiliate ${affiliateId}, found at index ${customerIndex}`);
@@ -738,9 +752,23 @@ export class DatabaseStorage implements IStorage {
       // 2. Tạo bản sao danh sách khách hàng
       const customers = [...affiliate.referred_customers];
       
-      // 3. Tìm khách hàng theo ID duy nhất
+      console.log(`DatabaseStorage: Customer ID type received: ${typeof customerId}, value: ${customerId}`);
+      console.log(`All customer IDs:`, customers.map(c => ({id: c.id, type: typeof c.id})));
+      
+      // 3. Tìm khách hàng theo ID duy nhất (xử lý cả chuỗi và số)
       const customerIndex = customers.findIndex(
-        customer => customer.id === customerId
+        customer => {
+          // So sánh trực tiếp
+          if (customer.id === customerId) return true;
+          
+          // So sánh khi convert thành số
+          if (typeof customer.id === 'string' && !isNaN(Number(customer.id)) && Number(customer.id) === customerId) return true;
+          
+          // So sánh khi convert thành chuỗi
+          if (typeof customerId === 'number' && customer.id !== undefined && customer.id.toString() === customerId.toString()) return true;
+          
+          return false;
+        }
       );
       
       console.log(`DatabaseStorage: Finding customer with ID ${customerId}, found at index ${customerIndex}`);
