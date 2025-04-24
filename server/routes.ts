@@ -2106,7 +2106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req_params_id_type: typeof req.params.id,
         status,
         description,
-        affiliate_id
+        affiliate_id,
+        environment: process.env.NODE_ENV || 'development'
       });
       
       if (isNaN(customerId) || !status) {
@@ -2145,8 +2146,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Tìm khách hàng theo ID thay vì sử dụng index
-      const customerIndex = affiliate.referred_customers.findIndex(customer => customer.id === customerId);
+      // Tìm khách hàng theo ID thay vì sử dụng index - cải thiện so sánh
+      console.log(`Detailed customer check - Looking for ID ${customerId} in:`, 
+        affiliate.referred_customers.map(c => ({ id: c.id, type: typeof c.id }))
+      );
+      
+      const customerIndex = affiliate.referred_customers.findIndex(customer => {
+        // So sánh trực tiếp
+        if (customer.id === customerId) return true;
+        
+        // So sánh khi convert thành số
+        if (typeof customer.id === 'string' && !isNaN(Number(customer.id)) && Number(customer.id) === customerId) return true;
+        
+        // So sánh khi convert thành chuỗi
+        if (typeof customerId === 'number' && customer.id !== undefined && customer.id.toString() === customerId.toString()) return true;
+        
+        return false;
+      });
+      
+      console.log(`Customer search result: index=${customerIndex} for ID=${customerId}`);
       
       if (customerIndex === -1) {
         return res.status(404).json({
