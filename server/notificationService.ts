@@ -7,7 +7,7 @@ import axios from 'axios';
 import { WithdrawalRequestPayload } from '@shared/schema';
 
 // URL webhook cho thông báo rút tiền thành công
-const WITHDRAWAL_WEBHOOK_URL = 'https://auto.autogptvn.com/webhook-test/yeu-cau-thanh-toan-affilate';
+const WITHDRAWAL_WEBHOOK_URL = 'https://auto.autogptvn.com/webhook/yeu-cau-thanh-toan-affilate';
 
 /**
  * Gửi thông báo rút tiền thành công

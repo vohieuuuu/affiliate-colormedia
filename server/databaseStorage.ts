@@ -255,9 +255,11 @@ export class DatabaseStorage implements IStorage {
     // Lấy tất cả affiliate và sắp xếp theo contract_value giảm dần
     const dbAffiliates = await db.select({
       id: affiliates.id,
+      affiliate_id: affiliates.affiliate_id,
       full_name: affiliates.full_name,
       contract_value: affiliates.contract_value,
-      total_contracts: affiliates.total_contracts
+      total_contracts: affiliates.total_contracts,
+      profile_image: affiliates.profile_image
     })
     .from(affiliates)
     .orderBy(desc(affiliates.contract_value))
@@ -265,9 +267,11 @@ export class DatabaseStorage implements IStorage {
     
     return dbAffiliates.map(aff => ({
       id: aff.id,
+      affiliate_id: aff.affiliate_id,
       full_name: aff.full_name,
       contract_value: aff.contract_value,
-      total_contracts: aff.total_contracts
+      total_contracts: aff.total_contracts,
+      profile_image: aff.profile_image
     }));
   }
 
