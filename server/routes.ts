@@ -2099,12 +2099,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerIdStr = req.params.id;
       let customerId = parseInt(customerIdStr);
       
-      // Hot fix cho lỗi CastError trong môi trường production - luôn đảm bảo ID là 6
-      if (customerIdStr === '6' && (customerId === 0 || isNaN(customerId))) {
-        console.log(`CRITICAL FIX: Detected ID=6 being incorrectly parsed to ${customerId}, using string ID`);
-        customerId = 6; // Force ID to 6
+      // Hot fix cho lỗi CastError trong môi trường production - đảm bảo ID luôn đúng
+      if (customerId === 0 || isNaN(customerId)) {
+        console.log(`CRITICAL FIX: Detected ID=${customerIdStr} being incorrectly parsed to ${customerId}, attempting to fix`);
+        
+        // Thử lấy ID từ string path parameter
+        if (customerIdStr && !isNaN(Number(customerIdStr))) {
+          customerId = Number(customerIdStr);
+          console.log(`Fixed ID to ${customerId} from URL parameter`);
+        } else {
+          console.log(`Cannot fix ID from URL parameter, will try lookup by string ID`);
+        }
       }
-      const { status, description, affiliate_id } = req.body;
+      // Lấy thông tin từ request body
+      const { status, description, affiliate_id, contract_value } = req.body;
       
       console.log(`DEBUG - CRITICAL: Process PUT /api/admin/customers/:id/status`, {
         customerIdStr,
@@ -2193,13 +2201,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Tạo đối tượng khách hàng cập nhật - thêm contract_value nếu có
+      let customerUpdate = {
+        id: customerId,
+        status: validatedStatus,
+        note: description || ""
+      };
+      
+      // Nếu có giá trị hợp đồng và khách hàng chuyển sang trạng thái "Đã chốt hợp đồng", đưa vào req
+      if (contract_value && validatedStatus === "Đã chốt hợp đồng") {
+        console.log(`Including contract_value in customer update: ${contract_value}`);
+        (customerUpdate as any).contract_value = parseFloat(contract_value);
+      }
+      
       // Update the customer status using the customer ID instead of index
-      const updatedCustomer = await storage.updateCustomerStatus(
-        affiliate_id,
-        customerId, 
-        validatedStatus, 
-        description || ""
-      );
+      // Truyền giá trị hợp đồng nếu có trong request
+      let updatedCustomer;
+      
+      if (contract_value && validatedStatus === "Đã chốt hợp đồng") {
+        // Sử dụng updateCustomerWithContract nếu có giá trị hợp đồng
+        const contractValueNum = parseFloat(contract_value);
+        console.log(`Updating customer with contract value: ${contractValueNum}`);
+        
+        updatedCustomer = await storage.updateCustomerWithContract(
+          customerId,
+          {
+            id: customerId,
+            status: validatedStatus,
+            note: description || "",
+            customer_name: affiliate.referred_customers[customerIndex].customer_name,
+            contract_value: contractValueNum,
+            // Thêm các trường cần thiết khác
+            created_at: affiliate.referred_customers[customerIndex].created_at,
+            updated_at: new Date().toISOString()
+          },
+          {
+            contract_value: contractValueNum,
+            received_balance: contractValueNum * 0.03, // 3% hoa hồng
+            remaining_balance: contractValueNum * 0.03 // 3% hoa hồng
+          },
+          affiliate_id
+        );
+      } else {
+        // Sử dụng updateCustomerStatus nếu không có giá trị hợp đồng
+        updatedCustomer = await storage.updateCustomerStatus(
+          affiliate_id,
+          customerId, 
+          validatedStatus, 
+          description || ""
+        );
+      }
       
       if (!updatedCustomer) {
         return res.status(404).json({

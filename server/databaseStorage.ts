@@ -620,8 +620,8 @@ export class DatabaseStorage implements IStorage {
     if (customerId === 0 || (typeof customerId === 'number' && isNaN(customerId))) {
       console.error(`CRITICAL ERROR: Invalid customer ID detected: ${customerId}`);
       
-      // Sử dụng '6' làm mặc định cho trường hợp khẩn cấp này (từ chỉ định của bạn)
-      customerId = 6;
+      // Chúng ta không đặt ID mặc định ở đây, vì đã có logic xử lý ID dưới dạng chuỗi
+      console.log(`Will attempt to find customer by string ID comparison`);
     }
     
     console.log(`ENTERING updateCustomerStatus with params:`, {
@@ -692,17 +692,43 @@ export class DatabaseStorage implements IStorage {
     
     if (status === "Đã chốt hợp đồng" && oldStatus !== "Đã chốt hợp đồng") {
       total_contracts += 1;
-      const defaultValue = 20000000; // 20M VND
-      contract_value += defaultValue;
-      // Làm tròn hoa hồng thành số nguyên
-      const commission = Math.round(defaultValue * 0.03); // 3% hoa hồng theo yêu cầu mới
+      
+      // QUAN TRỌNG: Chỉ thêm giá trị mặc định khi khách hàng không có giá trị hợp đồng
+      // Nếu request đã gửi lên giá trị hợp đồng trong updatedCustomer thì không ghi đè
+      
+      // Nếu có giá trị hợp đồng trong request body, ưu tiên sử dụng giá trị đó
+      const contractValueFromUpdate = 
+        'contract_value' in updatedCustomer && 
+        updatedCustomer.contract_value !== undefined && 
+        updatedCustomer.contract_value > 0;
+        
+      let contractValue = 0;
+      
+      if (contractValueFromUpdate) {
+        // Đã có giá trị hợp đồng trong request - không thiết lập giá trị mặc định
+        console.log(`Using contract value from request: ${updatedCustomer.contract_value}`);
+        contractValue = Math.round(updatedCustomer.contract_value);
+      } else {
+        // Không có giá trị hợp đồng trong request - thiết lập giá trị mặc định
+        const defaultValue = 20000000; // 20M VND
+        console.log(`No contract value in request, using default: ${defaultValue}`);
+        contractValue = defaultValue;
+        
+        // Cập nhật thông tin hợp đồng cho khách hàng
+        updatedCustomer.contract_value = Math.round(contractValue);
+      }
+      
+      // Cập nhật giá trị hợp đồng tổng và tính hoa hồng
+      contract_value += contractValue;
+      
+      // Làm tròn hoa hồng thành số nguyên - 3% hoa hồng
+      const commission = Math.round(contractValue * 0.03);
       remaining_balance += commission;
       received_balance += commission;
       
-      // Cập nhật thông tin hợp đồng cho khách hàng (tất cả là số nguyên)
+      // Cập nhật thông tin hợp đồng cho khách hàng
       updatedCustomer = {
         ...updatedCustomer,
-        contract_value: Math.round(defaultValue),
         commission: Math.round(commission),
         contract_date: now
       };
@@ -728,7 +754,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCustomerWithContract(
-    customerId: number, 
+    customerId: number | string, // Chấp nhận cả số hoặc chuỗi
     customerData: ReferredCustomer, 
     balanceUpdates: { 
       contract_value: number; 
