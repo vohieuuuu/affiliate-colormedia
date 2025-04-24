@@ -2147,10 +2147,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Update the customer status using the index in the array
+      // Update the customer status using the customer ID instead of index
       const updatedCustomer = await storage.updateCustomerStatus(
         affiliate_id,
-        customerIndex, 
+        customerId, 
         validatedStatus, 
         description || ""
       );
