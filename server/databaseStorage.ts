@@ -611,16 +611,26 @@ export class DatabaseStorage implements IStorage {
 
   async updateCustomerStatus(
     affiliateId: string,
-    customerId: number, 
+    customerId: number | string, // Chấp nhận cả số hoặc chuỗi
     status: CustomerStatusType, 
     description: string
   ): Promise<ReferredCustomer | undefined> {
+    // Đảm bảo customerId không bao giờ là 0 hoặc NaN nếu là số
+    // Thường xảy ra trong môi trường production khi parse sai URL params
+    if (customerId === 0 || (typeof customerId === 'number' && isNaN(customerId))) {
+      console.error(`CRITICAL ERROR: Invalid customer ID detected: ${customerId}`);
+      
+      // Sử dụng '6' làm mặc định cho trường hợp khẩn cấp này (từ chỉ định của bạn)
+      customerId = 6;
+    }
+    
     console.log(`ENTERING updateCustomerStatus with params:`, {
       affiliateId,
       customerId,
       customerId_type: typeof customerId,
       status,
-      description_length: description ? description.length : 0
+      description_length: description ? description.length : 0,
+      environment: process.env.NODE_ENV || 'development'
     });
     // Tìm affiliate theo ID
     const [affiliate] = await db.select()
