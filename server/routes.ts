@@ -716,13 +716,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint to get top affiliates
   app.get("/api/affiliates/top", authenticateUser, async (req, res) => {
     try {
+      console.log("User requested top affiliates");
       const topAffiliates = await storage.getTopAffiliates();
+      console.log("Top affiliates retrieved:", JSON.stringify(topAffiliates));
       res.setHeader('Content-Type', 'application/json');
       res.json({
         status: "success",
         data: topAffiliates
       });
     } catch (error) {
+      console.error("Error retrieving top affiliates:", error);
       res.status(500).json({ 
         status: "error",
         error: {
