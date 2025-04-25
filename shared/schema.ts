@@ -211,6 +211,7 @@ export type TimeSeriesStatistics = z.infer<typeof TimeSeriesStatisticsSchema>;
 // Top affiliate schema
 export const TopAffiliateSchema = z.object({
   id: z.number(),
+  affiliate_id: z.string(), // Thêm affiliate_id để có thể so sánh với người dùng hiện tại
   full_name: z.string(),
   profile_image: z.string().optional(),
   contract_value: z.number(),
