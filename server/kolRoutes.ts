@@ -234,6 +234,34 @@ export function setupKolVipRoutes(app: Express, storage: IStorage) {
         })
         .where(eq(kolVipAffiliates.id, kolVip.id));
       
+      // 5. Gửi thông báo qua webhook (bất đồng bộ)
+      try {
+        const { sendNewContactNotification } = await import('./notificationService');
+        
+        const kolInfo = {
+          kol_id: kolVip.affiliate_id,
+          full_name: kolVip.full_name,
+          email: kolVip.email,
+          level: kolVip.level
+        };
+        
+        // Gửi thông báo webhook bất đồng bộ
+        sendNewContactNotification(newContact, kolInfo)
+          .then(success => {
+            if (success) {
+              console.log(`Successfully sent new contact notification for KOL ${kolId}`);
+            } else {
+              console.warn(`Failed to send new contact notification for KOL ${kolId}`);
+            }
+          })
+          .catch(error => {
+            console.error(`Error sending new contact notification:`, error);
+          });
+      } catch (webhookError) {
+        // Chỉ log lỗi, không ảnh hưởng đến phản hồi API
+        console.error("Error sending webhook for new KOL contact:", webhookError);
+      }
+      
       res.status(201).json({
         status: "success",
         data: newContact
