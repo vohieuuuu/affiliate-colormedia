@@ -7,7 +7,7 @@ import SalesKitMaterials from "./SalesKitMaterials";
 import { formatCurrency } from "@/lib/formatters";
 import { Trophy, Award, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 interface LeaderboardSectionProps {
   topAffiliates?: TopAffiliate[];
@@ -16,46 +16,56 @@ interface LeaderboardSectionProps {
 
 export default function LeaderboardSection({ topAffiliates, isLoading }: LeaderboardSectionProps) {
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
+  const processingRef = useRef<boolean>(false);
   
   // Lấy thông tin affiliate hiện tại để so sánh với bảng xếp hạng
-  const { data: apiAffiliateResponse } = useQuery({
+  const { data: apiAffiliateResponse, isLoading: isAffiliateLoading, isError: isAffiliateError } = useQuery({
     queryKey: ['/api/affiliate'],
     staleTime: 5 * 60 * 1000, // 5 phút, để giảm số lượng requests
+    retry: 2, // Giới hạn số lần thử lại
+    retryDelay: 1000, // Thời gian trì hoãn giữa các lần thử
   });
   
   // Hàm để tính toán xếp hạng của người dùng hiện tại
   useEffect(() => {
-    if (topAffiliates && topAffiliates.length > 0 && apiAffiliateResponse) {
-      try {
-        console.log("Calculating rank with topAffiliates:", topAffiliates);
-        
-        const affiliateData = apiAffiliateResponse && typeof apiAffiliateResponse === 'object' && 'status' in apiAffiliateResponse && apiAffiliateResponse.status === "success" 
+    // Ngăn chặn việc thực hiện nhiều lần đồng thời khi có nhiều thay đổi
+    if (processingRef.current) return;
+    processingRef.current = true;
+    
+    // Kiểm tra xem có dữ liệu topAffiliates và apiAffiliateResponse không
+    if (!topAffiliates || topAffiliates.length === 0 || !apiAffiliateResponse) {
+      processingRef.current = false;
+      return;
+    }
+    
+    try {
+      // Lấy dữ liệu affiliate hiện tại từ API response
+      const affiliateData = apiAffiliateResponse && 
+        typeof apiAffiliateResponse === 'object' && 
+        'status' in apiAffiliateResponse && 
+        apiAffiliateResponse.status === "success" 
           ? (apiAffiliateResponse as any).data 
           : undefined;
+      
+      if (affiliateData && affiliateData.affiliate_id) {
+        // Tìm vị trí của affiliate trong danh sách topAffiliates
+        const affiliateIndex = topAffiliates.findIndex(
+          (affiliate) => String(affiliate.affiliate_id) === String(affiliateData.affiliate_id)
+        );
         
-        console.log("Current user affiliate data:", affiliateData?.affiliate_id);
-        
-        if (affiliateData && affiliateData.affiliate_id) {
-          // Tìm vị trí của affiliate trong danh sách topAffiliates
-          const affiliateIndex = topAffiliates.findIndex(
-            (affiliate) => String(affiliate.affiliate_id) === String(affiliateData.affiliate_id)
-          );
-          
-          console.log("Found index in top affiliates:", affiliateIndex);
-          
-          if (affiliateIndex !== -1) {
-            // Nếu tìm thấy, xếp hạng = index + 1
-            setCurrentUserRank(affiliateIndex + 1);
-            console.log("Setting rank to:", affiliateIndex + 1);
-          } else {
-            // Nếu không tìm thấy trong danh sách top, có thể họ không nằm trong top
-            setCurrentUserRank(topAffiliates.length + 1);
-            console.log("Setting rank outside top list:", topAffiliates.length + 1);
-          }
+        if (affiliateIndex !== -1) {
+          // Nếu tìm thấy, xếp hạng = index + 1
+          setCurrentUserRank(affiliateIndex + 1);
+        } else {
+          // Nếu không tìm thấy trong danh sách top, có thể họ không nằm trong top
+          setCurrentUserRank(topAffiliates.length + 1);
         }
-      } catch (error) {
-        console.error("Error calculating user rank:", error);
       }
+    } catch (error) {
+      // Xử lý lỗi không làm crash ứng dụng
+      setCurrentUserRank(null);
+    } finally {
+      processingRef.current = false;
     }
   }, [topAffiliates, apiAffiliateResponse]);
   
