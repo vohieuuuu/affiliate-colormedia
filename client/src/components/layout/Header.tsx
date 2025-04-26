@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, User, BarChart3, LogOut } from "lucide-react";
+import { Moon, Sun, User, BarChart3, LogOut, Book, FileText } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   fullName?: string;
@@ -39,7 +45,37 @@ export default function Header({ fullName, affiliateId }: HeaderProps) {
               </Link>
             </div>
           </div>
-          <div className="flex items-center space-x-5">
+          <div className="flex items-center space-x-2 md:space-x-5">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="bg-white/10 text-white hover:bg-white/20 hidden md:flex"
+                >
+                  <Book className="h-4 w-4 mr-2" />
+                  <span>Thông tin</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/affiliate-policy">
+                    <div className="flex items-center w-full">
+                      <Book className="h-4 w-4 mr-2" />
+                      <span>Chính sách Affiliate</span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/register-affiliate">
+                    <div className="flex items-center w-full">
+                      <FileText className="h-4 w-4 mr-2" />
+                      <span>Hướng dẫn đăng ký</span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             {mounted && (
               <Button
                 variant="ghost"
