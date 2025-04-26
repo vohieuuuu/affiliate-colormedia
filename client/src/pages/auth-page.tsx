@@ -119,10 +119,10 @@ export default function AuthPage() {
             </CardContent>
             <CardFooter className="flex flex-col items-center space-y-2">
               <div className="text-sm text-muted-foreground">
-                Chưa có tài khoản? <a href="/register-affiliate" className="text-primary hover:underline">Đăng ký làm Affiliate</a> hoặc liên hệ quản trị viên.
+                Chưa có tài khoản? <a href="https://colormedia.sg.larksuite.com/wiki/LQxvwbgBjixFpfkGeUolFnMjgnb" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Đăng ký làm Affiliate</a> hoặc liên hệ quản trị viên.
               </div>
               <div className="text-sm text-muted-foreground">
-                <a href="/affiliate-policy" className="text-primary hover:underline">Xem chính sách Affiliate</a>
+                <a href="https://colormedia.sg.larksuite.com/docx/OCzqdz5xUogQLkxCofolRNbCgcd" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Xem chính sách Affiliate</a>
               </div>
             </CardFooter>
           </Card>

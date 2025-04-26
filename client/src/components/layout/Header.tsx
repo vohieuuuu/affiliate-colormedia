@@ -57,21 +57,27 @@ export default function Header({ fullName, affiliateId }: HeaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href="/affiliate-policy">
-                    <div className="flex items-center w-full">
-                      <Book className="h-4 w-4 mr-2" />
-                      <span>Chính sách Affiliate</span>
-                    </div>
-                  </Link>
+                <DropdownMenuItem>
+                  <a 
+                    href="https://colormedia.sg.larksuite.com/docx/OCzqdz5xUogQLkxCofolRNbCgcd" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center w-full"
+                  >
+                    <Book className="h-4 w-4 mr-2" />
+                    <span>Chính sách Affiliate</span>
+                  </a>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/register-affiliate">
-                    <div className="flex items-center w-full">
-                      <FileText className="h-4 w-4 mr-2" />
-                      <span>Hướng dẫn đăng ký</span>
-                    </div>
-                  </Link>
+                <DropdownMenuItem>
+                  <a 
+                    href="https://colormedia.sg.larksuite.com/wiki/LQxvwbgBjixFpfkGeUolFnMjgnb" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center w-full"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    <span>Hướng dẫn đăng ký</span>
+                  </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
