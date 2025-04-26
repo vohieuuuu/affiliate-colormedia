@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/hooks/use-auth";
@@ -8,6 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -17,14 +18,32 @@ import {
   MonitorSmartphone, 
   ScrollText, 
   UserCheck, 
-  UserPlus
+  UserPlus,
+  ExternalLink,
+  InfoIcon,
+  AlertCircle,
+  FileText
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 export default function AffiliatePolicy() {
   const { user } = useAuth();
+  const [showFullPolicy, setShowFullPolicy] = useState(false);
+  const [showFullGuide, setShowFullGuide] = useState(false);
   
   // Tiêu đề
   useEffect(() => {
@@ -337,6 +356,14 @@ export default function AffiliatePolicy() {
                 </TabsContent>
                 
                 <TabsContent value="guide" className="space-y-8">
+                  <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    <AlertTitle className="text-amber-800 dark:text-amber-300">Tóm tắt quy trình</AlertTitle>
+                    <AlertDescription className="text-amber-700 dark:text-amber-400">
+                      Dưới đây là bản tóm tắt quy trình và thông tin đăng ký. Để xem hướng dẫn chi tiết, nhấp vào nút "Xem hướng dẫn đầy đủ" hoặc mở rộng các mục bên dưới.
+                    </AlertDescription>
+                  </Alert>
+                  
                   <Card>
                     <CardHeader>
                       <CardTitle>Quy trình đăng ký tham gia chương trình Affiliate</CardTitle>
@@ -346,88 +373,133 @@ export default function AffiliatePolicy() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-6">
-                        <div className="flex items-start">
-                          <div className="flex items-center justify-center rounded-full bg-[#07ADB8]/10 p-3 w-12 h-12 shrink-0 mr-4">
-                            <ScrollText className="h-5 w-5 text-[#07ADB8]" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold mb-1">1. Đăng ký thông tin</h3>
-                            <p className="text-gray-700 dark:text-gray-300">
-                              Điền đầy đủ thông tin vào <Link href="/register-affiliate" className="text-[#07ADB8] hover:underline">
-                                biểu mẫu đăng ký Affiliate</Link> bao gồm thông tin cá nhân, thông tin ngân hàng, và lĩnh vực hoạt động.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start">
-                          <div className="flex items-center justify-center rounded-full bg-[#07ADB8]/10 p-3 w-12 h-12 shrink-0 mr-4">
-                            <MonitorSmartphone className="h-5 w-5 text-[#07ADB8]" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold mb-1">2. Xác nhận thông tin</h3>
-                            <p className="text-gray-700 dark:text-gray-300">
-                              Đội ngũ ColorMedia sẽ liên hệ trong vòng 24-48 giờ để xác nhận thông tin và hướng dẫn các bước tiếp theo.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start">
-                          <div className="flex items-center justify-center rounded-full bg-[#07ADB8]/10 p-3 w-12 h-12 shrink-0 mr-4">
-                            <Landmark className="h-5 w-5 text-[#07ADB8]" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold mb-1">3. Nhận tài khoản và hướng dẫn</h3>
-                            <p className="text-gray-700 dark:text-gray-300">
-                              Sau khi xác nhận thành công, bạn sẽ nhận được tài khoản đăng nhập vào hệ thống Affiliate và bộ tài liệu marketing.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start">
-                          <div className="flex items-center justify-center rounded-full bg-[#07ADB8]/10 p-3 w-12 h-12 shrink-0 mr-4">
-                            <UserPlus className="h-5 w-5 text-[#07ADB8]" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold mb-1">4. Bắt đầu giới thiệu khách hàng</h3>
-                            <p className="text-gray-700 dark:text-gray-300">
-                              Sử dụng dashboard để thêm thông tin khách hàng tiềm năng và theo dõi tiến trình, gửi báo giá, và nhận hoa hồng.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-8">
-                        <h3 className="text-lg font-semibold mb-4">Tài liệu và hỗ trợ</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card className="border border-gray-200">
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-base">Bộ tài liệu giới thiệu</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <p className="text-sm text-gray-700 dark:text-gray-300">
-                                Bao gồm brochure, slide giới thiệu dịch vụ ColorMedia, mẫu báo giá, và tài liệu tham khảo.
-                              </p>
-                            </CardContent>
-                          </Card>
+                        <Accordion type="single" collapsible className="w-full">
+                          <AccordionItem value="step1">
+                            <AccordionTrigger className="text-base font-medium">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 rounded-full bg-[#07ADB8]/10 text-[#07ADB8] flex items-center justify-center mr-3">1</div>
+                                Đăng ký tài khoản Affiliate
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pl-11">
+                              <div className="space-y-4 text-gray-700 dark:text-gray-300">
+                                <p>Để đăng ký tài khoản Affiliate, bạn cần thực hiện các bước sau:</p>
+                                <ul className="list-disc pl-5 space-y-2">
+                                  <li>Điền đầy đủ thông tin cá nhân vào form đăng ký</li>
+                                  <li>Cung cấp thông tin tài khoản ngân hàng để nhận hoa hồng</li>
+                                  <li>Xác nhận email đăng ký</li>
+                                  <li>Chờ quản trị viên xét duyệt (trong vòng 24-48 giờ)</li>
+                                </ul>
+                                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                                  Lưu ý: Các thông tin bạn cung cấp phải chính xác và phải trùng khớp với thông tin trên CMND/CCCD/Hộ chiếu.
+                                </p>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
                           
-                          <Card className="border border-gray-200">
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-base">Hỗ trợ 1-1</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <p className="text-sm text-gray-700 dark:text-gray-300">
-                                Đội ngũ hỗ trợ chuyên nghiệp sẵn sàng giúp đỡ bạn trong quá trình giới thiệu và đàm phán với khách hàng.
+                          <AccordionItem value="step2">
+                            <AccordionTrigger className="text-base font-medium">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 rounded-full bg-[#07ADB8]/10 text-[#07ADB8] flex items-center justify-center mr-3">2</div>
+                                Xác nhận thông tin
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pl-11">
+                              <div className="space-y-4 text-gray-700 dark:text-gray-300">
+                                <p>Sau khi đăng ký, đội ngũ ColorMedia sẽ tiến hành:</p>
+                                <ul className="list-disc pl-5 space-y-2">
+                                  <li>Liên hệ xác nhận qua điện thoại hoặc email</li>
+                                  <li>Kiểm tra thông tin cá nhân và tài khoản ngân hàng</li>
+                                  <li>Tư vấn về chính sách hoa hồng và cách thức hoạt động</li>
+                                </ul>
+                                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                                  Thời gian xác nhận thường mất từ 24-48 giờ làm việc.
+                                </p>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                          
+                          <AccordionItem value="step3">
+                            <AccordionTrigger className="text-base font-medium">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 rounded-full bg-[#07ADB8]/10 text-[#07ADB8] flex items-center justify-center mr-3">3</div>
+                                Nhận tài khoản và bắt đầu
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pl-11">
+                              <div className="space-y-4 text-gray-700 dark:text-gray-300">
+                                <p>Sau khi được phê duyệt, bạn sẽ nhận được:</p>
+                                <ul className="list-disc pl-5 space-y-2">
+                                  <li>Thông tin đăng nhập vào hệ thống Affiliate</li>
+                                  <li>Bộ tài liệu marketing và hướng dẫn sử dụng</li>
+                                  <li>Mã giới thiệu riêng (affiliate ID)</li>
+                                  <li>Hỗ trợ kỹ thuật và tư vấn từ đội ngũ chuyên nghiệp</li>
+                                </ul>
+                                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                                  Khi đăng nhập lần đầu, bạn sẽ được yêu cầu đổi mật khẩu.
+                                </p>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                        
+                        <div className="mt-8 space-y-4">
+                          <h3 className="text-lg font-semibold">Quy trình làm việc</h3>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                              <div className="flex items-center mb-3">
+                                <div className="w-8 h-8 rounded-full bg-[#07ADB8]/10 text-[#07ADB8] flex items-center justify-center mr-2">1</div>
+                                <h4 className="font-medium">Giới thiệu khách hàng</h4>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Thêm thông tin khách hàng tiềm năng vào hệ thống Affiliate.
                               </p>
-                            </CardContent>
-                          </Card>
+                            </div>
+                            
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                              <div className="flex items-center mb-3">
+                                <div className="w-8 h-8 rounded-full bg-[#07ADB8]/10 text-[#07ADB8] flex items-center justify-center mr-2">2</div>
+                                <h4 className="font-medium">ColorMedia tiếp cận</h4>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Đội ngũ bán hàng liên hệ với khách hàng và tiến hành tư vấn.
+                              </p>
+                            </div>
+                            
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                              <div className="flex items-center mb-3">
+                                <div className="w-8 h-8 rounded-full bg-[#07ADB8]/10 text-[#07ADB8] flex items-center justify-center mr-2">3</div>
+                                <h4 className="font-medium">Khách hàng ký hợp đồng</h4>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Sau khi ký hợp đồng, thông tin sẽ được cập nhật trên hệ thống.
+                              </p>
+                            </div>
+                            
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                              <div className="flex items-center mb-3">
+                                <div className="w-8 h-8 rounded-full bg-[#07ADB8]/10 text-[#07ADB8] flex items-center justify-center mr-2">4</div>
+                                <h4 className="font-medium">Nhận hoa hồng</h4>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Hoa hồng được ghi nhận và có thể rút về tài khoản ngân hàng.
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="mt-8 flex justify-center">
-                        <Link href="/register-affiliate" className="inline-flex items-center justify-center rounded-md bg-[#07ADB8] px-6 py-3 text-white font-medium hover:bg-[#06969f] transition-colors">
-                          Đăng ký ngay
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
+                        
+                        <div className="mt-6 flex justify-center">
+                          <a 
+                            href="https://colormedia.sg.larksuite.com/wiki/LQxvwbgBjixFpfkGeUolFnMjgnb" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center rounded-md bg-[#07ADB8] px-6 py-3 text-white font-medium hover:bg-[#06969f] transition-colors"
+                          >
+                            Xem hướng dẫn đầy đủ
+                            <ExternalLink className="ml-2 h-4 w-4" />
+                          </a>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -436,54 +508,70 @@ export default function AffiliatePolicy() {
                     <CardHeader>
                       <CardTitle>FAQ - Câu hỏi thường gặp</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">Tôi cần những giấy tờ gì để đăng ký Affiliate?</h3>
-                        <p className="text-gray-700 dark:text-gray-300">
-                          Bạn cần cung cấp thông tin cá nhân (CMND/CCCD), thông tin ngân hàng, và thông tin liên hệ. 
-                          Nếu bạn đăng ký là doanh nghiệp, cần thêm giấy phép kinh doanh.
-                        </p>
-                      </div>
+                    <CardContent>
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="faq1">
+                          <AccordionTrigger>Tôi cần những giấy tờ gì để đăng ký Affiliate?</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-gray-700 dark:text-gray-300">
+                              Bạn cần cung cấp thông tin cá nhân (CMND/CCCD), thông tin ngân hàng, và thông tin liên hệ. 
+                              Nếu bạn đăng ký là doanh nghiệp, cần thêm giấy phép kinh doanh.
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                        
+                        <AccordionItem value="faq2">
+                          <AccordionTrigger>Làm thế nào để biết khách hàng đã ký hợp đồng?</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-gray-700 dark:text-gray-300">
+                              Sau khi khách hàng ký hợp đồng với ColorMedia, bạn sẽ được thông báo qua email và có thể theo dõi
+                              trạng thái trên dashboard. Thông tin hợp đồng, giá trị và hoa hồng sẽ được hiển thị rõ ràng.
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                        
+                        <AccordionItem value="faq3">
+                          <AccordionTrigger>Tôi có được hỗ trợ khi tư vấn khách hàng không?</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-gray-700 dark:text-gray-300">
+                              Có, đội ngũ ColorMedia sẽ hỗ trợ bạn trong quá trình tư vấn khách hàng, cung cấp thông tin chuyên sâu về dịch vụ, 
+                              và tham gia họp với khách hàng nếu cần thiết.
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                        
+                        <AccordionItem value="faq4">
+                          <AccordionTrigger>Khi nào tôi có thể rút tiền hoa hồng?</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-gray-700 dark:text-gray-300">
+                              Bạn có thể rút tiền hoa hồng sau khi khách hàng đã thanh toán hợp đồng cho ColorMedia. 
+                              Việc rút tiền được thực hiện qua dashboard với giới hạn rút tối đa 20 triệu VND/ngày.
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                        
+                        <AccordionItem value="faq5">
+                          <AccordionTrigger>Làm thế nào để đăng ký tham gia chương trình KOL/VIP?</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-gray-700 dark:text-gray-300">
+                              Để đăng ký chương trình KOL/VIP, bạn cần có kinh nghiệm trong lĩnh vực truyền thông hoặc có mạng lưới rộng.
+                              Vui lòng liên hệ với chúng tôi qua email <span className="font-medium">affiliate@colormedia.vn</span> hoặc số điện thoại
+                              <span className="font-medium"> 0986 123 456</span> để được tư vấn.
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                       
-                      <Separator />
-                      
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">Làm thế nào để biết khách hàng đã ký hợp đồng?</h3>
-                        <p className="text-gray-700 dark:text-gray-300">
-                          Sau khi khách hàng ký hợp đồng với ColorMedia, bạn sẽ được thông báo qua email và có thể theo dõi
-                          trạng thái trên dashboard. Thông tin hợp đồng, giá trị và hoa hồng sẽ được hiển thị rõ ràng.
-                        </p>
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">Tôi có được hỗ trợ khi tư vấn khách hàng không?</h3>
-                        <p className="text-gray-700 dark:text-gray-300">
-                          Có, đội ngũ ColorMedia sẽ hỗ trợ bạn trong quá trình tư vấn khách hàng, cung cấp thông tin chuyên sâu về dịch vụ, 
-                          và tham gia họp với khách hàng nếu cần thiết.
-                        </p>
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">Khi nào tôi có thể rút tiền hoa hồng?</h3>
-                        <p className="text-gray-700 dark:text-gray-300">
-                          Bạn có thể rút tiền hoa hồng sau khi khách hàng đã thanh toán hợp đồng cho ColorMedia. 
-                          Việc rút tiền được thực hiện qua dashboard với giới hạn rút tối đa 20 triệu VND/ngày.
-                        </p>
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">Làm thế nào để đăng ký tham gia chương trình KOL/VIP?</h3>
-                        <p className="text-gray-700 dark:text-gray-300">
-                          Để đăng ký chương trình KOL/VIP, bạn cần có kinh nghiệm trong lĩnh vực truyền thông hoặc có mạng lưới rộng.
-                          Vui lòng liên hệ với chúng tôi qua email <span className="font-medium">affiliate@colormedia.vn</span> hoặc số điện thoại
-                          <span className="font-medium"> 0986 123 456</span> để được tư vấn.
-                        </p>
+                      <div className="mt-6 flex justify-center">
+                        <a
+                          href="https://colormedia.sg.larksuite.com/docx/OCzqdz5xUogQLkxCofolRNbCgcd"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-[#07ADB8] hover:text-[#06969f] hover:underline"
+                        >
+                          <InfoIcon className="h-4 w-4 mr-2" />
+                          <span>Xem thêm câu hỏi khác trong tài liệu đầy đủ</span>
+                        </a>
                       </div>
                     </CardContent>
                   </Card>
