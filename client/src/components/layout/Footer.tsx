@@ -6,7 +6,7 @@ export default function Footer() {
           {/* Logo */}
           <div className="mb-6 md:mb-0">
             <div className="bg-white rounded p-2 inline-block">
-              <img src="/logo-colormedia.png" alt="ColorMedia Logo" className="h-12" />
+              <img src="/cms-logo.png" alt="ColorMedia Logo" className="h-12" />
             </div>
           </div>
 
