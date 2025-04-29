@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import cookieParser from 'cookie-parser';
+import crypto from 'crypto';
 import { setupVideoRoutes } from './videoRoutes';
 
 // Thiết lập xử lý lỗi toàn cục để ngăn không cho ứng dụng tắt đột ngột
@@ -35,8 +36,34 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' })); // Tăng giới hạn lên 50MB để hỗ trợ hình ảnh base64 lớn
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+// Tạo cookie secret an toàn
+const cookieSecret = process.env.COOKIE_SECRET || 
+  (process.env.NODE_ENV === 'production' 
+  ? crypto.randomBytes(32).toString('hex')  // Tạo secret ngẫu nhiên trong production
+  : 'colormedia-affiliate-dev-secret');
+
 // Sử dụng cookie-parser với cookie secret để hỗ trợ cookie có chữ ký
-app.use(cookieParser(process.env.COOKIE_SECRET || 'colormedia-affiliate-system-secret'));
+app.use(cookieParser(cookieSecret));
+
+// Thiết lập các Security Headers để bảo vệ ứng dụng
+app.use((req, res, next) => {
+  // Content-Security-Policy để ngăn chặn XSS
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
+  );
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Thêm Strict-Transport-Security trong môi trường production
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  }
+  
+  next();
+});
 
 // Thiết lập rate limiter để hạn chế số lượng request đến API
 const apiLimiter = rateLimit({
