@@ -36,15 +36,36 @@ const authLimiter = rateLimit({
   }
 });
 
-// Cấu hình Content-Security-Policy
+// Cấu hình Content-Security-Policy và các Security Headers nâng cao
 app.use((req, res, next) => {
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:;"
-  );
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  // Content-Security-Policy nghiêm ngặt để ngăn chặn XSS
+  const cspDirectives = [
+    "default-src 'self'",                                       // Chỉ cho phép tài nguyên từ origin hiện tại
+    "script-src 'self' 'unsafe-inline'",                        // Script chỉ được phép từ origin hiện tại và inline
+    "connect-src 'self'",                                       // Kết nối fetch/XHR chỉ đến origin hiện tại
+    "img-src 'self' data:",                                     // Hình ảnh chỉ từ origin hiện tại và data URLs
+    "style-src 'self' 'unsafe-inline'",                         // Style chỉ từ origin hiện tại và inline
+    "font-src 'self' data:",                                    // Font chỉ từ origin hiện tại và data URLs
+    "frame-ancestors 'none'",                                   // Không cho phép nhúng trang trong iframe
+    "form-action 'self'",                                       // Form chỉ submit đến origin hiện tại
+    "base-uri 'self'"                                           // Giới hạn <base> tag
+  ].join('; ');
+  
+  // Thiết lập CSP
+  res.setHeader('Content-Security-Policy', cspDirectives);
+  
+  // Headers bảo mật bổ sung
+  res.setHeader('X-Content-Type-Options', 'nosniff');           // Ngăn chặn MIME-type sniffing
+  res.setHeader('X-Frame-Options', 'DENY');                     // Ngăn chặn clickjacking
+  res.setHeader('X-XSS-Protection', '1; mode=block');           // Kích hoạt XSS filter của trình duyệt
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); // Kiểm soát thông tin referrer
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()'); // Hạn chế quyền truy cập vào API nhạy cảm
+  
+  // Chỉ trong production: Strict-Transport-Security
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload'); // 2 năm
+  }
+  
   next();
 });
 
@@ -60,8 +81,20 @@ app.use(cors({
 }));
 
 // Khởi tạo cookie-parser để đọc cookies 
-// Sử dụng secret key để tăng cường bảo mật cho cookies
-app.use(cookieParser(process.env.COOKIE_SECRET || 'colormedia-affiliate-system-secret'));
+// Sử dụng secret key phức tạp để tăng cường bảo mật cho cookies
+// Trong production cần thiết lập biến môi trường COOKIE_SECRET
+const cookieSecret = process.env.COOKIE_SECRET || 
+                    (process.env.NODE_ENV === 'production' 
+                    ? crypto.randomBytes(32).toString('hex')  // Tạo secret ngẫu nhiên trong production
+                    : 'colormedia-affiliate-system-dev-secret');
+
+// Thiết lập session và cookie bảo mật
+app.use(cookieParser(cookieSecret));
+
+// Bật tính năng Trust Proxy trong production để nhận dạng chính xác IP khi đứng sau load balancer
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 app.use(express.json());
 
@@ -240,14 +273,16 @@ app.all('/api/*', async (req, res) => {
           console.log('Token:', token.substring(0, 5) + '...');
         }
         
-        // Thiết lập cookie với các tùy chọn phù hợp cho môi trường phát triển
+        // Thiết lập cookie với các tùy chọn phù hợp cho môi trường
         const cookieOptions = {
-          httpOnly: true,                                        // Bảo mật: JavaScript không thể đọc cookie
-          secure: false,                                         // Trong Dev, không cần HTTPS
-          maxAge: 24 * 60 * 60 * 1000,                           // 1 ngày
-          sameSite: 'lax',                                       // Lax là cần thiết cho dev
-          path: '/',                                             // Cookie sẽ được gửi cho mọi request
-          signed: false                                          // Không ký cookie trong dev để dễ debug
+          httpOnly: true,                                           // Bảo mật: JavaScript không thể đọc cookie
+          secure: process.env.NODE_ENV === 'production',            // Yêu cầu HTTPS trong production
+          maxAge: 8 * 60 * 60 * 1000,                               // Giảm xuống còn 8 giờ để tăng bảo mật
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Strict trong production
+          path: '/',                                                // Cookie sẽ được gửi cho mọi request
+          signed: process.env.NODE_ENV === 'production',            // Ký cookie trong production
+          domain: process.env.COOKIE_DOMAIN || undefined,           // Giới hạn domain (nếu có)
+          partitioned: process.env.NODE_ENV === 'production'        // Sử dụng Partitioned Cookies trong production (CHIPS)
         };
         
         // Debug bao nhiêu cookies hiện có trong response
@@ -259,7 +294,19 @@ app.all('/api/*', async (req, res) => {
         res.cookie('auth_token', token, cookieOptions);
         
         // Đảm bảo browser lưu cookie bằng cách set header trực tiếp
-        const cookieStr = `auth_token=${token}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly`;
+        let cookieStr = `auth_token=${token}; Path=/; Max-Age=${8 * 60 * 60}; HttpOnly`;
+        
+        // Thêm cờ Secure trong môi trường production
+        if (process.env.NODE_ENV === 'production') {
+          cookieStr += '; Secure; SameSite=Strict';
+          
+          // Thêm thuộc tính __Host- prefix để đảm bảo cookie chỉ được gửi cho host gốc
+          // Điều này bảo vệ khỏi tấn công subdomain
+          res.cookie('__Host-auth_token', token, {
+            ...cookieOptions,
+            path: '/'  // __Host- prefix yêu cầu Path=/
+          });
+        }
         
         // Thêm header Set-Cookie
         if (!res.getHeader('Set-Cookie')) {
@@ -287,16 +334,44 @@ app.all('/api/*', async (req, res) => {
     
     // Xử lý đăng xuất: xóa cookie auth_token khi đăng xuất thành công
     if (req.url.includes('/api/auth/logout') && response.status === 200) {
-      // Xóa cookie auth_token bằng cách thiết lập maxAge = 0
-      res.cookie('auth_token', '', {
+      // Xóa tất cả các phiên bản của cookie auth_token
+      const logoutCookieOptions = {
         httpOnly: true, 
         secure: process.env.NODE_ENV === 'production',
         maxAge: 0, // Xóa cookie ngay lập tức
-        sameSite: 'strict'
-      });
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        path: '/'
+      };
+      
+      // Xóa cookie thông thường
+      res.cookie('auth_token', '', logoutCookieOptions);
+      
+      // Xóa cookie đã ký (nếu có)
+      res.cookie('auth_token.sig', '', logoutCookieOptions);
+      
+      // Xóa cookie __Host- prefix (nếu có)
+      if (process.env.NODE_ENV === 'production') {
+        res.cookie('__Host-auth_token', '', {
+          ...logoutCookieOptions,
+          path: '/' // Bắt buộc cho __Host- prefix
+        });
+      }
+      
+      // Xóa cookie trong header trực tiếp
+      const clearCookieHeader = [
+        'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly',
+        'auth_token.sig=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly'
+      ];
+      
+      if (process.env.NODE_ENV === 'production') {
+        clearCookieHeader.push('__Host-auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict');
+      }
+      
+      // Thêm header Set-Cookie
+      res.setHeader('Set-Cookie', clearCookieHeader);
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('Logout successful: Cookie auth_token removed');
+        console.log('Logout successful: All auth cookies removed');
       }
     }
     
