@@ -74,7 +74,9 @@ app.use(cors({
   // Trong môi trường development, chấp nhận tất cả nguồn
   // Trong môi trường production, chỉ chấp nhận từ domain chính thức
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://affclm.replit.app'] 
+    ? (process.env.ALLOWED_ORIGINS 
+      ? process.env.ALLOWED_ORIGINS.split(',') 
+      : ['https://affclm.replit.app'])
     : true,  // Chấp nhận tất cả các origin trong môi trường phát triển
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true  // Quan trọng: cho phép cookies trong cross-origin requests
