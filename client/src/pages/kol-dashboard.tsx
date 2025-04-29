@@ -483,7 +483,7 @@ const KolDashboard = () => {
   }
 
   return (
-    <div className="bg-gradient-to-b from-slate-50 to-white min-h-screen flex flex-col">
+    <div className="bg-gradient-to-b from-[#07ADB8]/10 to-white min-h-screen flex flex-col">
       <KolHeader />
       <div className="p-6 max-w-7xl mx-auto flex-1">
         <div className="flex flex-col space-y-6">
