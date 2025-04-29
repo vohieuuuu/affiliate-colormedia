@@ -3,10 +3,10 @@ export default function Footer() {
     <footer className="bg-[#07ADB8] text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Logo */}
+          {/* Empty div instead of logo */}
           <div className="mb-6 md:mb-0">
-            <div className="bg-white rounded p-2 inline-block">
-              <img src="/cms-logo.png" alt="ColorMedia Logo" className="h-12" />
+            <div className="bg-transparent p-2 inline-block">
+              
             </div>
           </div>
 
@@ -42,7 +42,7 @@ export default function Footer() {
               <p>contact@colormedia.vn</p>
             </div>
             <div className="mt-4 md:mt-0 text-right md:self-end">
-              <img src="/dmca-badge.svg" alt="DMCA Protected" className="h-8 inline-block" />
+              
             </div>
           </div>
         </div>
