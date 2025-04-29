@@ -187,7 +187,20 @@ app.use('/api/*', extractToken);
 app.all('/api/*', async (req, res) => {
   try {
     const isProd = process.env.NODE_ENV === 'production';
-    const backendUrl = isProd ? process.env.API_URL || 'https://affclm-api.replit.app' : 'http://localhost:3000';
+    // Sử dụng biến môi trường API_URL để cấu hình endpoint API
+    // Với thứ tự ưu tiên: biến môi trường API_URL -> biến môi trường APP_ENV -> giá trị mặc định
+    const appEnv = process.env.APP_ENV || (isProd ? 'production' : 'development');
+    
+    // Cấu hình theo môi trường triển khai
+    const apiEndpoints = {
+      production: process.env.API_URL || 'https://affclm-api.replit.app',
+      staging: process.env.STAGING_API_URL || 'https://affclm-api-staging.replit.app',
+      development: process.env.DEV_API_URL || 'http://localhost:3000',
+      // Có thể thêm các môi trường khác ở đây
+    };
+    
+    // Lấy URL backend dựa trên môi trường
+    const backendUrl = apiEndpoints[appEnv] || apiEndpoints.production;
     const method = req.method.toLowerCase();
     const url = `${backendUrl}${req.url}`;
     
