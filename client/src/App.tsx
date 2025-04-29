@@ -11,7 +11,6 @@ import UnauthorizedPage from "@/pages/unauthorized";
 import AuthPage from "@/pages/auth-page";
 import ChangePasswordPage from "@/pages/change-password";
 import AffiliatePolicy from "@/pages/affiliate-policy";
-import RegisterAffiliate from "@/pages/register-affiliate";
 import RoleRouter from "@/pages/RoleRouter";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -40,7 +39,7 @@ function AuthenticatedRoutes() {
   }, [user, isLoading, requiresPasswordChange, selectedMode, location]);
   
   // Tạo danh sách các routes không cần xác thực
-  const publicRoutes = ["/auth", "/affiliate-policy", "/register-affiliate"];
+  const publicRoutes = ["/auth", "/affiliate-policy"];
   
   // Tạo danh sách các routes yêu cầu xác thực nhưng không yêu cầu chọn mode
   const authOnlyRoutes = ["/change-password", "/select-mode", "/unauthorized"];
@@ -85,7 +84,6 @@ function AuthenticatedRoutes() {
     "/change-password", 
     "/unauthorized",
     "/affiliate-policy",
-    "/register-affiliate",
     ...specialRoutes
   ];
   
@@ -100,7 +98,6 @@ function AuthenticatedRoutes() {
       {/* Những route công khai - không cần xác thực */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/affiliate-policy" component={AffiliatePolicy} />
-      <Route path="/register-affiliate" component={RegisterAffiliate} />
       
       {/* Route chỉ yêu cầu xác thực nhưng không yêu cầu chọn chế độ */}
       <ProtectedRoute path="/change-password" component={ChangePasswordPage} />
