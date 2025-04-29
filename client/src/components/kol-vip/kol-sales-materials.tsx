@@ -112,7 +112,7 @@ export default function KolSalesMaterials() {
   const isLoading = false;
 
   return (
-    <Card className="mt-8">
+    <Card className="mt-8 bg-transparent border-none shadow-none">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl">Tài liệu bán hàng</CardTitle>
         <CardDescription>

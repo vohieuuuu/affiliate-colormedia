@@ -65,7 +65,7 @@ export default function KolVideosSection() {
   const videos = data?.data || [];
 
   return (
-    <Card className="mt-8">
+    <Card className="mt-8 bg-transparent border-none shadow-none">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl">Video ColorMedia cho KOL/VIP</CardTitle>
         <CardDescription>
