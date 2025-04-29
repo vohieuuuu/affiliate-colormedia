@@ -42,7 +42,7 @@ export default function KolFooter() {
               <p>contact@colormedia.vn</p>
             </div>
             <div className="mt-4 md:mt-0 text-right md:self-end">
-              <img src="/dmca-protected.svg" alt="DMCA Protected" className="h-8 inline-block" />
+              <img src="/dmca-badge.svg" alt="DMCA Protected" className="h-8 inline-block" />
             </div>
           </div>
         </div>
