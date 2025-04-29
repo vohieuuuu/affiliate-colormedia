@@ -6,7 +6,7 @@ export default function Footer() {
           {/* Logo */}
           <div className="mb-6 md:mb-0">
             <div className="bg-white rounded p-2 inline-block">
-              <img src="/color-media-logo.png" alt="ColorMedia Logo" className="h-12" />
+              <img src="/logo-colormedia.png" alt="ColorMedia Logo" className="h-12" />
             </div>
           </div>
 
@@ -42,7 +42,7 @@ export default function Footer() {
               <p>contact@colormedia.vn</p>
             </div>
             <div className="mt-4 md:mt-0 text-right md:self-end">
-              <img src="/dmca-protected.svg" alt="DMCA Protected" className="h-8 inline-block" />
+              <img src="/dmca-badge.svg" alt="DMCA Protected" className="h-8 inline-block" />
             </div>
           </div>
         </div>
