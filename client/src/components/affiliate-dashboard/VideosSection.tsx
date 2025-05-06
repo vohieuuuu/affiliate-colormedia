@@ -17,9 +17,18 @@ const VideoItem = ({ video }: { video: VideoData }) => {
     <div className="group relative flex flex-col gap-2 rounded-lg overflow-hidden border p-3 transition-all hover:shadow-md">
       <div className="relative aspect-video w-full overflow-hidden rounded-md">
         <img 
-          src={video.thumbnail_url || `https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`} 
+          src={`https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`} 
           alt={video.title}
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
+          onError={(e) => {
+            // Nếu ảnh lỗi, thử sử dụng một định dạng khác
+            const target = e.target as HTMLImageElement;
+            if (target.src.includes('hqdefault.jpg')) {
+              target.src = `https://img.youtube.com/vi/${video.youtube_id}/mqdefault.jpg`;
+            } else if (target.src.includes('mqdefault.jpg')) {
+              target.src = `https://img.youtube.com/vi/${video.youtube_id}/default.jpg`;
+            }
+          }}
         />
         <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
           <div className="rounded-full bg-primary/80 p-2">
