@@ -24,7 +24,11 @@ const VideoItem = ({ video }: { video: VideoData }) => {
           <div className="rounded-full bg-red-600 p-3 mb-3 shadow-lg">
             <Play className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-sm font-medium text-white line-clamp-2 bg-black/40 px-3 py-1 rounded-md shadow-sm max-w-[90%]">
+        </div>
+
+        {/* Overlay tiêu đề */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black via-black/50 to-transparent">
+          <h3 className="text-sm font-medium text-white px-2 py-1 line-clamp-2 overflow-visible break-words">
             {video.title}
           </h3>
         </div>
@@ -36,9 +40,7 @@ const VideoItem = ({ video }: { video: VideoData }) => {
           </div>
         </div>
         
-        {/* Thêm phần tạo hiệu ứng */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black to-transparent"></div>
-        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/50 to-transparent"></div>
+        {/* Tự động tạo hiệu ứng bởi component chính */}
       </div>
       <div className="flex flex-col space-y-1">
         <h4 className="text-sm font-semibold line-clamp-2">{video.title}</h4>
