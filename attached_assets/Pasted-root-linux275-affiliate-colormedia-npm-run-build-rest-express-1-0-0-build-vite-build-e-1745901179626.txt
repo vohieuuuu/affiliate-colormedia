@@ -1,0 +1,75 @@
+root@linux275:~/affiliate-colormedia# npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.14 building for production...
+transforming (3) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2588 modules transformed.
+../dist/public/index.html                                    1.85 kB │ gzip:   0.76 kB
+../dist/public/assets/index-CBw4S7HZ.css                    80.51 kB │ gzip:  13.63 kB
+../dist/public/assets/commission-management-3-KMz7AA.js      5.72 kB │ gzip:   1.94 kB
+../dist/public/assets/OtpVerificationPage-ByMa40TC.js        6.55 kB │ gzip:   2.33 kB
+../dist/public/assets/index-H3yVqrkJ.js                  1,087.37 kB │ gzip: 302.59 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 9.79s
+▲ [WARNING] Duplicate member "getTopVideos" in class body [duplicate-class-member]
+
+    server/databaseStorage.ts:2017:8:
+      2017 │   async getTopVideos(limit: number = 5): Promise<VideoData[]> {
+           ╵         ~~~~~~~~~~~~
+
+  The original member "getTopVideos" is here:
+
+    server/databaseStorage.ts:1202:8:
+      1202 │   async getTopVideos(limit: number = 5): Promise<VideoData[]> {
+           ╵         ~~~~~~~~~~~~
+
+▲ [WARNING] Duplicate member "addVideo" in class body [duplicate-class-member]
+
+    server/databaseStorage.ts:2084:8:
+      2084 │   async addVideo(videoData: Partial<InsertVideo>): Promise<VideoData | undefined> {
+           ╵         ~~~~~~~~
+
+  The original member "addVideo" is here:
+
+    server/databaseStorage.ts:1235:8:
+      1235 │   async addVideo(video: VideoData): Promise<VideoData> {
+           ╵         ~~~~~~~~
+
+▲ [WARNING] Duplicate member "updateVideo" in class body [duplicate-class-member]
+
+    server/databaseStorage.ts:2114:8:
+      2114 │   async updateVideo(id: number, videoData: Partial<InsertVideo>): Promise<VideoData | undefined> {
+           ╵         ~~~~~~~~~~~
+
+  The original member "updateVideo" is here:
+
+    server/databaseStorage.ts:1250:8:
+      1250 │   async updateVideo(id: number, video: Partial<VideoData>): Promise<VideoData | undefined> {
+           ╵         ~~~~~~~~~~~
+
+▲ [WARNING] Duplicate member "deleteVideo" in class body [duplicate-class-member]
+
+    server/databaseStorage.ts:2148:8:
+      2148 │   async deleteVideo(id: number): Promise<boolean> {
+           ╵         ~~~~~~~~~~~
+
+  The original member "deleteVideo" is here:
+
+    server/databaseStorage.ts:1268:8:
+      1268 │   async deleteVideo(id: number): Promise<boolean> {
+           ╵         ~~~~~~~~~~~
+
+4 warnings
+
+  dist/index.js  410.3kb
+
+⚡ Done in 22ms
+root@linux275:~/affiliate-colormedia#

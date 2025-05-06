@@ -1,0 +1,29 @@
+root@linux275:~/affiliate-colormedia# sudo -u postgres psql -d colormedia-affiliate
+could not change directory to "/root/affiliate-colormedia": Permission denied
+psql (14.17 (Ubuntu 14.17-0ubuntu0.22.04.1))
+Type "help" for help.
+
+colormedia-affiliate=# \d users
+                                          Table "public.users"
+     Column     |            Type             | Collation | Nullable |              Default
+----------------+-----------------------------+-----------+----------+-----------------------------------
+ id             | integer                     |           | not null | nextval('users_id_seq'::regclass)
+ username       | character varying(100)      |           | not null |
+ password       | character varying(255)      |           | not null |
+ role           | character varying(20)       |           | not null | 'AFFILIATE'::character varying
+ is_active      | integer                     |           | not null | 1
+ is_first_login | integer                     |           | not null | 0
+ last_login     | timestamp without time zone |           |          |
+ token          | character varying(255)      |           |          |
+ created_at     | timestamp without time zone |           | not null | now()
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (id)
+    "users_username_unique" UNIQUE CONSTRAINT, btree (username)
+Referenced by:
+    TABLE "affiliates" CONSTRAINT "affiliates_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "kol_vip_affiliates" CONSTRAINT "kol_vip_affiliates_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "otp_verifications" CONSTRAINT "otp_verifications_user_id_users_id_fk" FOREIGN KEY (user_id) REFERENCES users(id)
+
+colormedia-affiliate=# INSERT INTO users (username, password, role, token, is_active, is_first_login, created_at)
+colormedia-affiliate-# VALUES ('admin', '$2b$10$vISH0aQnQ7mM7wQOWR4kj.3.YyOPMH4H2LscEEZ1BN.F1qZqA.t6O', 'ADMIN', '45fcc47d347e08f4cf4cf871ba30afcbd3274fd23dec9c54ca3b4503ada60d60', 1, 0, NOW());
+INSERT 0 1

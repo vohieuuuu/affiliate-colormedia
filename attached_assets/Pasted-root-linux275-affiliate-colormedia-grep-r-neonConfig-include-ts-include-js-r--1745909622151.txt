@@ -1,0 +1,30 @@
+root@linux275:~/affiliate-colormedia# grep -r "neonConfig" --include="*.ts" --include="*.js" .
+r "@neondatabase/serverless" --includ./dist/index.js:import { Pool, neonConfig } from "@neondatabase/serverless";
+./dist/index.js:    neonConfig.webSocketConstructor = ws;
+e="*.ts" --include="*.js" ../server/db.ts:neonConfig.webSocketConstructor = ws;
+./node_modules/drizzle-orm/neon-serverless/driver.js:import { neonConfig, Pool } from "@neondatabase/serverless";
+./node_modules/drizzle-orm/neon-serverless/driver.js:      neonConfig.webSocketConstructor = ws;
+./node_modules/@neondatabase/serverless/index.d.ts:   * import { neonConfig } from '@neondatabase/serverless';
+./node_modules/@neondatabase/serverless/index.d.ts:   * neonConfig.subtls = subtls;
+./node_modules/@neondatabase/serverless/index.d.ts:  neonConfig: NeonConfigGlobalAndClient;
+./node_modules/@neondatabase/serverless/index.d.ts:  neonConfig: NeonConfigGlobalAndClient;
+./node_modules/@neondatabase/serverless/index.d.ts:  neonConfig: NeonConfigGlobalAndClient;
+./node_modules/@neondatabase/serverless/index.d.ts:export const neonConfig: NeonConfig;
+./node_modules/@neondatabase/serverless/index.js:void 0)throw new Error("For Postgres SSL connections, you must set `neonConfig.s\
+./node_modules/@neondatabase/serverless/index.js:defaults:()=>oe.defaults,neon:()=>An,neonConfig:()=>Se,types:()=>oe.types});module.
+./node_modules/@neondatabase/serverless/index.js:n: ${e.message}`)),t}}a(Gc,"getAuthToken");var to=Ie(bt()),oe=Ie(It());var Tn=class Tn extends Lt.Client{constructor(t){super(t);this.config=t}get neonConfig(){
+./node_modules/@neondatabase/serverless/index.js:return this.connection.stream}connect(t){let{neonConfig:n}=this;n.forceDisablePgSSL&&
+root@linux275:~/affiliate-colormedia# grep -r "@neondatabase/serverless" --include="*.ts" --include="*.js" .
+./dist/index.js:import { Pool, neonConfig } from "@neondatabase/serverless";
+./node_modules/drizzle-orm/neon-serverless/driver.js:import { neonConfig, Pool } from "@neondatabase/serverless";
+./node_modules/drizzle-orm/neon-serverless/session.js:} from "@neondatabase/serverless";
+./node_modules/drizzle-orm/neon-serverless/session.d.ts:import { type Client, Pool, type PoolClient, type QueryResult, type QueryResultRow } from '@neondatabase/serverless';
+./node_modules/drizzle-orm/neon-serverless/driver.d.ts:import { Pool, type PoolConfig } from '@neondatabase/serverless';
+./node_modules/drizzle-orm/neon-http/driver.js:import { neon, types } from "@neondatabase/serverless";
+./node_modules/drizzle-orm/neon-http/session.d.ts:import type { FullQueryResults, NeonQueryFunction } from '@neondatabase/serverless';
+./node_modules/drizzle-orm/neon-http/driver.d.ts:import type { HTTPQueryOptions, HTTPTransactionOptions, NeonQueryFunction } from '@neondatabase/serverless';
+./node_modules/@neondatabase/serverless/index.d.ts:// @neondatabase/serverless driver types, mimicking pg
+./node_modules/@neondatabase/serverless/index.d.ts:   * import { neonConfig } from '@neondatabase/serverless';
+./node_modules/@neondatabase/serverless/index.d.ts:   * import { neon } from "@neondatabase/serverless";
+./node_modules/@neondatabase/serverless/index.d.ts: * import { neon } from "@neondatabase/serverless";
+root@linux275:~/affiliate-colormedia#

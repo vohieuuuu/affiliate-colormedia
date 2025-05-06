@@ -1,0 +1,51 @@
+/root/.pm2/logs/affiliate-system-error.log last 50 lines:
+0|affiliat |     syscall: 'connect',
+0|affiliat |     address: '127.0.0.1',
+0|affiliat |     port: 443
+0|affiliat |   },
+0|affiliat |   [Symbol(kMessage)]: 'connect ECONNREFUSED 127.0.0.1:443'
+0|affiliat | }
+0|affiliat | Error creating user for affiliate: ErrorEvent {
+0|affiliat |   [Symbol(kTarget)]: WebSocket {
+0|affiliat |     _events: [Object: null prototype] {
+0|affiliat |       error: [Function],
+0|affiliat |       message: [Function],
+0|affiliat |       close: [Function],
+0|affiliat |       open: [Function]
+0|affiliat |     },
+0|affiliat |     _eventsCount: 4,
+0|affiliat |     _maxListeners: undefined,
+0|affiliat |     _binaryType: 'arraybuffer',
+0|affiliat |     _closeCode: 1006,
+0|affiliat |     _closeFrameReceived: false,
+0|affiliat |     _closeFrameSent: false,
+0|affiliat |     _closeMessage: <Buffer >,
+0|affiliat |     _closeTimer: null,
+0|affiliat |     _errorEmitted: true,
+0|affiliat |     _extensions: {},
+0|affiliat |     _paused: false,
+0|affiliat |     _protocol: '',
+0|affiliat |     _readyState: 3,
+0|affiliat |     _receiver: null,
+0|affiliat |     _sender: null,
+0|affiliat |     _socket: null,
+0|affiliat |     _bufferedAmount: 0,
+0|affiliat |     _isServer: false,
+0|affiliat |     _redirects: 0,
+0|affiliat |     _autoPong: true,
+0|affiliat |     _url: 'wss://localhost/v2',
+0|affiliat |     _req: null,
+0|affiliat |     [Symbol(shapeMode)]: false,
+0|affiliat |     [Symbol(kCapture)]: false
+0|affiliat |   },
+0|affiliat |   [Symbol(kType)]: 'error',
+0|affiliat |   [Symbol(kError)]: Error: connect ECONNREFUSED 127.0.0.1:443
+0|affiliat |       at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1634:16) {
+0|affiliat |     errno: -111,
+0|affiliat |     code: 'ECONNREFUSED',
+0|affiliat |     syscall: 'connect',
+0|affiliat |     address: '127.0.0.1',
+0|affiliat |     port: 443
+0|affiliat |   },
+0|affiliat |   [Symbol(kMessage)]: 'connect ECONNREFUSED 127.0.0.1:443'
+0|affiliat | }
