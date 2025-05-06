@@ -193,6 +193,18 @@ export default function AffiliatePolicy() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6">
+                      <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200 text-blue-900">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Chương trình KOL/VIP</AlertTitle>
+                        <AlertDescription>
+                          <p className="mt-2">
+                            Chương trình KOL/VIP dành cho những đối tác có tầm ảnh hưởng hoặc mối quan hệ rộng. Bạn sẽ nhận được lương cố định hàng tháng cùng với hoa hồng 3% từ mỗi hợp đồng thành công.
+                          </p>
+                          <p className="mt-2">
+                            KOL/VIP được phân thành 3 cấp độ với lương và yêu cầu KPI khác nhau. Việc đánh giá và nâng cấp sẽ được thực hiện hàng tháng dựa trên hiệu suất làm việc.
+                          </p>
+                        </AlertDescription>
+                      </Alert>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Card className="border border-gray-200 shadow-sm relative overflow-hidden">
                           <div className="absolute top-0 right-0 bg-[#07ADB8]/10 text-[#07ADB8] px-2 py-1 text-xs font-semibold rounded-bl">
