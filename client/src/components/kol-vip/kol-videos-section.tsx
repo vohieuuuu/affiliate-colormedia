@@ -15,18 +15,28 @@ const VideoItem = ({ video }: { video: VideoData }) => {
 
   return (
     <div className="group relative flex flex-col gap-2 rounded-lg overflow-hidden border p-3 transition-all hover:shadow-md">
-      <div className="relative aspect-video w-full overflow-hidden rounded-md">
+      <div className="relative aspect-video w-full overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
         <img 
           src={`https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`} 
           alt={video.title}
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
           onError={(e) => {
-            // Nếu ảnh lỗi, thử sử dụng một định dạng khác
+            // Nếu ảnh lỗi, dùng ảnh dự phòng
             const target = e.target as HTMLImageElement;
             if (target.src.includes('hqdefault.jpg')) {
               target.src = `https://img.youtube.com/vi/${video.youtube_id}/mqdefault.jpg`;
             } else if (target.src.includes('mqdefault.jpg')) {
               target.src = `https://img.youtube.com/vi/${video.youtube_id}/default.jpg`;
+            } else {
+              target.src = '/images/video-placeholder.svg';
+              // Thêm overlay text cho trường hợp này
+              const container = target.parentElement;
+              if (container) {
+                const titleOverlay = document.createElement('div');
+                titleOverlay.className = 'absolute inset-0 flex items-center justify-center p-2 text-center';
+                titleOverlay.innerHTML = `<span class="text-sm font-medium text-gray-700">${video.title}</span>`;
+                container.appendChild(titleOverlay);
+              }
             }
           }}
         />
