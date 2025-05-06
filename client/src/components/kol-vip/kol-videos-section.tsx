@@ -15,50 +15,30 @@ const VideoItem = ({ video }: { video: VideoData }) => {
 
   return (
     <div className="group relative flex flex-col gap-2 rounded-lg overflow-hidden border p-3 transition-all hover:shadow-md">
-      <div className="relative aspect-video w-full overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
-        {/* Hình ảnh thumbnail */}
-        <img 
-          src={`https://i3.ytimg.com/vi/${video.youtube_id}/0.jpg`}
-          alt={video.title}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            // Thử dùng hqdefault.jpg
-            if (!target.src.includes('hqdefault.jpg')) {
-              target.src = `https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`;
-            } 
-            // Nếu hqdefault không có, thử dùng mqdefault.jpg
-            else if (!target.src.includes('mqdefault.jpg')) {
-              target.src = `https://img.youtube.com/vi/${video.youtube_id}/mqdefault.jpg`;
-            }
-            // Nếu mqdefault không có, dùng default.jpg
-            else if (!target.src.includes('default.jpg')) {
-              target.src = `https://img.youtube.com/vi/${video.youtube_id}/default.jpg`;
-            }
-            // Nếu vẫn không có, đặt một màu nền
-            else {
-              target.style.display = 'none';
-              const parent = target.parentElement;
-              if (parent) {
-                parent.style.backgroundColor = '#1f2937';
-              }
-            }
-          }}
-        />
-        
-        {/* Lớp overlay khi hover */}
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center p-3 text-center">
-          <div className="mb-2 rounded-full bg-primary p-3 transform scale-90 group-hover:scale-100 transition-transform duration-200">
-            <Play className="h-8 w-8 text-white" />
+      <div 
+        className="relative aspect-video w-full overflow-hidden rounded-md bg-gradient-to-b from-gray-800 to-gray-900 flex items-center justify-center"
+        onClick={handlePlayVideo}
+      >
+        {/* Icon YouTube và tiêu đề */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          <div className="rounded-full bg-red-600 p-3 mb-3 shadow-lg">
+            <Play className="h-6 w-6 text-white" />
           </div>
-        </div>
-        
-        {/* Overlay tiêu đề luôn hiển thị ở dưới */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          <h3 className="text-sm font-medium text-white line-clamp-2">
+          <h3 className="text-sm font-medium text-white line-clamp-2 bg-black/40 px-3 py-1 rounded-md shadow-sm max-w-[90%]">
             {video.title}
           </h3>
         </div>
+
+        {/* Biểu tượng play khi hover */}
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+          <div className="rounded-full bg-primary p-3 transform scale-90 group-hover:scale-110 transition-transform duration-200 shadow-lg">
+            <Play className="h-8 w-8 text-white" fill="currentColor" />
+          </div>
+        </div>
+        
+        {/* Thêm phần tạo hiệu ứng */}
+        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black to-transparent"></div>
+        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/50 to-transparent"></div>
       </div>
       <div className="flex flex-col space-y-1">
         <h4 className="text-sm font-semibold line-clamp-2">{video.title}</h4>
