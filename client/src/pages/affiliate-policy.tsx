@@ -566,9 +566,19 @@ export default function AffiliatePolicy() {
                           <AccordionTrigger>Làm thế nào để đăng ký tham gia chương trình KOL/VIP?</AccordionTrigger>
                           <AccordionContent>
                             <p className="text-gray-700 dark:text-gray-300">
-                              Để đăng ký chương trình KOL/VIP, bạn cần có kinh nghiệm trong lĩnh vực truyền thông hoặc có mạng lưới rộng.
-                              Vui lòng liên hệ với chúng tôi qua email <span className="font-medium">affiliate@colormedia.vn</span> hoặc số điện thoại
-                              <span className="font-medium"> 0986 123 456</span> để được tư vấn.
+                              Để đăng ký chương trình KOL/VIP, bạn cần đáp ứng một trong các điều kiện sau:
+                            </p>
+                            <ul className="list-disc pl-5 mt-2 space-y-1 text-gray-700 dark:text-gray-300">
+                              <li>Có kinh nghiệm trong lĩnh vực truyền thông, marketing hoặc sản xuất nội dung</li>
+                              <li>Có mạng lưới khách hàng doanh nghiệp rộng</li>
+                              <li>Có tầm ảnh hưởng trên mạng xã hội với trên 10,000 followers</li>
+                              <li>Đã làm việc trong ngành quảng cáo, truyền thông ít nhất 1 năm</li>
+                            </ul>
+                            <p className="text-gray-700 dark:text-gray-300 mt-2">
+                              Vui lòng liên hệ với chúng tôi qua email <span className="font-medium">affiliate@colormedia.vn</span> kèm theo thông tin về bản thân, kinh nghiệm và lý do bạn muốn trở thành KOL/VIP của ColorMedia.
+                            </p>
+                            <p className="text-gray-700 dark:text-gray-300 mt-2">
+                              Sau khi nhận được đơn đăng ký, chúng tôi sẽ liên hệ để phỏng vấn và đánh giá khả năng hợp tác.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
