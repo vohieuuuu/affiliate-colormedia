@@ -198,10 +198,10 @@ export default function AffiliatePolicy() {
                         <AlertTitle>Chương trình KOL/VIP</AlertTitle>
                         <AlertDescription>
                           <p className="mt-2">
-                            Chương trình KOL/VIP dành cho những đối tác có tầm ảnh hưởng hoặc mối quan hệ rộng. Bạn sẽ nhận được lương cố định hàng tháng cùng với hoa hồng 3% từ mỗi hợp đồng thành công.
+                            Chương trình KOL/VIP là mô hình hợp tác đặc biệt dành cho những đối tác có tầm ảnh hưởng hoặc mạng lưới rộng trong ngành truyền thông, marketing, quảng cáo. KOL/VIP được hưởng lương cố định hàng tháng cùng với hoa hồng 3% từ mỗi hợp đồng thành công.
                           </p>
                           <p className="mt-2">
-                            KOL/VIP được phân thành 3 cấp độ với lương và yêu cầu KPI khác nhau. Việc đánh giá và nâng cấp sẽ được thực hiện hàng tháng dựa trên hiệu suất làm việc.
+                            KOL/VIP được phân thành 3 cấp độ với chế độ lương và yêu cầu KPI khác nhau. Việc đánh giá hiệu suất và điều chỉnh cấp độ sẽ được thực hiện vào cuối mỗi tháng. Đối tác xuất sắc có thể được nâng cấp lên cấp cao hơn sau 3 tháng liên tiếp đạt vượt chỉ tiêu KPI.
                           </p>
                         </AlertDescription>
                       </Alert>
@@ -327,6 +327,35 @@ export default function AffiliatePolicy() {
                             </div>
                           </CardContent>
                         </Card>
+                      </div>
+                      
+                      <div className="mt-8 border rounded-lg p-5 bg-gray-50 dark:bg-gray-800/50">
+                        <h3 className="font-semibold text-lg mb-4 flex items-center">
+                          <InfoIcon className="h-5 w-5 mr-2 text-[#07ADB8]" />
+                          Quy trình làm việc và đánh giá hiệu suất KOL/VIP
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-3">
+                            <h4 className="font-medium">Quy trình làm việc</h4>
+                            <ul className="space-y-2 pl-5 list-disc text-sm text-gray-700 dark:text-gray-300">
+                              <li>KOL/VIP sẽ được cấp tài khoản và quyền truy cập riêng trên hệ thống</li>
+                              <li>Cập nhật thông tin liên hệ khách hàng và tiềm năng hợp tác lên hệ thống</li>
+                              <li>Đội ngũ ColorMedia sẽ tiếp nhận và xử lý các liên hệ</li>
+                              <li>KOL/VIP có thể theo dõi tiến trình xử lý và trạng thái khách hàng</li>
+                              <li>Khi khách hàng ký kết hợp đồng, hệ thống sẽ ghi nhận và tính hoa hồng</li>
+                            </ul>
+                          </div>
+                          <div className="space-y-3">
+                            <h4 className="font-medium">Đánh giá hiệu suất và điều chỉnh cấp độ</h4>
+                            <ul className="space-y-2 pl-5 list-disc text-sm text-gray-700 dark:text-gray-300">
+                              <li>Đánh giá hiệu suất được thực hiện vào ngày cuối cùng của mỗi tháng</li>
+                              <li>Nếu đạt vượt chỉ tiêu KPI 3 tháng liên tiếp: nâng cấp lên mức cao hơn</li>
+                              <li>Nếu không đạt đủ KPI 2 tháng liên tiếp: hạ xuống mức thấp hơn</li>
+                              <li>Lương của tháng tiếp theo sẽ được điều chỉnh theo cấp độ mới</li>
+                              <li>ColorMedia có thể ngừng hợp tác nếu KOL/VIP không đạt KPI 3 tháng liên tiếp</li>
+                            </ul>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
