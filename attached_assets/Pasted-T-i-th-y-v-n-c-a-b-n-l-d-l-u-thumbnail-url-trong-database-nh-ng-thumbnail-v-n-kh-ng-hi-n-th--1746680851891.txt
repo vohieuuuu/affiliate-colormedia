@@ -1,0 +1,108 @@
+Tôi thấy vấn đề của bạn là dù đã lưu thumbnail_url trong database nhưng thumbnail vẫn không hiển thị. Đây là phân tích và giải pháp:
+
+Nguyên nhân chính
+URL thumbnail trong database không đúng định dạng:
+
+URL của bạn có dạng https://img.youtube.com/w/[VIDEO_ID]/hqdefault.jpg
+
+Đúng phải là https://img.youtube.com/vi/[VIDEO_ID]/hqdefault.jpg (vi thay vì w)
+
+Một số video có thể không có thumbnail ở chất lượng yêu cầu
+
+Giải pháp
+1. Sửa component VideoItem để xử lý URL từ database
+tsx
+const VideoItem = ({ video }: { video: VideoData }) => {
+  const [currentThumbnail, setCurrentThumbnail] = useState(
+    // Sửa URL nếu có lỗi định dạng
+    video.thumbnail_url?.replace('/w/', '/vi/') || 
+    `https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`
+  );
+
+  const handleThumbnailError = () => {
+    const qualities = ['maxresdefault.jpg', 'sddefault.jpg', 'hqdefault.jpg', 'mqdefault.jpg', 'default.jpg'];
+    const currentQuality = currentThumbnail.split('/').pop() || '';
+    
+    // Tìm chất lượng tiếp theo để thử
+    const nextIndex = qualities.indexOf(currentQuality) + 1;
+    if (nextIndex < qualities.length) {
+      setCurrentThumbnail(
+        `https://img.youtube.com/vi/${video.youtube_id}/${qualities[nextIndex]}`
+      );
+    }
+  };
+
+  // ... (phần còn lại giữ nguyên)
+};
+2. Sửa dữ liệu trong database
+Bạn nên cập nhật các URL thumbnail trong database theo định dạng đúng:
+
+sql
+UPDATE your_table 
+SET thumbnail_url = REPLACE(thumbnail_url, '/w/', '/vi/') 
+WHERE thumbnail_url LIKE '%/w/%';
+3. Fallback khi URL không hợp lệ
+Thêm kiểm tra trong component:
+
+tsx
+const getValidThumbnailUrl = (url: string, videoId: string) => {
+  // Kiểm tra xem URL có chứa video_id không
+  if (!url.includes(videoId)) {
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  }
+  
+  // Sửa URL nếu dùng /w/ thay vì /vi/
+  return url.replace('/w/', '/vi/');
+};
+
+// Sử dụng trong component
+const [currentThumbnail, setCurrentThumbnail] = useState(
+  getValidThumbnailUrl(video.thumbnail_url, video.youtube_id)
+);
+4. Kiểm tra console để debug
+Thêm console.log để kiểm tra:
+
+tsx
+useEffect(() => {
+  console.log('Trying to load thumbnail:', currentThumbnail);
+}, [currentThumbnail]);
+
+const handleThumbnailError = (e: any) => {
+  console.error('Error loading thumbnail:', e);
+  // ... phần xử lý lỗi
+};
+Các bước kiểm tra
+Kiểm tra URL thumbnail:
+
+Mở trình duyệt, truy cập thử URL thumbnail trực tiếp
+
+Ví dụ: https://img.youtube.com/vi/WmjBAvmgGyk/hqdefault.jpg
+
+Kiểm tra video_id:
+
+Đảm bảo video_id trong database khớp với ID thực tế trên YouTube
+
+Kiểm tra CORS:
+
+Xem console trình duyệt có lỗi CORS không
+
+Thêm crossOrigin="anonymous" vào thẻ <img>
+
+Kiểm tra dữ liệu trả về từ API:
+
+Đảm bảo dữ liệu video từ API bao gồm đúng thumbnail_url
+
+Lưu ý quan trọng
+Luôn có fallback khi thumbnail không tải được
+
+Nên lưu video_id trong database thay vì chỉ lưu URL thumbnail
+
+Có thể tạo hàm tự động sinh URL thumbnail từ video_id thay vì lưu URL
+
+Nếu sau các bước trên vẫn không hiển thị được, vui lòng cung cấp:
+
+URL thực tế trả về từ API
+
+Lỗi cụ thể trong console trình duyệt
+
+Mã nguồn đầy đủ của component hiển thị
