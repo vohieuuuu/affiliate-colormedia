@@ -14,24 +14,48 @@ const VideoItem = ({ video }: { video: VideoData }) => {
     window.open(`https://www.youtube.com/watch?v=${video.youtube_id}`, '_blank');
   };
 
-  // State để quản lý việc tải thumbnail
-  const [thumbnailError, setThumbnailError] = useState(false);
+  // State để quản lý chất lượng thumbnail hiện tại
+  const [currentThumbnail, setCurrentThumbnail] = useState(
+    `https://img.youtube.com/vi/${video.youtube_id}/maxresdefault.jpg`
+  );
   
-  // URL thumbnail chất lượng cao nhất
-  const thumbnailUrl = `https://img.youtube.com/vi/${video.youtube_id}/maxresdefault.jpg`;
+  // State để kiểm soát nếu đã thử tất cả các chất lượng nhưng vẫn lỗi
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
   
+  // Danh sách chất lượng thumbnail theo thứ tự giảm dần
+  const qualities = ['maxresdefault.jpg', 'sddefault.jpg', 'hqdefault.jpg', 'mqdefault.jpg', 'default.jpg'];
+  
+  // Xử lý khi thumbnail lỗi
+  const handleThumbnailError = () => {
+    // Tìm chất lượng hiện tại trong danh sách
+    const currentQualityName = currentThumbnail.split('/').pop();
+    const currentIndex = qualities.findIndex(q => q === currentQualityName);
+    
+    // Nếu còn chất lượng thấp hơn, thử tiếp
+    if (currentIndex < qualities.length - 1) {
+      const nextQuality = qualities[currentIndex + 1];
+      setCurrentThumbnail(`https://img.youtube.com/vi/${video.youtube_id}/${nextQuality}`);
+    } else {
+      // Đã thử tất cả các chất lượng
+      setThumbnailFailed(true);
+    }
+  };
+
   return (
     <div className="group relative flex flex-col gap-2 rounded-lg overflow-hidden border p-3 transition-all hover:shadow-md">
       <div 
         className="relative aspect-video w-full overflow-hidden rounded-md flex items-center justify-center cursor-pointer"
         onClick={handlePlayVideo}
         style={{
-          background: thumbnailError 
-            ? "linear-gradient(to bottom, #1e293b, #0f172a)" 
-            : `url(${thumbnailUrl}) center/cover no-repeat`
+          backgroundImage: !thumbnailFailed ? `url(${currentThumbnail})` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#1e293b', // Fallback background color
+          backgroundBlendMode: thumbnailFailed ? 'normal' : 'darken'
         }}
       >
-        {/* Overlay gradient */}
+        {/* Overlay gradient luôn có để đảm bảo text đọc được */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60"></div>
         
         {/* YouTube icon */}
@@ -55,12 +79,13 @@ const VideoItem = ({ video }: { video: VideoData }) => {
           </div>
         </div>
         
-        {/* Ảnh thumbnail */}
+        {/* Ảnh thumbnail ẩn để phát hiện lỗi */}
         <img 
-          src={thumbnailUrl}
+          src={currentThumbnail}
           alt={video.title}
           className="hidden" // Hidden image to detect loading errors
-          onError={() => setThumbnailError(true)}
+          onError={handleThumbnailError}
+          crossOrigin="anonymous" // Giúp tránh một số vấn đề CORS
         />
       </div>
       

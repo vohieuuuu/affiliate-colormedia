@@ -1,0 +1,132 @@
+Ưu điểm hiện tại
+Thiết kế responsive và có hiệu ứng hover tốt
+
+Xử lý fallback khi thumbnail lỗi bằng gradient
+
+Có icon YouTube và nút play rõ ràng
+
+Hiển thị thông tin view count đã được định dạng
+
+Vấn đề với thumbnail và đề xuất cải thiện
+1. Vấn đề với maxresdefault.jpg
+Không phải video nào cũng có thumbnail maxresdefault.jpg
+
+Nên có fallback chain khi chất lượng cao nhất không tồn tại
+
+2. Component cải tiến
+tsx
+const VideoItem = ({ video }: { video: VideoData }) => {
+  const handlePlayVideo = () => {
+    window.open(`https://www.youtube.com/watch?v=${video.youtube_id}`, '_blank');
+  };
+
+  // State để quản lý chất lượng thumbnail hiện tại
+  const [currentThumbnail, setCurrentThumbnail] = useState(
+    `https://img.youtube.com/vi/${video.youtube_id}/maxresdefault.jpg`
+  );
+  
+  // Xử lý khi thumbnail lỗi
+  const handleThumbnailError = () => {
+    // Thử các chất lượng thumbnail khác nhau theo thứ tự
+    const qualities = ['hqdefault.jpg', 'mqdefault.jpg', 'default.jpg'];
+    const currentQuality = currentThumbnail.split('/').pop();
+    const nextQuality = qualities.find(q => q !== currentQuality) || 'default.jpg';
+    
+    setCurrentThumbnail(
+      `https://img.youtube.com/vi/${video.youtube_id}/${nextQuality}`
+    );
+  };
+
+  return (
+    <div className="group relative flex flex-col gap-2 rounded-lg overflow-hidden border p-3 transition-all hover:shadow-md">
+      <div 
+        className="relative aspect-video w-full overflow-hidden rounded-md flex items-center justify-center cursor-pointer"
+        onClick={handlePlayVideo}
+        style={{
+          backgroundImage: `url(${currentThumbnail})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#1e293b' // Fallback background color
+        }}
+      >
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60"></div>
+        
+        {/* YouTube icon */}
+        <div className="absolute left-4 top-4 z-10">
+          <div className="rounded-full bg-red-600 p-2 shadow-lg">
+            <Play className="h-4 w-4 text-white" fill="white" />
+          </div>
+        </div>
+
+        {/* Tiêu đề */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <h3 className="text-sm font-medium text-white p-2 line-clamp-2 bg-black/70 rounded backdrop-blur-sm">
+            {video.title}
+          </h3>
+        </div>
+
+        {/* Biểu tượng play khi hover */}
+        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+          <div className="rounded-full bg-primary p-3 transform scale-90 group-hover:scale-110 transition-transform duration-200 shadow-lg">
+            <Play className="h-8 w-8 text-white" fill="currentColor" />
+          </div>
+        </div>
+        
+        {/* Ảnh thumbnail ẩn để phát hiện lỗi */}
+        <img 
+          src={currentThumbnail}
+          alt={video.title}
+          className="hidden"
+          onError={handleThumbnailError}
+          crossOrigin="anonymous" // Giúp tránh một số vấn đề CORS
+        />
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {video.views ? `${video.views.toLocaleString()} lượt xem` : ''}
+        </p>
+      </div>
+      
+      <Button 
+        size="sm" 
+        variant="secondary" 
+        className="mt-1 w-full" 
+        onClick={handlePlayVideo}
+      >
+        Xem video
+      </Button>
+    </div>
+  );
+};
+Các cải tiến chính
+Hệ thống fallback thumbnail tốt hơn:
+
+Thử các chất lượng thumbnail khác nhau khi bản cao nhất không tồn tại
+
+Thứ tự fallback: maxresdefault → hqdefault → mqdefault → default
+
+Thêm crossOrigin="anonymous":
+
+Giúp tránh một số vấn đề CORS khi tải thumbnail
+
+Tách logic xử lý thumbnail:
+
+Dễ dàng mở rộng và bảo trì hơn
+
+Màu nền fallback rõ ràng:
+
+Đảm bảo UI vẫn đẹp ngay cả khi không tải được thumbnail
+
+Kiểm tra thêm
+Nếu vẫn gặp vấn đề, hãy kiểm tra:
+
+Console trình duyệt xem có lỗi CORS nào không
+
+Network tab xem request tải thumbnail có thành công không
+
+Đảm bảo video.youtube_id luôn có giá trị hợp lệ
+
+Bạn có thể cần thêm error boundary hoặc skeleton loading để trải nghiệm người dùng tốt hơn khi tải thumbnail.
