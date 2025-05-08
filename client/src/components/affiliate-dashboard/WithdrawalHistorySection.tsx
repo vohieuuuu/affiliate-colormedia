@@ -105,19 +105,7 @@ export default function WithdrawalHistorySection({
                 </TableRow>
               )}
               
-              {/* Debug info - Thông tin rút tiền */}
-              {withdrawalHistory.length > 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-xs text-gray-400 p-2 border-t">
-                    <details>
-                      <summary>Debug: {withdrawalHistory.length} withdrawal requests</summary>
-                      <pre className="overflow-auto p-2 mt-2 bg-gray-100 dark:bg-gray-800 rounded text-left">
-                        {JSON.stringify(withdrawalHistory, null, 2)}
-                      </pre>
-                    </details>
-                  </TableCell>
-                </TableRow>
-              )}
+              {/* Đã xóa debug info */}
             </TableBody>
           </Table>
         </div>
