@@ -13,43 +13,64 @@ const VideoItem = ({ video }: { video: VideoData }) => {
     window.open(`https://www.youtube.com/watch?v=${video.youtube_id}`, '_blank');
   };
 
+  // State để quản lý việc tải thumbnail
+  const [thumbnailError, setThumbnailError] = useState(false);
+  
+  // URL thumbnail chất lượng cao nhất
+  const thumbnailUrl = `https://img.youtube.com/vi/${video.youtube_id}/maxresdefault.jpg`;
+  
   return (
     <div className="group relative flex flex-col gap-2 rounded-lg overflow-hidden border p-3 transition-all hover:shadow-md">
       <div 
-        className="relative aspect-video w-full overflow-hidden rounded-md bg-gradient-to-b from-gray-800 to-gray-900 flex items-center justify-center"
+        className="relative aspect-video w-full overflow-hidden rounded-md flex items-center justify-center cursor-pointer"
         onClick={handlePlayVideo}
+        style={{
+          background: thumbnailError 
+            ? "linear-gradient(to bottom, #1e293b, #0f172a)" 
+            : `url(${thumbnailUrl}) center/cover no-repeat`
+        }}
       >
-        {/* Icon YouTube và tiêu đề */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-          <div className="rounded-full bg-red-600 p-3 mb-3 shadow-lg">
-            <Play className="h-6 w-6 text-white" />
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60"></div>
+        
+        {/* YouTube icon */}
+        <div className="absolute left-4 top-4 z-10">
+          <div className="rounded-full bg-red-600 p-2 shadow-lg">
+            <Play className="h-4 w-4 text-white" fill="white" />
           </div>
         </div>
 
-        {/* Overlay tiêu đề */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black via-black/50 to-transparent">
-          <h3 className="text-sm font-medium text-white px-2 py-1 line-clamp-2 overflow-visible break-words">
+        {/* Tiêu đề luôn hiển thị rõ ràng */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <h3 className="text-sm font-medium text-white p-2 line-clamp-2 bg-black/70 rounded backdrop-blur-sm">
             {video.title}
           </h3>
         </div>
 
         {/* Biểu tượng play khi hover */}
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <div className="rounded-full bg-primary p-3 transform scale-90 group-hover:scale-110 transition-transform duration-200 shadow-lg">
             <Play className="h-8 w-8 text-white" fill="currentColor" />
           </div>
         </div>
         
-        {/* Tự động tạo hiệu ứng bởi component chính */}
+        {/* Ảnh thumbnail */}
+        <img 
+          src={thumbnailUrl}
+          alt={video.title}
+          className="hidden" // Hidden image to detect loading errors
+          onError={() => setThumbnailError(true)}
+        />
       </div>
-      <div className="flex flex-col space-y-1">
-        <h4 className="text-sm font-semibold line-clamp-2">{video.title}</h4>
+      
+      <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">{video.views ? `${video.views.toLocaleString()} lượt xem` : ''}</p>
       </div>
+      
       <Button 
         size="sm" 
         variant="secondary" 
-        className="mt-auto w-full" 
+        className="mt-1 w-full" 
         onClick={handlePlayVideo}
       >
         Xem video
